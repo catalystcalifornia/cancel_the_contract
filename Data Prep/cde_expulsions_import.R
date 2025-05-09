@@ -46,27 +46,28 @@ con <- connect_to_db("rda_shared_data")
        names(df) <- str_replace_all(names(df), "[^[:alnum:]]", "") # remove non-alphanumeric characters
        names(df) <- gsub("([a-z])([A-Z])", "\\1_\\2", names(df))
        names(df) <- tolower(names(df))  # make col names lowercase
-       Encoding(df$schoolname) <- "ISO 8859-1"  # added this piece in 2023 script bc Spanish accents weren't appearing properly bc CDE native encoding is not UTF-8
-       Encoding(df$districtname) <- "ISO 8859-1"  # added this piece in 2023 script bc Spanish accents weren't appearing properly bc CDE native encoding is not UTF-8
-       df$districtcode<-as.character(df$districtcode)
+       
+       df<-df%>%
+         rename("districtcode"="district_code",
+                "academicyear"="academic_year",
+                'aggregatelevel'="aggregate_level",
+                "schoolcode"="school_code",
+                "schoolname"="school_name",
+                "countycode"="county_code",
+                "countyname"="county_name",
+                "districtname"="district_name",
+                "districtcode"="district_code",
+                "reportingcategory"="reporting_category",
+                "charteryn"="charter_yn") # rename these to match other cde data tables
        
        #create cdscode field
        df$cdscode <- ifelse(df$aggregatelevel == "D", paste0(df$countycode,df$districtcode,"0000000"),
                             ifelse(df$aggregatelevel == "S", paste0(df$countycode,df$districtcode,df$schoolcode), paste0(df$countycode,"000000000000")))
-       df <- df %>% relocate(cdscode)%>% # make cds code the first col
-         rename("cumulative_enrollment"="cumulativeenrollment",
-                "total_expulsions"="totalexpulsions", 
-                "unduplicated_count_students_expelled_total"="unduplicatedcountofstudentsexpelledtotal",
-                "unduplicated_count_students_expelled_defiance_only"="unduplicatedcountofstudentsexpelleddefianceonly", 
-                "expulsion_rate_total"="expulsionratetotal", 
-                "expulsion_count_violent_incident_injury"="expulsioncountviolentincidentinjury", 
-                "expulsion_count_violent_incident_noinjury"="expulsioncountviolentincidentnoinjury",
-                "expulsion_count_weapons_possession"="expulsioncountweaponspossession", 
-                "expulsion_count_illicit_drugrelated"="expulsioncountillicitdrugrelated", 
-                "expulsion_count_defiance_only"="expulsioncountdefianceonly",
-                "expulsion_count_other_reasons"="expulsioncountotherreasons"
-                
-         ) # rename columns for easier reading
+       df <- df %>% relocate(cdscode) # make cds code the first col
+        
+       Encoding(df$schoolname) <- "ISO 8859-1"  # added this piece in 2023 script bc Spanish accents weren't appearing properly bc CDE native encoding is not UTF-8
+       Encoding(df$districtname) <- "ISO 8859-1"  # added this piece in 2023 script bc Spanish accents weren't appearing properly bc CDE native encoding is not UTF-8
+       df$districtcode<-as.character(df$districtcode)
        
        #  WRITE TABLE TO POSTGRES DB
        

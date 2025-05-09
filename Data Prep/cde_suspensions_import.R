@@ -47,7 +47,7 @@ get_cde_data <- function(filepath, fieldtype, table_schema, table_name, table_co
   names(df) <- tolower(names(df))  # make col names lowercase
   
   df<-df%>%
-    rename(districtcode=district_code,
+    rename("districtcode"="district_code",
            "academicyear"="academic_year",
            'aggregatelevel'="aggregate_level",
            "schoolcode"="school_code",
