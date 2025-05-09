@@ -37,17 +37,6 @@ con2 <- connect_to_db("racecounts")
 
 agency_file <- read.xlsx("https://data-openjustice.doj.ca.gov/sites/default/files/dataset/2024-07/NCIC%20Code%20Jurisdiction%20List_05082024_0.xlsx")
 
-# # Import & clean RIPA supplement data ---------------------------------------------
-# NOTE I don't see a supplement data table for 2023 so commenting this code out ###############
-
-# ripa_supplement <- read_excel("W:/Data/Crime and Justice/CA DOJ/RIPA Stop Data/2022/12312022 Supplement RIPA SD.xlsx")
-# ripa_supp_df <- ripa_supplement %>% mutate(Code=(str_sub(AGENCY_ORI,4,7)))
-# 
-# ripa_supp_df <- ripa_supp_df %>% left_join(agency_file %>% select(County, Code, Agency), by = "Code")
-# ripa_supp_df %>% filter(is.na(County)) # View unmatched RIPA records. San Ramon PD agency code in RIPA is diff than in agency file. 2 SD records also do not match. Manually adding county names.
-# ripa_supp_df$County <- ifelse(ripa_supp_df$AGENCY_NAME == 'SAN RAMON PD', "Contra Costa County", ripa_supp_df$County) # Manual fix for San Ramon PD
-# ripa_supp_df$County <- ifelse(grepl('SAN DIEGO COMM', ripa_supp_df$AGENCY_NAME), "San Diego County", ripa_supp_df$County) # Manual fix for San Diego Comm
-
 # # Import & clean California Highway Patrol RIPA data ----------------------------------------
 # ### this step takes several minutes
 ripa_CHP_q1 <- read_excel("W://Data//Crime and Justice//CA DOJ//RIPA Stop Data//2023//RIPA Stop Data _ CHP 2023 Q1 final.xlsx")
