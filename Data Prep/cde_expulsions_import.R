@@ -53,7 +53,20 @@ con <- connect_to_db("rda_shared_data")
        #create cdscode field
        df$cdscode <- ifelse(df$aggregatelevel == "D", paste0(df$countycode,df$districtcode,"0000000"),
                             ifelse(df$aggregatelevel == "S", paste0(df$countycode,df$districtcode,df$schoolcode), paste0(df$countycode,"000000000000")))
-       df <- df %>% relocate(cdscode) # make cds code the first col
+       df <- df %>% relocate(cdscode)%>% # make cds code the first col
+         rename("cumulative_enrollment"="cumulativeenrollment",
+                "total_expulsions"="totalexpulsions", 
+                "unduplicated_count_students_expelled_total"="unduplicatedcountofstudentsexpelledtotal",
+                "unduplicated_count_students_expelled_defiance_only"="unduplicatedcountofstudentsexpelleddefianceonly", 
+                "expulsion_rate_total"="expulsionratetotal", 
+                "expulsion_count_violent_incident_injury"="expulsioncountviolentincidentinjury", 
+                "expulsion_count_violent_incident_noinjury"="expulsioncountviolentincidentnoinjury",
+                "expulsion_count_weapons_possession"="expulsioncountweaponspossession", 
+                "expulsion_count_illicit_drugrelated"="expulsioncountillicitdrugrelated", 
+                "expulsion_count_defiance_only"="expulsioncountdefianceonly",
+                "expulsion_count_other_reasons"="expulsioncountotherreasons"
+                
+         ) # rename columns for easier reading
        
        #  WRITE TABLE TO POSTGRES DB
        
@@ -77,146 +90,6 @@ con <- connect_to_db("rda_shared_data")
        return(df)
      }
      
+
+df <- get_cde_data(filepath, fieldtype, table_schema, table_name, table_comment_source, table_source) # function to create and export rda_shared_table to postgres db
      
-     
-# ## Run function to prep and export rda_shared_data table
-  source("https://raw.githubusercontent.com/catalystcalifornia/RaceCounts/main/Functions/rdashared_functions.R")
-  df <- get_cde_data(filepath, fieldtype, table_schema, table_name, table_comment_source, table_source) # function to create and export rda_shared_table to postgres db
-  View(df)
-# 
-# ## Run function to add rda_shared_data column comments
-# # See for more on scraping tables from websites: https://stackoverflow.com/questions/55092329/extract-table-from-webpage-using-r and https://cran.r-project.org/web/packages/rvest/rvest.pdf
-url <-  "https://www.cde.ca.gov/ds/ad/fsed.asp"   # define webpage with metadata
-html_nodes <- "table"
-colcomments <- get_cde_metadata(url, html_nodes, table_schema, table_name)
-View(colcomments)
-
-df <- st_read(con, query = "SELECT * FROM education.cde_multigeo_expulsion_2023_24") # comment out code to pull data and use this once rda_shared_data table is created
-
-#### Continue prep for RC ####
-
-#filter for county and state rows, all types of schools, and racial categories
-df_subset <- df %>% filter(aggregatelevel %in% c("C", "T", "D") & charteryn == "All" &
-                             reportingcategory %in% c("TA", "RB", "RI", "RA", "RF", "RH", "RP", "RT", "RW")) %>%
-  
-  #select just fields we need
-  select(cdscode, countyname, districtname, aggregatelevel, reportingcategory, cumulativeenrollment, totalexpulsions, unduplicatedcountofstudentsexpelledtotal,
-         unduplicatedcountofstudentsexpelleddefianceonly, expulsionratetotal, expulsioncountviolentincidentinjury, expulsioncountviolentincidentnoinjury,
-         expulsioncountweaponspossession, expulsioncountillicitdrugrelated, expulsioncountdefianceonly, expulsioncountotherreasons
-         )%>%
-  rename("cumulative_enrollment"="cumulativeenrollment",
-         "total_expulsions"="totalexpulsions", 
-         "unduplicated_count_students_expelled_total"="unduplicatedcountofstudentsexpelledtotal",
-         "unduplicated_count_students_expelled_defiance_only"="unduplicatedcountofstudentsexpelleddefianceonly", 
-         "expulsion_rate_total"="expulsionratetotal", 
-         "expulsion_count_violent_incident_injury"="expulsioncountviolentincidentinjury", 
-         "expulsion_count_violent_incident_noinjury"="expulsioncountviolentincidentnoinjury",
-         "expulsion_count_weapons_possession"="expulsioncountweaponspossession", 
-         "expulsion_count_illicit_drugrelated"="expulsioncountillicitdrugrelated", 
-         "expulsion_count_defiance_only"="expulsioncountdefianceonly",
-         "expulsion_count_other_reasons"="expulsioncountotherreasons"
-    
-  )
-
-#format for column headers
-df_subset <- rename(df_subset, 
-                    raw = "total_expulsions",
-                    pop = "cumulative_enrollment",
-                    rate = "expulsion_rate_total")
-
-df_subset$reportingcategory <- gsub("TA", "total", df_subset$reportingcategory)
-df_subset$reportingcategory <- gsub("RB", "nh_black", df_subset$reportingcategory)
-df_subset$reportingcategory <- gsub("RI", "nh_aian", df_subset$reportingcategory)
-df_subset$reportingcategory <- gsub("RA", "nh_asian", df_subset$reportingcategory)
-df_subset$reportingcategory <- gsub("RF", "nh_filipino", df_subset$reportingcategory)
-df_subset$reportingcategory <- gsub("RH", "latino", df_subset$reportingcategory)
-df_subset$reportingcategory <- gsub("RP", "nh_pacisl", df_subset$reportingcategory)
-df_subset$reportingcategory <- gsub("RT", "nh_twoormor", df_subset$reportingcategory)
-df_subset$reportingcategory <- gsub("RW", "nh_white", df_subset$reportingcategory)
-
-#pop screen on number of chronically absent students (raw)
-threshold <- 20
-df_subset <- df_subset %>% mutate(raw = ifelse(raw < threshold, NA, raw)) %>%
-  mutate(rate = ifelse(raw < threshold, NA, rate))
-# View(df_subset)
-
-#pivot
-df_wide <- df_subset %>% pivot_wider(names_from = reportingcategory, names_glue = "{reportingcategory}_{.value}", 
-                                     values_from = c(raw, pop, rate)) 
-
-
-####### GET COUNTY & SCHOOL DISTRICT GEOIDS ##### ---------------------------------------------------------------------
-census_api_key(census_key1, overwrite=TRUE) # In practice, may need to include install=TRUE if switching between census api keys
-Sys.getenv("CENSUS_API_KEY") # confirms value saved to .renviron
-
-# county geoids
-counties <- get_acs(geography = "county",
-                    variables = c("B01001_001"), 
-                    state = "CA", 
-                    year = 2023)
-
-counties <- counties[,1:2]
-counties$NAME <- gsub(" County, California", "", counties$NAME) 
-names(counties) <- c("geoid", "geoname")
-county_match <- filter(df_wide,aggregatelevel=="C") %>% right_join(counties,by=c('countyname'='geoname'))
-
-# get school district geoids - pull in active district records w/ geoids from CDE schools' list (NCES District ID)]i 
-
-
-
-
-####################################################################################################################################################
-############## CALC RACE COUNTS STATS ##############i8[9[d]]
-#set source for RC Functions script
-source("https://raw.githubusercontent.com/catalystcalifornia/RaceCounts/main/Functions/RC_Functions.R")
-
-d$asbest = 'min'    #YOU MUST UPDATE THIS FIELD AS APPROPRIATE: assign 'min' or 'max'
-
-d <- count_values(d) #calculate number of "_rate" values
-d <- calc_best(d) #calculate best rates -- be sure to update d$asbest accordingly before running this function.
-d <- calc_diff(d) #calculate difference from best
-d <- calc_avg_diff(d) #calculate (row wise) mean difference from best
-d <- calc_p_var(d) #calculate (row wise) population or sample variance. be sure to use calc_s_var for sample data or calc_p_var for population data.
-d <- calc_id(d) #calculate index of disparity
-View(d)
-
-#split STATE into separate table and format id, name columns
-state_table <- d[d$geoname == 'California', ]
-
-#calculate STATE z-scores
-state_table <- calc_state_z(state_table)
-state_table <- state_table %>% dplyr::rename("state_id" = "geoid", "state_name" = "geoname") %>% select(-c(districtname, cdscode, aggregatelevel))
-View(state_table)
-
-#remove state from county table
-county_table <- d[d$aggregatelevel == 'C', ]
-
-#calculate COUNTY z-scores
-county_table <- calc_z(county_table)
-county_table <- calc_ranks(county_table)
-county_table <- county_table %>% dplyr::rename("county_id" = "geoid", "county_name" = "geoname") %>% select(-c(districtname, cdscode, aggregatelevel))
-View(county_table)
-
-#remove county/state from place table
-city_table <- d[d$aggregatelevel == 'D', ] %>% select(-c(aggregatelevel)) 
-
-#calculate DISTRICT z-scores
-city_table <- calc_z(city_table)
-city_table <- calc_ranks(city_table)
-city_table <- city_table %>% dplyr::rename("dist_id" = "geoid", "district_name" = "districtname", "county_name" = "geoname") %>% relocate(county_name, .after = district_name)
-View(city_table)
-
-
-###update info for postgres tables###
-county_table_name <- "arei_educ_chronic_absenteeism_county_2024"
-state_table_name <- "arei_educ_chronic_absenteeism_state_2024"
-city_table_name <- "arei_educ_chronic_absenteeism_district_2024"
-rc_schema <- "v6"
-
-indicator <- paste0("Created on ", Sys.Date(), ". Chronic Absenteeism Eligible Cumulative Enrollment, Chronic Absenteeism Count, and Chronic Absenteeism Rate. This data is")
-
-source <- "CDE 2022-23 https://www.cde.ca.gov/ds/ad/filesabd.asp"
-
-#send tables to postgres
-#to_postgres(county_table,state_table)
-#city_to_postgres()
