@@ -44,7 +44,7 @@ con <- connect_to_db("rda_shared_data")
        
        #format column names
        names(df) <- str_replace_all(names(df), "[^[:alnum:]]", "") # remove non-alphanumeric characters
-       names(df) <- gsub(" ", "", names(df)) # remove spaces
+       names(df) <- gsub("([a-z])([A-Z])", "\\1_\\2", names(df))
        names(df) <- tolower(names(df))  # make col names lowercase
        Encoding(df$schoolname) <- "ISO 8859-1"  # added this piece in 2023 script bc Spanish accents weren't appearing properly bc CDE native encoding is not UTF-8
        Encoding(df$districtname) <- "ISO 8859-1"  # added this piece in 2023 script bc Spanish accents weren't appearing properly bc CDE native encoding is not UTF-8
