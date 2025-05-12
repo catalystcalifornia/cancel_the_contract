@@ -9,7 +9,7 @@ if(length(new.packages)) install.packages(new.packages)
 library(dplyr)
 library(tidyr)
 library(DBI)
-library(RPostgreSQL)
+library(RPostgres)
 library(tidycensus)
 library(sf)
 library(tidyverse) # to scrape metadata table from cde website
@@ -68,6 +68,9 @@ con <- connect_to_db("rda_shared_data")
        Encoding(df$schoolname) <- "ISO 8859-1"  # added this piece in 2023 script bc Spanish accents weren't appearing properly bc CDE native encoding is not UTF-8
        Encoding(df$districtname) <- "ISO 8859-1"  # added this piece in 2023 script bc Spanish accents weren't appearing properly bc CDE native encoding is not UTF-8
        df$districtcode<-as.character(df$districtcode)
+       
+       # round rate columns to 1 decimal place
+       df$expulsion_rate_total <- round(df$expulsion_rate_total, 1)
        
        #  WRITE TABLE TO POSTGRES DB
        

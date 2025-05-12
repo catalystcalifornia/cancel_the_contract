@@ -9,7 +9,7 @@ if(length(new.packages)) install.packages(new.packages)
 library(dplyr)
 library(tidyr)
 library(DBI)
-library(RPostgreSQL)
+library(RPostgres)
 library(tidycensus)
 library(sf)
 library(tidyverse) # to scrape metadata table from cde website
