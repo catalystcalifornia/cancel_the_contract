@@ -69,13 +69,10 @@ suspensions <- susp_table %>%
                   `Student group`=="Female"| `Student group`=="White"| `Student group`=="Filipinx"| `Student group`=="Asian") %>%
   mutate(across(c(`Student enrollment`, `Unduplicated count of students suspended`), comma)) %>%
   gt() %>% opt_all_caps() %>%
-  tab_header(title = md("**Suspension Rates by Student Group, Antelope Valley School Districts, 2021-22**")) %>%
-  tab_footnote (footnote = md("Source: Catalyst California calculations of California Department of Education data, 2021-22.<br>
+  tab_header(title = md("**Suspension Rates by Student Group, Antelope Valley Union High School District, 2023-24**")) %>%
+  tab_footnote (footnote = md("Source: Catalyst California calculations of California Department of Education data, 2023-24.<br>
                                 Note: The student group category for non-binary students was unavailable because of a lack of data.
-                                Antelope Valley schools are from the following districts: Acton-Agua Dulce Unified,
-                                Antelope Valley Union High, Eastside Union Elementary, Hughes-Elizabeth Lakes Union Elementary,
-                                Keppel Union Elementary, Lancaster Elementary, Palmdale Elementary, Westside Union Elementary,
-                                and Wilsona Elementary.  AIAN stands for American Indian Alaskan Native."))%>% #, https://www.cde.ca.gov/ds/
+                                AIAN stands for American Indian Alaskan Native."))%>% #, https://www.cde.ca.gov/ds/
   cols_align(
     align = c("left"),
     columns = everything()
@@ -148,13 +145,10 @@ susp_table <- subset(susp_table, susp_table$`Grupo de estudiantes` != "Non-Binar
 suspensions <- susp_table %>%
   mutate(across(c(`Matr?cula de estudiantes`, `Conteo no duplicado de estudiantes suspendidos`), comma)) %>%
   gt() %>% opt_all_caps() %>% 
-  tab_header(title = md("**Tasas de suspensi?n por grupo de estudiantes, distritos escolares de Antelope Valley, 2021-22**")) %>% 
-  tab_footnote (footnote = md("Fuente: C?lculos de Catalyst California de datos del Departamento de Educaci?n de California, 2021-22.<br>
+  tab_header(title = md("**Tasas de suspensi?n por grupo de estudiantes, distrito escolar de Antelope Valley Union High, 2023-24**")) %>% 
+  tab_footnote (footnote = md("Fuente: C?lculos de Catalyst California de datos del Departamento de Educaci?n de California, 2023-24.<br>
                                 Nota: La categor?a de grupo de estudiantes para estudiantes g?nero neutral, no estaba disponible debido 
-                              a la falta de datos.  Las escuelas de Antelope Valley son de los siguientes distritos: Acton-Agua Dulce 
-                              Unified, Preparatoria Antelope Valley Union, Primaria Eastside Union, Primaria Hughes-Elizabeth Lakes 
-                              Union , Primaria Keppel Union ,Primaria Lancaster, Primaria Palmdale, Primaria Westside Union y Primaria 
-                              Wilsona.  AIAN (por sus siglas en ingl?s) significa Indix Americanx y Nativx de Alaska (Indio Americano y 
+                              a la falta de datos. AIAN (por sus siglas en ingl?s) significa Indix Americanx y Nativx de Alaska (Indio Americano y 
                               Nativo de Alaska). "))%>% #, https://www.cde.ca.gov/ds/ 
   cols_align(
     align = c("left"),
