@@ -50,15 +50,17 @@ font_table_text<-"GothamBook"
 # Suspensions in English ----
 
 #load in data
-source("W:/Project/RJS/CTC/Github/CR/cancel_the_contract/Analysis/suspension.R")
+
+con<- connect_to_db("cancel_the_contract")
+df<-dbGetQuery( con, "SELECT * FROM analysis_suspensions")
 
 
 #rename to what we want to use in the visuals
-susp_table$`Student group` <- gsub("Total", "TOTAL",susp_table$`Student group`)
-susp_table$`Student group` <- gsub("African American", "Black",susp_table$`Student group`)
-susp_table$`Student group` <- gsub("Hispanic or Latino", "Latinx",susp_table$`Student group`)
-susp_table$`Student group` <- gsub("American Indian or Alaska Native", "AIAN",susp_table$`Student group`)
-susp_table$`Student group` <- gsub("Filipino", "Filipinx",susp_table$`Student group`)
+susp_table$label <- gsub("Total", "TOTAL",susp_table$label)
+susp_table$label <- gsub("African American", "Black",susp_table$label)
+susp_table$label <- gsub("Hispanic or Latino", "Latinx",susp_table$label)
+susp_table$label <- gsub("American Indian or Alaska Native", "AIAN",susp_table$label)
+susp_table$label <- gsub("Filipino", "Filipinx",susp_table$label)
 
 suspensions <- susp_table %>%
   dplyr::filter(`Student group`== "Foster" | `Student group`== "Black" |
