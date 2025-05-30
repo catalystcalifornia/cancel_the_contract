@@ -28,7 +28,7 @@ df_subset <- df %>% filter(aggregatelevel %in% c("D") & countycode == "19" & cha
   filter(districtcode=="64246") %>%
   
   #select just the fields we need
-  select(districtname, reportingcategory, cohortstudents, regularhsdiplomagraduatescount, regularhsdiplomagraduatesrate)
+  select(reportingcategory, cohortstudents, regularhsdiplomagraduatescount, regularhsdiplomagraduatesrate)
 # View(df_subset)
 
 # recode reporting categories
@@ -99,3 +99,38 @@ rep_str = c('RB' = 'Black',
             'SH' = 'Homeless',
             'TA' = 'Total')
 
+df_subset<-df_subset%>%
+  mutate(label=reportingcategory)
+
+df_subset$label <- str_replace_all(df_subset$label, rep_str) # make the spelled out categories into a label column
+
+#finalize table for pushing to postgres------------------------------
+
+df<-df_subset%>%
+  select(geography, reportingcategory, reportingcategory_re, enrollment_total, graduation_count, graduation_rate, label)
+
+
+# Push table to postgres--------------------------
+
+table_name <- "analysis_graduation"
+schema <- "data"
+indicator <- "Graduation rates by race/CDE reporting cateogry for AV Union High School District level using 2023-24 academic year data"
+source <- "R Script: W:\\Project\\RJS\\CTC\\Github\\JZ\\cancel_the_contract\\Analysis\\hs_grad.R"
+qa_filepath <- " W:\\Project\\RJS\\CTC\\Documentation\\QA_Sheet_High_School_Grad.docx" 
+table_comment <- paste0(indicator, source)
+
+dbWriteTable(con, Id(schema, table_name), df, overwrite = TRUE, row.names = FALSE)
+
+# Comment on table and columns
+column_names <- colnames(df) # Get column names
+column_comments <- c(
+  "geography level",
+  "CDE reporting category raw",
+  "CDE reporting category recoded",
+  " total enrollment",
+  "count of students who graduated",
+  "rate of graduation",
+  "label for reporting categories"
+)
+
+add_table_comments(con, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
