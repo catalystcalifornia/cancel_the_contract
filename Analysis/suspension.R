@@ -19,11 +19,11 @@ suspensions<-dbGetQuery(con_shared, "SELECT * FROM education.cde_multigeo_suspen
 # calculate suspension rates by student group, including race, for Antelope Valley Union High School District
 
 # filter for District level enrollment and unduplicated suspensions in LA County (for charters and non-charters)
-la_suspensions <- suspensions %>% dplyr::filter(aggregatelevel=="D" & countyname=="Los Angeles" & charteryn=="All") %>%
-  dplyr::select(districtname, reportingcategory, cumulative_enrollment, unduplicated_countof_students_suspended_total)
+la_suspensions <- suspensions %>% filter(aggregatelevel=="D" & countyname=="Los Angeles" & charteryn=="All") %>%
+  select(districtname, reportingcategory, cumulative_enrollment, unduplicated_countof_students_suspended_total)
 
 # in Antelope Valley Union High School District
-av_suspensions <- dplyr::filter(suspensions, districtname %in%  c('Antelope Valley Union High'))
+av_suspensions <- filter(suspensions, districtname %in%  c('Antelope Valley Union High'))
 
 # remove suppression asterisks
 av_suspensions$cumulative_enrollment <- stringr::str_replace(av_suspensions$cumulative_enrollment, '\\*', '')
@@ -35,7 +35,7 @@ av_suspensions$unduplicated_countof_students_suspended_total <- as.numeric(av_su
 
 # group by student group and summarize
 susp_table <- av_suspensions %>% group_by(reportingcategory) %>%
-  dplyr::summarize(enrollment = sum(cumulative_enrollment, na.rm = TRUE),
+  summarize(enrollment = sum(cumulative_enrollment, na.rm = TRUE),
                    suspensions = sum(unduplicated_countof_students_suspended_total, na.rm = TRUE))  %>%
   
   # and remove categories with no cumulative enrollment
@@ -98,7 +98,10 @@ df<-df%>%
                                       ifelse(reportingcategory %in% "SF", "student_foster",
                                      ifelse(reportingcategory %in% "SH", "student_homeless", 
                                        "total"))))))))))))))))))))%>%
-  select(geography, reportingcategory, reportingcategory_re, enrollment, suspensions, rate, label)
+  select(geography, reportingcategory, reportingcategory_re, enrollment, suspensions, rate, label)%>%
+  rename("enrollment_total"="enrollment",
+         "suspension_count"="suspensions",
+         "suspension_rate"="rate")
     
 
 
