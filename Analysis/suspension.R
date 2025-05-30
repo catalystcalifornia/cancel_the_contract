@@ -52,14 +52,14 @@ susp_table <- susp_table %>% arrange((desc(rate)))
 # Format column and category names for postgres table---------------------
 
 # Replace multiple strings at a time
-rep_str = c('RB' = 'African American',
+rep_str = c('RB' = 'Black',
             'RI' = 'American Indian or Alaska Native',
             'RA' = 'Asian',
             'RF' = 'Filipino',
-            'RH' = 'Hispanic or Latino',
+            'RH' = 'Latinx',
             'RD' = 'Not Reported',
             'RP' = 'Pacific Islander',
-            'RT' = 'Two or More Races',
+            'RT' = 'Multiracial',
             'RW' = 'White',
             'GM' = 'Male',
             'GF' = 'Female',
