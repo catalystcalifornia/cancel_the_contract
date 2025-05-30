@@ -12,6 +12,7 @@ library(gt)
 library(showtext)
 library(scales)
 library(forcats)
+
 #### First 5 LA Style Guide ####
 ## COLORS## Taken from W:\Project\RDA Team\Region 5 State of the Child\Documentation\F5LA_BrandGuidelines_COLORS.pdf
 #primary
@@ -54,22 +55,15 @@ font_table_text<-"GothamBook"
 con<- connect_to_db("cancel_the_contract")
 df<-dbGetQuery( con, "SELECT * FROM analysis_suspensions")
 
-
-#rename to what we want to use in the visuals
-susp_table$label <- gsub("Total", "TOTAL",susp_table$label)
-susp_table$label <- gsub("African American", "Black",susp_table$label)
-susp_table$label <- gsub("Hispanic or Latino", "Latinx",susp_table$label)
-susp_table$label <- gsub("American Indian or Alaska Native", "AIAN",susp_table$label)
-susp_table$label <- gsub("Filipino", "Filipinx",susp_table$label)
-
-suspensions <- susp_table %>%
-  dplyr::filter(`Student group`== "Foster" | `Student group`== "Black" |
-                  `Student group`== "Students with Disabilities"| `Student group`== "AIAN"|
-                  `Student group`=="Pacific Islander"| `Student group`=="Male"| `Student group`=="Socioeconomically Disadvantaged"|
-                  `Student group`=="Two or More Races"| `Student group`=="TOTAL"| `Student group`=="Homeless"|
-                  `Student group`=="Migrant"| `Student group`=="English Learners"| `Student group`=="Latinx"|
-                  `Student group`=="Female"| `Student group`=="White"| `Student group`=="Filipinx"| `Student group`=="Asian") %>%
-  mutate(across(c(`Student enrollment`, `Unduplicated count of students suspended`), comma)) %>%
+# filter
+suspensions <- df %>%
+ filter(label== "Foster" | label== "Black" |
+                  label== "Students with Disabilities"| label== "AIAN"|
+                  label=="Pacific Islander"| label=="Male"| label=="Socioeconomically Disadvantaged"|
+                  label=="Two or More Races"| label=="TOTAL"| label=="Homeless"|
+                  label=="Migrant"| label=="English Learners"| label=="Latinx"|
+                  label=="Female"| label=="White"| label=="Filipinx"| label=="Asian") %>%
+  mutate(across(c(enrollment,suspensions), comma)) %>%
   gt() %>% opt_all_caps() %>%
   tab_header(title = md("**Suspension Rates by Student Group, Antelope Valley Union High School District, 2023-24**")) %>%
   tab_footnote (footnote = md("Source: Catalyst California calculations of California Department of Education data, 2023-24.<br>
@@ -81,10 +75,10 @@ suspensions <- susp_table %>%
   )%>%
   tab_style(style = cell_text(weight = "bold"),
             locations = cells_body(
-              columns = `Student group`,
-              rows = `Student group` == "TOTAL"))%>%
+              columns = label,
+              rows = label == "TOTAL"))%>%
   data_color(
-    columns = c(`Suspension rate`),
+    columns = c(rate),
     colors = scales::col_numeric(
       palette = c("white", lightblue),
       domain = NULL,
@@ -115,36 +109,36 @@ gtsave(suspensions, "suspensions_table.png",path = "W:/Project/RJS/CTC/Github/CR
 # Spanish version ------
 
 #load in data
-source("W:/Project/RJS/CTC/Github/CR/cancel_the_contract/Analysis/suspension.R")
-susp_table <- susp_table %>% dplyr::rename('Grupo de estudiantes' = "Student group", 
-                                           'Matr?cula de estudiantes'="Student enrollment", 
-                                           'Conteo no duplicado de estudiantes suspendidos'="Unduplicated count of students suspended", 
-                                           'Tasa de suspensi?n'="Suspension rate"
+
+susp_table_sp <- df %>% rename('Grupo de estudiantes' = "label", 
+                                           'Matr?cula de estudiantes'="enrollment", 
+                                           'Conteo no duplicado de estudiantes suspendidos'="suspensions", 
+                                           'Tasa de suspensi?n'="rate"
 )
 
 #rename to what we want to use in the visuals
-susp_table$`Grupo de estudiantes` <- gsub("Total", "TOTAL",susp_table$`Grupo de estudiantes`)
-susp_table$`Grupo de estudiantes` <- gsub("African American", "Negrx (Negro)",susp_table$`Grupo de estudiantes`)
-susp_table$`Grupo de estudiantes` <- gsub("Hispanic or Latino", "Latinx (Latino)",susp_table$`Grupo de estudiantes`)
-susp_table$`Grupo de estudiantes` <- gsub("American Indian or Alaska Native", "AIAN",susp_table$`Grupo de estudiantes`)
-susp_table$`Grupo de estudiantes` <- gsub("Foster", "Adoptivo",susp_table$`Grupo de estudiantes`)
-susp_table$`Grupo de estudiantes` <- gsub("Students with Disabilities", "Estudiantes con discapacidades",susp_table$`Grupo de estudiantes`)
-susp_table$`Grupo de estudiantes` <- gsub("Pacific Islander", "Isle?x del Pac?fico (Isle?o del Pac?fico)",susp_table$`Grupo de estudiantes`)
-susp_table$`Grupo de estudiantes` <- gsub("Male", "Hombre",susp_table$`Grupo de estudiantes`)
-susp_table$`Grupo de estudiantes` <- gsub("Socioeconomically Disadvantaged", "Desfavorecido socioecon?micamente",susp_table$`Grupo de estudiantes`)
-susp_table$`Grupo de estudiantes` <- gsub("Two or More Races", "Dos o m?s razas",susp_table$`Grupo de estudiantes`)
-susp_table$`Grupo de estudiantes` <- gsub("Homeless", "Sin Hogar",susp_table$`Grupo de estudiantes`)
-susp_table$`Grupo de estudiantes` <- gsub("Migrant", "Migrante",susp_table$`Grupo de estudiantes`)
-susp_table$`Grupo de estudiantes` <- gsub("English Learners", "Estudiantes de ingl?s",susp_table$`Grupo de estudiantes`)
-susp_table$`Grupo de estudiantes` <- gsub("Female", "Mujer",susp_table$`Grupo de estudiantes`)
-susp_table$`Grupo de estudiantes` <- gsub("White", "Blancx (Blanco)",susp_table$`Grupo de estudiantes`)
-susp_table$`Grupo de estudiantes` <- gsub("Asian", "Asi?ticx (Asi?tico)",susp_table$`Grupo de estudiantes`)
-susp_table$`Grupo de estudiantes` <- gsub("Filipino", "Filipinx (Filipino)",susp_table$`Grupo de estudiantes`)
+susp_table_sp$`Grupo de estudiantes` <- gsub("Total", "TOTAL",susp_table_sp$`Grupo de estudiantes`)
+susp_table_sp$`Grupo de estudiantes` <- gsub("African American", "Negrx (Negro)",susp_table_sp$`Grupo de estudiantes`)
+susp_table_sp$`Grupo de estudiantes` <- gsub("Hispanic or Latino", "Latinx (Latino)",susp_table_sp$`Grupo de estudiantes`)
+susp_table_sp$`Grupo de estudiantes` <- gsub("American Indian or Alaska Native", "AIAN",susp_table_sp$`Grupo de estudiantes`)
+susp_table_sp$`Grupo de estudiantes` <- gsub("Foster", "Adoptivo",susp_table_sp$`Grupo de estudiantes`)
+susp_table_sp$`Grupo de estudiantes` <- gsub("Students with Disabilities", "Estudiantes con discapacidades",susp_table_sp$`Grupo de estudiantes`)
+susp_table_sp$`Grupo de estudiantes` <- gsub("Pacific Islander", "Isle?x del Pac?fico (Isle?o del Pac?fico)",susp_table_sp$`Grupo de estudiantes`)
+susp_table_sp$`Grupo de estudiantes` <- gsub("Male", "Hombre",susp_table_sp$`Grupo de estudiantes`)
+susp_table_sp$`Grupo de estudiantes` <- gsub("Socioeconomically Disadvantaged", "Desfavorecido socioecon?micamente",susp_table_sp$`Grupo de estudiantes`)
+susp_table_sp$`Grupo de estudiantes` <- gsub("Two or More Races", "Dos o m?s razas",susp_table_sp$`Grupo de estudiantes`)
+susp_table_sp$`Grupo de estudiantes` <- gsub("Homeless", "Sin Hogar",susp_table_sp$`Grupo de estudiantes`)
+susp_table_sp$`Grupo de estudiantes` <- gsub("Migrant", "Migrante",susp_table_sp$`Grupo de estudiantes`)
+susp_table_sp$`Grupo de estudiantes` <- gsub("English Learners", "Estudiantes de ingl?s",susp_table_sp$`Grupo de estudiantes`)
+susp_table_sp$`Grupo de estudiantes` <- gsub("Female", "Mujer",susp_table_sp$`Grupo de estudiantes`)
+susp_table_sp$`Grupo de estudiantes` <- gsub("White", "Blancx (Blanco)",susp_table_sp$`Grupo de estudiantes`)
+susp_table_sp$`Grupo de estudiantes` <- gsub("Asian", "Asi?ticx (Asi?tico)",susp_table_sp$`Grupo de estudiantes`)
+susp_table_sp$`Grupo de estudiantes` <- gsub("Filipino", "Filipinx (Filipino)",susp_table_sp$`Grupo de estudiantes`)
 
-susp_table <- subset(susp_table, susp_table$`Grupo de estudiantes` != "Non-Binary Gender" & susp_table$`Grupo de estudiantes` != "Not Reported") 
-# View(susp_table)
+susp_table_sp <- subset(susp_table_sp, susp_table_sp$`Grupo de estudiantes` != "Non-Binary Gender" & susp_table_sp$`Grupo de estudiantes` != "Not Reported") 
+# View(susp_table_sp)
 
-suspensions <- susp_table %>%
+suspensions_sp <- susp_table_sp %>%
   mutate(across(c(`Matr?cula de estudiantes`, `Conteo no duplicado de estudiantes suspendidos`), comma)) %>%
   gt() %>% opt_all_caps() %>% 
   tab_header(title = md("**Tasas de suspensi?n por grupo de estudiantes, distrito escolar de Antelope Valley Union High, 2023-24**")) %>% 

@@ -15,8 +15,6 @@ con<- connect_to_db("cancel_the_contract")
 
 suspensions<-dbGetQuery(con_shared, "SELECT * FROM education.cde_multigeo_suspension_2023_24")
 
-dbDisconnect(con)
-
 
 # calculate suspension rates by student group, including race, for Antelope Valley Union High School District
 
@@ -53,9 +51,9 @@ susp_table <- susp_table %>% arrange((desc(rate)))
 
 # Replace multiple strings at a time
 rep_str = c('RB' = 'Black',
-            'RI' = 'American Indian or Alaska Native',
+            'RI' = 'AIAN',
             'RA' = 'Asian',
-            'RF' = 'Filipino',
+            'RF' = 'Filipinx',
             'RH' = 'Latinx',
             'RD' = 'Not Reported',
             'RP' = 'Pacific Islander',
