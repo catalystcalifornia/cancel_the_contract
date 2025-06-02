@@ -1,5 +1,5 @@
 # install packages if not already installed -----
-list.of.packages <- c("dplyr","janitor","tidyr","stringr","showtext","ggplot2","tigris","forcats","ggtext","hrbrthemes") 
+list.of.packages <- c("janitor","tidyverse","showtext","ggplot2","forcats","ggtext","hrbrthemes") 
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])] 
 
@@ -8,17 +8,15 @@ if(length(new.packages)) install.packages(new.packages)
 
 # Prep and Set Up 
 #### Loading Libraries ####
-library(dplyr)
 library(janitor)
-library(tidyr)
-library(stringr)
+library(tidyverse)
 library(showtext)
 library(ggplot2)
-library(tigris)
 library(forcats)
 library(ggtext)
 library(hrbrthemes)
 set.seed(1)
+
 #### First 5 LA Style Guide ####
 ## COLORS## Taken from W:\Project\RDA Team\Region 5 State of the Child\Documentation\F5LA_BrandGuidelines_COLORS.pdf
 #primary

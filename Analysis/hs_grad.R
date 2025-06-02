@@ -1,13 +1,11 @@
 # High School Graduation Rates 2023-24 School Year
 
 #install packages if not already installed
-list.of.packages <- c("readr","tidyr","dplyr","janitor")
+list.of.packages <- c("tidyverse","janitor")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
-library(readr)
-library(tidyr)
-library(dplyr)
+library(tidyverse)
 library(janitor)
 
 #connect to postgres
@@ -134,3 +132,6 @@ column_comments <- c(
 )
 
 add_table_comments(con, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
+
+dbDisconnect(con)
+dbDisconnect(con_shared)
