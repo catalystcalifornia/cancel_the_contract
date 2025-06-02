@@ -1,17 +1,20 @@
 # install packages if not already installed ----
-list.of.packages <- c("dplyr", "gt", "showtext", "tidyr") 
+list.of.packages <- c("RPostgres", "tidyr", "gt", "showtext", "scales", "forcats") 
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])] 
 
 if(length(new.packages)) install.packages(new.packages) 
 
 #### Loading Libraries ####
-library(dplyr)
+library(RPostgres)
 library(tidyr)
 library(gt)
 library(showtext)
 library(scales)
 library(forcats)
+
+#connect to postgres
+source("W:\\RDA Team\\R\\credentials_source.R")
 
 #### First 5 LA Style Guide ####
 ## COLORS## Taken from W:\Project\RDA Team\Region 5 State of the Child\Documentation\F5LA_BrandGuidelines_COLORS.pdf
@@ -64,11 +67,12 @@ suspensions <- df %>%
                   label=="Two or More Races"| label=="TOTAL"| label=="Homeless"|
                   label=="Migrant"| label=="English Learners"| label=="Latinx"|
                   label=="Female"| label=="White"| label=="Filipinx"| label=="Asian") %>%
-  select(label, enrollment, suspensions, rate)%>%
-  mutate(across(c(enrollment,suspensions), comma)) %>%
+  select(label, enrollment_total, suspension_count, suspension_rate)%>%
+  mutate(across(c(enrollment_total, suspension_count), comma)) %>%
   rename("Student Group"="label",
-         "Unduplicated Count of Students Suspended"="suspensions",
-         "Suspension Rate"="rate")%>%
+         "Enrollment" = "enrollment_total",
+         "Unduplicated Count of Students Suspended"="suspension_count",
+         "Suspension Rate"="suspension_rate")%>%
   gt() %>% 
   opt_all_caps() %>%
   tab_header(title = md("**Suspension Rates by Student Group, Antelope Valley Union High School District, 2023-24**")) %>%
@@ -118,9 +122,9 @@ suspensions
 #load in data
 
 # susp_table_sp <- df %>% rename('Grupo de estudiantes' = "label", 
-#                                            'Matr?cula de estudiantes'="enrollment", 
-#                                            'Conteo no duplicado de estudiantes suspendidos'="suspensions", 
-#                                            'Tasa de suspensi?n'="rate"
+#                                            'Matr?cula de estudiantes'="enrollment_total", 
+#                                            'Conteo no duplicado de estudiantes suspendidos'="suspension_count", 
+#                                            'Tasa de suspensi?n'="suspension_rate"
 # )
 # 
 # #rename to what we want to use in the visuals
@@ -187,3 +191,5 @@ suspensions
 #   ) %>% 
 #   opt_table_font(font = list(google_font(name = font_table_text), font_title, font_caption ,default_fonts()))
 # gtsave(suspensions, "suspensions_table_esp.png",path = "W:/Project/RJS/CTC/Github/CR/cancel_the_contract/Images/Spanish/", vwidth = 4000, vheight = 6000)
+
+dbDisconnect(con)
