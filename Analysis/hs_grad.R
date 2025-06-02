@@ -1,0 +1,137 @@
+# High School Graduation Rates 2023-24 School Year
+
+#install packages if not already installed
+list.of.packages <- c("tidyverse","janitor")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+library(tidyverse)
+library(janitor)
+
+#connect to postgres
+source("W:\\RDA Team\\R\\credentials_source.R")
+con_shared <- connect_to_db("rda_shared_data")
+con<- connect_to_db("cancel_the_contract")
+
+############### PREP DATA ########################
+
+#Get HS Grad, handle nas, ensure DistrictCode reads in right
+# Data Dictionary: https://www.cde.ca.gov/ds/ad/filesacgr.asp
+
+df<-dbGetQuery(con_shared, "SELECT * FROM education.cde_multigeo_calpads_graduation_2023_24")
+
+#dplyr::filter for county and state rows, all types of schools, and racial categories
+df_subset <- df %>% filter(aggregatelevel %in% c("D") & countycode == "19" & charterschool == "All" & dass == "All") %>%
+  # filter for Antelope Valley Union High
+  filter(districtcode=="64246") %>%
+  
+  #select just the fields we need
+  select(reportingcategory, cohortstudents, regularhsdiplomagraduatescount, regularhsdiplomagraduatesrate)
+# View(df_subset)
+
+# recode reporting categories
+
+df_subset<-df_subset%>%
+  mutate(geography="Antelope Valley Union High School District")%>%
+  mutate(reportingcategory_re=ifelse(reportingcategory %in% "RB", "nh_black",
+                                              ifelse(reportingcategory %in% "RI", "nh_aian", 
+                                                     ifelse(reportingcategory %in% "RA", "nh_asian", 
+                                                            ifelse(reportingcategory %in% "RF", "nh_filipino",  
+                                                                   ifelse(reportingcategory %in% "RH", "latinx", 
+                                                                          ifelse(reportingcategory %in% "RD", "missing_race",
+                                                                                 ifelse(reportingcategory %in% "RP", "nh_nhpi",  
+                                                                                        ifelse(reportingcategory %in% "RT", "nh_twoormor",  
+                                                                                               ifelse(reportingcategory %in% "RW", "nh_white", 
+                                                                                                      ifelse(reportingcategory %in% "GM", "male", 
+                                                                                                             ifelse(reportingcategory %in% "GF", "female",
+                                                                                                                    ifelse(reportingcategory %in% "GX", "nonbinary",
+                                                                                                                           ifelse(reportingcategory %in% "GZ", "missing_gender",
+                                                                                                                                  ifelse(reportingcategory %in% "SE", "student_english_learner",
+                                                                                                                                         ifelse(reportingcategory %in% "SD", "student__disability",
+                                                                                                                                                ifelse(reportingcategory %in% "SS", "student_ses_disadv",
+                                                                                                                                                       ifelse(reportingcategory %in% "SM", "student_migrant",  
+                                                                                                                                                              ifelse(reportingcategory %in% "SF", "student_foster",
+                                                                                                                                                                  ifelse(reportingcategory %in% "SH", "student_homeless", 
+                                                                                                                                                                            "total"))))))))))))))))))))
+
+# Continue cleaning up df columns
+
+df_subset <- df_subset %>% 
+ filter(!is.na(df_subset$regularhsdiplomagraduatescount) & !is.na(df_subset$cohortstudents) & !is.na(df_subset$regularhsdiplomagraduatesrate))
+
+#format for column headers
+df_subset <- rename(df_subset,
+                    graduation_count = regularhsdiplomagraduatescount,
+                    enrollment_total = cohortstudents,
+                    graduation_rate = regularhsdiplomagraduatesrate)
+# #View(df_subset)
+
+
+#pop screen. suppress raw/rate for groups with fewer than 0 graduating students.
+threshold = 0
+df_subset <- df_subset %>%
+  mutate(graduation_rate = ifelse(graduation_count < threshold, NA, graduation_rate), 
+         graduation_count = ifelse(graduation_count < threshold, NA, graduation_count))
+
+
+# Add label column that has spelled out versions of the student group categories
+
+rep_str = c('RB' = 'Black',
+            'RI' = 'AIAN',
+            'RA' = 'Asian',
+            'RF' = 'Filipinx',
+            'RH' = 'Latinx',
+            'RD' = 'Not Reported',
+            'RP' = 'Pacific Islander',
+            'RT' = 'Multiracial',
+            'RW' = 'White',
+            'GM' = 'Male',
+            'GF' = 'Female',
+            'GX' = 'Non-Binary Gender',
+            'GZ' = 'Missing Gender',
+            'SE' = 'English Learners',
+            'SD' = 'Students with Disabilities',
+            'SS' = 'Socioeconomically Disadvantaged',
+            'SM' = 'Migrant',
+            'SF' = 'Foster',
+            'SH' = 'Homeless',
+            'TA' = 'Total')
+
+df_subset<-df_subset%>%
+  mutate(label=reportingcategory)
+
+df_subset$label <- str_replace_all(df_subset$label, rep_str) # make the spelled out categories into a label column
+
+#finalize table for pushing to postgres------------------------------
+
+df<-df_subset%>%
+  select(geography, reportingcategory, reportingcategory_re, enrollment_total, graduation_count, graduation_rate, label)
+
+
+# Push table to postgres--------------------------
+
+table_name <- "analysis_graduation"
+schema <- "data"
+indicator <- "Graduation rates by race/CDE reporting cateogry for AV Union High School District level using 2023-24 academic year data"
+source <- "R Script: W:\\Project\\RJS\\CTC\\Github\\JZ\\cancel_the_contract\\Analysis\\hs_grad.R"
+qa_filepath <- " W:\\Project\\RJS\\CTC\\Documentation\\QA_Sheet_High_School_Grad.docx" 
+table_comment <- paste0(indicator, source)
+
+dbWriteTable(con, Id(schema, table_name), df, overwrite = TRUE, row.names = FALSE)
+
+# Comment on table and columns
+column_names <- colnames(df) # Get column names
+column_comments <- c(
+  "geography level",
+  "CDE reporting category raw",
+  "CDE reporting category recoded",
+  " total enrollment",
+  "count of students who graduated",
+  "rate of graduation",
+  "label for reporting categories"
+)
+
+add_table_comments(con, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
+
+dbDisconnect(con)
+dbDisconnect(con_shared)
