@@ -1,5 +1,5 @@
 # install packages if not already installed ----
-list.of.packages <- c("RPostgres", "tidyr", "gt", "showtext", "scales", "forcats") 
+list.of.packages <- c("RPostgres", "tidyverse", "gt", "showtext", "scales", "forcats") 
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])] 
 
@@ -7,7 +7,7 @@ if(length(new.packages)) install.packages(new.packages)
 
 #### Loading Libraries ####
 library(RPostgres)
-library(tidyr)
+library(tidyverse)
 library(gt)
 library(showtext)
 library(scales)
