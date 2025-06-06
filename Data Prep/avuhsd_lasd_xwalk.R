@@ -49,13 +49,21 @@ xwalk <- avuhsd_schools %>%
   # create school name from LASD
   mutate(lasd_school = ifelse(cde_school == "No Data", "Antelope Valley Union High", cde_school)) %>%
   
-  # add duplicate Phoenix High Community Day row but capturing errant LASD Phoenix Continutation
+  # add duplicate Phoenix High Community Day row but capturing errant LASD Phoenix Continuation
   add_row(cdscode="19642461995968",
            ncesdist="0602820",
            ncesschool="05827",
            district="Antelope Valley Union High",
            cde_school ="Phoenix High Community Day",
-           lasd_school ="Phoenix Continutation")
+           lasd_school ="Phoenix Continutation") %>%
+  
+  # update "No Data" to Antelope Valley Union High
+  filter(cdscode != "19642460000000") %>% add_row(cdscode="19642460000000",
+          ncesdist="0602820",
+          ncesschool="",
+          district="Antelope Valley Union High",
+          cde_school ="Antelope Valley Union High",
+          lasd_school ="Antelope Valley Union High")
 
 
 # Test it with LASD RIPA data
