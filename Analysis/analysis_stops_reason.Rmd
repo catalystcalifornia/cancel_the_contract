@@ -296,7 +296,7 @@ column_comments <- c(
   "Police officer more explanatory narrative reason for the stop of students. These are RDA-labelled.",
   "Numerator: The number of students stopped for the specific combination of LSAD-labelled and RDA-labelled reasons",
   "Denominator: The number of students stopped in the school or district for the LSAD-labelled reason",
-  "The rate represents the share of stops for the RDA-labelled reason among all stops that occurred for the specified LSAD-labelled reason within the school or district."
+  "The rate represents the share of stops for the combined RDA-labelled reason and LASD-labelled reason among all stops that occurred for the specified LSAD-labelled reason within the school or district."
 )
 
 # add_table_comments(con_ctc, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
