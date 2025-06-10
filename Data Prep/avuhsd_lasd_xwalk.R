@@ -55,14 +55,14 @@ xwalk <- avuhsd_schools %>%
            ncesschool="05827",
            district="Antelope Valley Union High",
            cde_school ="Phoenix High Community Day",
-           lasd_school ="Phoenix Continutation") %>%
+           lasd_school ="Phoenix Continuation") %>%
   
   # update "No Data" to Antelope Valley Union High
-  filter(cdscode != "19642460000000") %>% add_row(cdscode="19642460000000",
+  filter(cdscode != "19642460000000") %>% add_row(cdscode="19642461930213",
           ncesdist="0602820",
-          ncesschool="",
+          ncesschool="00203",
           district="Antelope Valley Union High",
-          cde_school ="Antelope Valley Union High",
+          cde_school ="Antelope Valley High",
           lasd_school ="Antelope Valley Union High")
 
 
