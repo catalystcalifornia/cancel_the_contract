@@ -206,20 +206,20 @@ indicator <- "A table showing the rates of RDA-labelled reasons (i.e. Marijuana,
 source <- "Script: W:/Project/RJS/CTC/Github/AV/cancel_the_contract/Analysis/analysis_stops_reason.Rmd"
 qa_filepath <- "See QA doc for details: W:/Project/RJS/CTC/Documentation/QA_analysis_stops_reason.docx"
 table_comment <- paste0(indicator, source)
-# dbWriteTable(con_ctc, Id(schema, table_name), summary_narrative, overwrite = TRUE, row.names = FALSE)
+dbWriteTable(con_ctc, Id(schema, table_name), summary_narrative, overwrite = TRUE, row.names = FALSE)
 
 # Comment on table and columns
 column_names <- colnames(summary_narrative) # Get column names
 column_comments <- c(
   "Indicates whether the rates are for all stops, only stops where a call for service was made, or only stops where a call for service was not made",
   "Name of school or district",
-  "Police officer reason for the stop of students. These are RDA-labelled.",
+  "Police officer more explanatory narrative reason for the stop of students. These are RDA-labelled.",
   "Numerator: The number of students stopped for the specific reason",
   "Denominator: The number of students stopped in the school or district for any reason",
   "The rate represents the share of stops for the RDA-labelled reason among all stops that occurred within the school or district."
 )
 
-# add_table_comments(con_ctc, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
+add_table_comments(con_ctc, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
 ```
 
 # Function summarise_nested_stops
