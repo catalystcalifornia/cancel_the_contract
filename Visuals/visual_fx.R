@@ -123,100 +123,36 @@ static_table <- function(df, indicator, title_text, footnote_text)
  base_path <- paste0("W:/Project/RJS/CTC/Visuals/",indicator, "_table")
  showtext_opts(dpi=300)
   
-  # Save in SVG
-  ggsave(plot = final_visual, filename = paste0(base_path, ".svg"),
-         device = "svg", width = 8, height = 5.5)
-  
-  # Save in PNG
-  ggsave(plot = final_visual, filename = paste0(base_path, ".png"),
-         device = "png", width = 8, height = 5.5)
-  
-  # Save in PDF
-  # ggsave(plot = final_visual, filename = paste0(base_path, ".pdf"),
-  #        device = "pdf", width = 8, height = 5.5)
-  
+ # save as PNG
+ 
+ gtsave(final_visual, filename = paste0(base_path, ".png"))
+
   return(final_visual)
 }
   
- # EX) STATIC TABLE--------------------------
+# EX) STATIC TABLE--------------------------
 
-# Suspensions in English ----
+
+# Example: Suspensions (in English)
 
 #load in data
 
 df<-dbGetQuery( con, "SELECT * FROM analysis_suspensions")%>%
   select(label, enrollment_total, suspension_count, suspension_rate) # select columns you want in the table
 
-# define parameters outside of function
+# define parameters outside of function ( these  can also be defined in the function)
 
 indicator="suspensions"
 title_text="Suspension Rates by Student Group, Antelope Valley Union High School District, 2023-24"
 footnote_text="Source: Catalyst California calculations of California Department of Education data, 2023-24.
 Note: The student group category for non-binary students was unavailable because of a lack of data. AIAN stands for American Indian Alaskan Native."
 
-#Apply function
+# Apply function
 
 static_table(df=df, 
              indicator=indicator, 
              title_text=title_text,
              footnote_text=footnote_text)
-
-  df<-df%>%
-    select(label, enrollment_total, suspension_count, suspension_rate)
-  
-  
-gt(df) %>% 
-  opt_all_caps() %>%
-  tab_header(title = md(paste0("**",title_text,"**"))) %>%
-  tab_footnote (footnote = md(footnote_text))%>% 
-  cols_align(
-    align = c("left"),
-    columns = everything()
-  )%>%
-  tab_style(
-    style = cell_text(weight = "bold"),
-    locations = cells_body(
-      columns = matches("Rate"),
-      rows = `Label` == "TOTAL"
-    ))%>%
-  data_color(
-    columns = matches("Rate"),
-    colors = scales::col_numeric(
-      palette = c("white", lightblue),
-      domain = NULL,
-      na.color = textgrey
-    )
-  ) %>%  
-  tab_options(table.font.names = font_table_text,
-              column_labels.background.color = "white",
-              table.border.top.width = px(3),
-              table.border.top.color = "transparent",
-              table.border.bottom.color = "transparent",
-              table.border.bottom.width = px(3),
-              column_labels.border.top.width = px(3),
-              column_labels.border.top.color = "transparent",
-              column_labels.border.bottom.width = px(3),
-              column_labels.border.bottom.color = black,
-              data_row.padding = px(3),
-              source_notes.font.size = 8,
-              table.font.size = 16,
-              heading.align = "left",
-              container.width = 500
-  ) %>%
-  opt_table_font(font = list(google_font(name = font_table_text), font_title, font_caption ,default_fonts()))
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
 
 
 # Spanish version ------
@@ -294,4 +230,9 @@ gt(df) %>%
 #   opt_table_font(font = list(google_font(name = font_table_text), font_title, font_caption ,default_fonts()))
 # gtsave(suspensions, "suspensions_table_esp.png",path = "W:/Project/RJS/CTC/Github/CR/cancel_the_contract/Images/Spanish/", vwidth = 4000, vheight = 6000)
 
+# SINGLE BAR GRAPH FUNCTION -------------------------------------
+
+
+
+# Disconnect from postgres--------------------------
 dbDisconnect(con)
