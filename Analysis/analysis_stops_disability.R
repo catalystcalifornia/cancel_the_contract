@@ -126,16 +126,16 @@ dbWriteTable(con,  table_name, df,
 
 # add meta data
 
-table_comment <- paste0("COMMENT ON TABLE stops_by_disability IS 'Analysis table of AVUSHD LASD stops by disability and CDE enrollment by disability.
+table_comment <- paste0("COMMENT ON TABLE analysis_stops_disability IS 'Analysis table of AVUSHD LASD stops by disability and CDE enrollment by disability.
 R script: W:/Project/RJS/CTC/Github/CR/cancel_the_contract/Analysis/analysis_stops_disability.R
 QA document: W:\\Project\\RJS\\CTC\\Documentation\\QA_Sheet_Disability.R;
 
- COMMENT ON COLUMN stops_by_disability.stops IS LASD stops in AVUHSD;
- COMMENT ON COLUMN stops_by_disability.stops_w_disability IS LASD stops with a disability in AVUHSD;
- COMMENT ON COLUMN stops_by_disability.pct_stops_w_disability IS Percent of LASD stops with a disability in AVUHSD;
- COMMENT ON COLUMN stops_by_disability.av_enrollment IS AVUHSD enrollment;
- COMMENT ON COLUMN stops_by_disability.av_enrollment_disabled IS AVUHSD enrollment with a disability;
- COMMENT ON COLUMN stops_by_disability.pct_enrollment_w_disability IS Percent of AVUHSD enrollment with a disability;'
+ COMMENT ON COLUMN analysis_stops_disability.stops IS LASD stops in AVUHSD;
+ COMMENT ON COLUMN analysis_stops_disability.stops_w_disability IS LASD stops with a disability in AVUHSD;
+ COMMENT ON COLUMN analysis_stops_disability.pct_stops_w_disability IS Percent of LASD stops with a disability in AVUHSD;
+ COMMENT ON COLUMN analysis_stops_disability.av_enrollment IS AVUHSD enrollment;
+ COMMENT ON COLUMN analysis_stops_disability.av_enrollment_disabled IS AVUHSD enrollment with a disability;
+ COMMENT ON COLUMN analysis_stops_disability.pct_enrollment_w_disability IS Percent of AVUHSD enrollment with a disability;'
 
 ")
 
