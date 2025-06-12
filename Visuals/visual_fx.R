@@ -155,7 +155,7 @@ static_table(df=df,
              footnote_text=footnote_text)
 
 
-# Spanish version ------
+# Spanish version: NOT USING FOR NOW------
 
 #load in data
 
@@ -238,14 +238,11 @@ title_text<-"High School Graduation Rates by Student Subgroup, <br>2023-24 Schoo
 caption_text<-"Source: California Department of Education, Adjusted Cohort Graduation Rate and Outcome Data,
 2023-2024. Note: Rates are out of 100 students. AIAN stands for American Indian and Alaskan Native."
 
-single_bar<-function(df, indicator, title_text, footnote_text){
+single_bar<-function(df, indicator, title_text, subtitle_text, caption_text){
   
-  # Conditionally rename 'label' column to 'Student Group' ONLY if the table is with education data
-  
-  if ("geography" %in% names(df) &&
-      any(df$geography == "Antelope Valley Union High School District", na.rm = TRUE)) {
-    df <- df %>% rename(`Student Group` = label)
-  }
+  # rename 'rate' column for function and arrange by rate descending
+  df<-df%>%
+    rename_with(~ "rate", .cols = contains("rate"))
   
 # Define max value
  max_y = 1.15 * max(df$rate)
@@ -253,55 +250,62 @@ single_bar<-function(df, indicator, title_text, footnote_text){
  # Define annotation
  annotate_y = 1.12 * (df$rate[df$label=="Total"])
  
- # Define total stat annotation
- engtot_stat <- paste("Overall Rate =", min(df$rate[df$label=="Total"]))   
+ # set total value
+ total_value<- subset(df, label=="Total")$rate
  
  # Graph
  
-  final_visual <-  df%>%
-    rename_with(~ "rate", .cols = contains("rate"))%>%
-    
-    ggplot(aes(x= reorder(label, -rate), y=rate)) +   
+  final_visual <-  ggplot(subset(df, label !='Total' ), aes(x= reorder(label, rate), y=rate)) +   
     geom_bar(stat="identity", position = position_dodge(0.7), show.legend = FALSE) +
     
-  
-  # set up manual fill using 'test', add "-" before value to order bars when MAX is best
-   
-     annotate("text", x=df$label, y =68, label = str_wrap(paste0(engtot_stat, "%"), width = 15), 
-              hjust=0, lineheight = 0.3,
-             vjust = 0.35, family= font_table_text, color = darkblue, size = 20) +
+    # define the bars
     
-    labs(title = paste0("**", title_text,"**"),
-         caption=caption_text) + 
     geom_col(fill = lightblue) +
-    geom_hline(yintercept = round(df$rate[df$label=="Total"], 1), color = darkblue, size = .5) +
+    
+  # vertical line for Total %
+    geom_hline(yintercept = subset(df, label =="Total")$rate, linetype = "dotted", color = black, size = 0.75) +    
+   
+    # label for vertical Total % line
+    
+    annotate(geom = "text",
+             x = 0.75,
+             y = subset(df, label=="Total")$rate,
+             label = paste0("Total: ", subset(df, label=="Total")$rate,"%"),
+             hjust =0, vjust = 0,
+             color = black, size = 4, family = font_axis_label) +
+    
+    # bar labels
+    
     geom_text(aes(label = paste0(round(rate, 1), "%")),
-              family = font_table_text, hjust = -0.2, size = 10) +       # format data labels, adjust hjust to avoid overlap w/ total line
+              family = font_bar_label, 
+              position = position_dodge(width = 1), vjust = 0.25 , hjust= 1.15,
+              fontface = "bold",  
+              colour = "white") +  
+    
+    labs(title = title_text,
+         subtitle = str_wrap(subtitle_text, width = 80),
+         caption=caption_text) + 
+  
     scale_x_discrete(labels = function(label) str_wrap(label, width = 20)) +            # wrap long labels
-    theme_void()+
     xlab("") +
     ylab("") +
     expand_limits(y = c(0,91))+
     coord_flip()+
-  
-    theme(
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    panel.border = element_blank(),
-    panel.background = element_blank(),
-    axis.title.x = element_blank(),
-    axis.title.y =element_blank(),
-    axis.text.x = element_blank(),
-    axis.text.y = element_text(size = 52, family= font_axis_label, lineheight = 0.3, hjust=0),
-    axis.ticks = element_blank(),
-    plot.title= element_markdown(family = font_title, face = "bold", size = 72, hjust = 0, lineheight = 0.4, margin=margin(0,0,4,-155)),
-    plot.caption = element_text(family = font_caption, size = 40, hjust = 0, lineheight = 0.3),
-    plot.caption.position = "plot",
-    plot.margin = margin(t = 3,
-                         b = 3,
-                         r = 3,
-                         l = 3)
-  )
+    theme_minimal()+
+    theme(legend.title = element_blank(), # no legend--modify if necessary
+          
+          # define style for axis text
+          axis.text.y = element_text(size = 10, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
+                                     colour = black, family= font_axis_label),
+          axis.text.x = element_blank(),
+          plot.caption = element_text(hjust = 0.0, size = 9, colour = black, family = font_caption),
+          plot.title =  element_text(hjust = 0.0, size = 21, colour = black, family = font_title), 
+          plot.subtitle = element_text(hjust = 0.0, size = 14, colour = black, family = font_axis_label),
+          axis.ticks = element_blank(),
+          # grid line style
+          panel.grid.minor = element_blank(),
+          panel.grid.major = element_line(size = 0.25),
+          panel.grid.major.y = element_blank())
   
   # Define base file path
   base_path <- paste0("W:/Project/RJS/CTC/Visuals/",indicator, "_singlebar")
@@ -310,16 +314,34 @@ single_bar<-function(df, indicator, title_text, footnote_text){
   
   # Save in SVG
   ggsave(plot = final_visual, filename = paste0(base_path, ".svg"),
-         device = "svg", width = 8, height = 5.5)
+         device = "svg", width = 9, height = 6.5)
   
   # Save in PNG
   ggsave(plot = final_visual, filename = paste0(base_path, ".png"),
-         device = "png", width = 8, height = 5.5)
+         device = "png", width = 9, height = 6.5)
 
   
   return(final_visual)
 }
-  
+
+# EX) SINGLE BAR GRAPH------------------------------------
+
+
+df<-dbGetQuery(con, "SELECT * FROM analysis_graduation")
+
+indicator<-"graduation"
+title_text<-"Findings based title"
+subtitle_text<-"High School Graduation Rates by Student Subgroup in Antelope Valley Union High School District"
+caption_text<-"Source: California Department of Education, Adjusted Cohort Graduation Rate and Outcome Data,
+2023-2024. Note: Rates are out of 100 students. AIAN stands for American Indian and Alaskan Native."
+
+# Apply function
+
+single_bar(df=df, 
+             indicator=indicator, 
+             title_text=title_text,
+           subtitle_text=subtitle_text,
+             caption_text=caption_text)
 
 # Disconnect from postgres--------------------------
 dbDisconnect(con)
