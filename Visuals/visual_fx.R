@@ -232,7 +232,94 @@ static_table(df=df,
 
 # SINGLE BAR GRAPH FUNCTION -------------------------------------
 
+df<-dbGetQuery(con, "SELECT * FROM analysis_graduation")
 
+title_text<-"High School Graduation Rates by Student Subgroup, <br>2023-24 School Year, Antelope Valley Union High School District"
+caption_text<-"Source: California Department of Education, Adjusted Cohort Graduation Rate and Outcome Data,
+2023-2024. Note: Rates are out of 100 students. AIAN stands for American Indian and Alaskan Native."
+
+single_bar<-function(df, indicator, title_text, footnote_text){
+  
+  # Conditionally rename 'label' column to 'Student Group' ONLY if the table is with education data
+  
+  if ("geography" %in% names(df) &&
+      any(df$geography == "Antelope Valley Union High School District", na.rm = TRUE)) {
+    df <- df %>% rename(`Student Group` = label)
+  }
+  
+# Define max value
+ max_y = 1.15 * max(df$rate)
+
+ # Define annotation
+ annotate_y = 1.12 * (df$rate[df$label=="Total"])
+ 
+ # Define total stat annotation
+ engtot_stat <- paste("Overall Rate =", min(df$rate[df$label=="Total"]))   
+ 
+ # Graph
+ 
+  final_visual <-  df%>%
+    rename_with(~ "rate", .cols = contains("rate"))%>%
+    
+    ggplot(aes(x= reorder(label, -rate), y=rate)) +   
+    geom_bar(stat="identity", position = position_dodge(0.7), show.legend = FALSE) +
+    
+  
+  # set up manual fill using 'test', add "-" before value to order bars when MAX is best
+   
+     annotate("text", x=df$label, y =68, label = str_wrap(paste0(engtot_stat, "%"), width = 15), 
+              hjust=0, lineheight = 0.3,
+             vjust = 0.35, family= font_table_text, color = darkblue, size = 20) +
+    
+    labs(title = paste0("**", title_text,"**"),
+         caption=caption_text) + 
+    geom_col(fill = lightblue) +
+    geom_hline(yintercept = round(df$rate[df$label=="Total"], 1), color = darkblue, size = .5) +
+    geom_text(aes(label = paste0(round(rate, 1), "%")),
+              family = font_table_text, hjust = -0.2, size = 10) +       # format data labels, adjust hjust to avoid overlap w/ total line
+    scale_x_discrete(labels = function(label) str_wrap(label, width = 20)) +            # wrap long labels
+    theme_void()+
+    xlab("") +
+    ylab("") +
+    expand_limits(y = c(0,91))+
+    coord_flip()+
+  
+    theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    panel.background = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y =element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_text(size = 52, family= font_axis_label, lineheight = 0.3, hjust=0),
+    axis.ticks = element_blank(),
+    plot.title= element_markdown(family = font_title, face = "bold", size = 72, hjust = 0, lineheight = 0.4, margin=margin(0,0,4,-155)),
+    plot.caption = element_text(family = font_caption, size = 40, hjust = 0, lineheight = 0.3),
+    plot.caption.position = "plot",
+    plot.margin = margin(t = 3,
+                         b = 3,
+                         r = 3,
+                         l = 3)
+  )
+  
+  # Define base file path
+  base_path <- paste0("W:/Project/RJS/CTC/Visuals/",indicator, "_singlebar")
+
+  showtext_opts(dpi=300)
+  
+  # Save in SVG
+  ggsave(plot = final_visual, filename = paste0(base_path, ".svg"),
+         device = "svg", width = 8, height = 5.5)
+  
+  # Save in PNG
+  ggsave(plot = final_visual, filename = paste0(base_path, ".png"),
+         device = "png", width = 8, height = 5.5)
+
+  
+  return(final_visual)
+}
+  
 
 # Disconnect from postgres--------------------------
 dbDisconnect(con)
