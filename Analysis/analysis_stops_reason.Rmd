@@ -52,6 +52,13 @@ lasd_stops_incident <- lasd_stops_incident_raw
 person_lasd <- lasd_stops_person_raw %>% 
   right_join(lasd_stops_incident, by="contact_id")
 
+qa<-lasd_stops_person_raw%>% 
+  left_join(lasd_stops_incident, by="contact_id")
+
+# QA
+
+qa1<-anti_join(lasd_stops_person_raw, lasd_stops_incident, by = "contact_id")
+
 # Replace the LASD school names with the CDE school names using the xwalk
 person <- person_lasd %>%
   left_join(xwalk, by=c("school_name"="lasd_school")) %>%
