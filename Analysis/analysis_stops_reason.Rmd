@@ -55,9 +55,25 @@ person_lasd <- lasd_stops_person_raw %>%
 qa<-lasd_stops_person_raw%>% 
   left_join(lasd_stops_incident, by="contact_id")
 
-# QA
+# JZ QA the right join----- 
 
-qa1<-anti_join(lasd_stops_person_raw, lasd_stops_incident, by = "contact_id")
+# see if there are any NAs in person_id after the join: 
+
+unmatched <- person_lasd %>% filter(is.na(person_id))
+nrow(unmatched)
+
+table(duplicated(lasd_stops_incident$contact_id))  # should be mostly FALSE
+table(duplicated(lasd_stops_person_raw$contact_id)) # should be TRUE because this is person level so if there are multiple peole in the same stop there will be duplicate  contact_id values
+
+table(duplicated(lasd_stops_person_raw$person_id)) # should be FALSE because every person should have a unique ID
+
+# pull out the rows where there is more than one contact_id after the join. then manually filter for these contact_id rows in lasd_stops_person_raw and in lasd_stops_incident to make sure it is what I expect to see. 
+
+dup<-person_lasd %>%
+  count(contact_id) %>%
+  filter(n > 1)
+
+# End JZ QA code: looks good!
 
 # Replace the LASD school names with the CDE school names using the xwalk
 person <- person_lasd %>%
@@ -76,8 +92,11 @@ person <- person_lasd %>%
 person_clean <- person %>%
   mutate(reason_clean = str_to_lower(reason_for_contact_narrative),
          # remove all characters but lowercase letters and whitespace, essentially removing punctuation
-         reason_clean = str_replace_all(reason_clean, "[^a-z\\s]", ""), 
+         reason_clean = str_replace_all(reason_clean, "[^a-z0-9\\s]", ""), # JZ QA: revise this to keep numbers
          reason_clean = str_squish(reason_clean)) # remove extra spaces
+
+# QA: look at result of cleaning of narrative column
+qa<-person_clean%>%select(contact_id, person_id, reason_for_contact_narrative, reason_clean)
 
 # Basic word count
 word_freq <- person_clean %>%
@@ -85,6 +104,9 @@ word_freq <- person_clean %>%
   # Each word gets its own row.
   unnest_tokens(word, reason_clean) %>%
   count(word, sort = TRUE) 
+
+# QA: look at result of tokenizing
+qa<-word_freq%>%select(contact_id, person_id, reason_for_contact_narrative, reason_clean)
 
 person_tagged <- person_clean %>%
   mutate(narrative = case_when(
