@@ -18,7 +18,7 @@ con_rda <- connect_to_db("rda_shared_data")
 con_ctc <- connect_to_db("cancel_the_contract")
 
 # Get LASD stop-level data for Antelope Valley high schools
-lasd_stops_incident_raw <- dbGetQuery(con_rda, "SELECT street_number, full_street, contact_id, school_name, civilians_contacted, call_for_service FROM crime_and_justice.lasd_stops_incident_2018_2023
+lasd_stops_incident_raw <- dbGetQuery(con_rda, "SELECT street_number, full_street, contact_id, k_12_school, school_name, civilians_contacted, call_for_service FROM crime_and_justice.lasd_stops_incident_2018_2023
 WHERE school_name
 IN (
 'Antelope Valley High',
@@ -37,7 +37,7 @@ IN (
 ORDER BY school_name") 
 
 # Get LASD person-level data
-lasd_stops_person_raw <- dbGetQuery(con_rda, "SELECT full_address, contact_id, person_id, reason_for_contact, reason_for_contact_narrative FROM crime_and_justice.lasd_stops_person_2018_2023")
+lasd_stops_person_raw <- dbGetQuery(con_rda, "SELECT full_address, contact_id, person_id, k12_student, reason_for_contact, reason_for_contact_narrative FROM crime_and_justice.lasd_stops_person_2018_2023")
 
 # Get xwalk
 xwalk <- dbGetQuery(con_ctc, "SELECT cde_school, lasd_school FROM data.avuhsd_lasd_xwalk") 
@@ -73,6 +73,11 @@ dup<-person_lasd %>%
   count(contact_id) %>%
   filter(n > 1)
 
+# QA: look at k12_student and k12_school identifiers
+
+table(person_lasd$k12_student) # No: 34 Yes: 870 ---kind of interesting there are 34 non-students. Since the number is so low part of me is OK with keeping the 34 in especially since it still happened on school grounds and it is possible the 34 is just a data entry error. But will discuss with team if we should come back and exclude the 34.Leaving in for now. 
+table(person_lasd$k_12_school) #---true 789, yes 115 --assuming this just maens everything is a school so that checks out
+ 
 # End JZ QA code: looks good!
 
 # Replace the LASD school names with the CDE school names using the xwalk
@@ -110,10 +115,14 @@ qa<-word_freq%>%select(contact_id, person_id, reason_for_contact_narrative, reas
 
 person_tagged <- person_clean %>%
   mutate(narrative = case_when(
-    str_detect(reason_clean, "marijuana|weed") ~ "Marijuana",    
-    str_detect(reason_clean, "fight|battery|assaulted|assault|battered|fighting|fought|assaulting|punching") ~ "Battery",
+    str_detect(reason_clean, "marijuana|weed|11357|11357d|11357dhs|11357e|11359") ~ "Marijuana",    
+    str_detect(reason_clean, "fight|battery|assaulted|assault|battered|fighting|fought|assaulting|assault|assaulted|punching|2436|2436pc|242|242pc|2432a1|2432a1|2432a1pc|245|245a1pc|245a4") ~ "Assault and Battery",
     TRUE ~ "Other"
   ))
+
+# QA just look at overall counts after recategorizing
+
+table(person_tagged$narrative)
 
 # Only contains stops where a call for police service was made
 # unique(person_tagged$call_for_service) # "false" "true"  "No"    "Yes"  
