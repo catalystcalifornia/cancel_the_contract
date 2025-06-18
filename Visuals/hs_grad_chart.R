@@ -70,51 +70,52 @@ engtot_stat <- paste("Overall Rate =", min(df$graduation_rate[df$label=="Total"]
 
 
 # Define chart height as max y value varies by indicator. Set vertical position for total line label - may need to be customized for each chart.
-# max_y = 1.15 * max(df$graduation_rate)
-# annotate_y = 1.12 * (df$graduation_rate[df$label=="Total"])
-# 
+max_y = 1.15 * max(df$graduation_rate)
+annotate_y = 1.12 * (df$graduation_rate[df$label=="Total"])
+
+
 # # # ggplot method that should export as .svg ##
-# hs_plot <-
-# 
-#   ggplot(df, aes(x= reorder(label, -graduation_rate), y=graduation_rate)) +     # set up manual fill using 'test', add "-" before value to order bars when MAX is best
-#    annotate("text", x=df$label, y =68, label = str_wrap(paste0(engtot_stat, "%"), width = 15), hjust=0, lineheight = 0.3,
-#             vjust = 0.35, family= font_table_text, color = darkblue, size = 20) +
-#   labs(title = "**High School Graduation Rates by Student Subgroup, <br>2023-24 School Year, Antelope Valley Union High School District**",
-#        caption = "Source: California Department of Education, Adjusted Cohort Graduation Rate and Outcome Data,
-# 2023-2024. Note: Rates are out of 100 students. AIAN stands for American Indian and Alaskan Native.") + #, https://www.cde.ca.gov/ds/ad/filesacgr.asp.
-#   # rest of chart
-#   geom_bar(stat="identity", position = position_dodge(0.7), show.legend = FALSE) +
-#   geom_col(fill = lightblue) +
-#   geom_hline(aes(yintercept = round(df$graduation_rate[df$label=="Total"], 1)), color = darkblue, size = .5) +
-#   geom_text(aes(label = paste0(round(graduation_rate, 1), "%")), 
-#             family = font_table_text, hjust = -0.2, size = 10) +       # format data labels, adjust hjust to avoid overlap w/ total line
-#   scale_x_discrete(labels = function(label) str_wrap(label, width = 20)) +            # wrap long labels
-#   theme_void()+
-#   xlab("") +
-#   ylab("") +
-#   expand_limits(y = c(0,91))+
-#   coord_flip()
-# 
-# hs_plot <- hs_plot + theme(
-#   panel.grid.major = element_blank(),
-#   panel.grid.minor = element_blank(),
-#   panel.border = element_blank(),
-#   panel.background = element_blank(),
-#   axis.title.x = element_blank(),
-#   axis.title.y =element_blank(),
-#   axis.text.x = element_blank(),
-#   axis.text.y = element_text(size = 52, family= font_axis_label, lineheight = 0.3, hjust=0),
-#   axis.ticks = element_blank(),
-#   plot.title= element_markdown(family = font_title, face = "bold", size = 72, hjust = 0, lineheight = 0.4, margin=margin(0,0,4,-155)),
-#   plot.caption = element_text(family = font_caption, size = 40, hjust = 0, lineheight = 0.3),
-#   plot.caption.position = "plot",
-#   plot.margin = margin(t = 3,
-#                        b = 3,
-#                        r = 3,
-#                        l = 3)
-# )
-# 
-# hs_plot
+hs_plot <-
+
+  ggplot(df, aes(x= reorder(label, -graduation_rate), y=graduation_rate)) +     # set up manual fill using 'test', add "-" before value to order bars when MAX is best
+   annotate("text", x=df$label, y =68, label = str_wrap(paste0(engtot_stat, "%"), width = 15), hjust=0, lineheight = 0.3,
+            vjust = 0.35, family= font_table_text, color = darkblue, size = 20) +
+  labs(title = "**High School Graduation Rates by Student Subgroup, <br>2023-24 School Year, Antelope Valley Union High School District**",
+       caption = "Source: California Department of Education, Adjusted Cohort Graduation Rate and Outcome Data,
+2023-2024. Note: Rates are out of 100 students. AIAN stands for American Indian and Alaskan Native.") + #, https://www.cde.ca.gov/ds/ad/filesacgr.asp.
+  # rest of chart
+  geom_bar(stat="identity", position = position_dodge(0.7), show.legend = FALSE) +
+  geom_col(fill = lightblue) +
+  geom_hline(aes(yintercept = round(df$graduation_rate[df$label=="Total"], 1)), color = darkblue, size = .5) +
+  geom_text(aes(label = paste0(round(graduation_rate, 1), "%")),
+            family = font_table_text, hjust = -0.2, size = 10) +       # format data labels, adjust hjust to avoid overlap w/ total line
+  scale_x_discrete(labels = function(label) str_wrap(label, width = 20)) +            # wrap long labels
+  theme_void()+
+  xlab("") +
+  ylab("") +
+  expand_limits(y = c(0,91))+
+  coord_flip()
+
+hs_plot <- hs_plot + theme(
+  panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  axis.title.x = element_blank(),
+  axis.title.y =element_blank(),
+  axis.text.x = element_blank(),
+  axis.text.y = element_text(size = 52, family= font_axis_label, lineheight = 0.3, hjust=0),
+  axis.ticks = element_blank(),
+  plot.title= element_markdown(family = font_title, face = "bold", size = 72, hjust = 0, lineheight = 0.4, margin=margin(0,0,4,-155)),
+  plot.caption = element_text(family = font_caption, size = 40, hjust = 0, lineheight = 0.3),
+  plot.caption.position = "plot",
+  plot.margin = margin(t = 3,
+                       b = 3,
+                       r = 3,
+                       l = 3)
+)
+
+hs_plot
 # 
 # ggsave(hs_plot, filename="hs_grad_chart.png",
 #        path=("W:/Project/RJS/CTC/Github/CR/cancel_the_contract/Images/English/"),
