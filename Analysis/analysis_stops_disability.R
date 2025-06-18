@@ -52,7 +52,25 @@ av_stops <- lasd_incidents %>% left_join(lasd_persons, by = "contact_id")
 # check how many of each category of no_disabilities
 table(av_stops$no_disabilities)
 
+# QA: Explore the other separate disability columns to make sure the no_disabilities flag accounts for those
+
+disab<-lasd_persons%>%
+  select(person_id, contact_id, deaf_or_difficulty_hearing, speech_impaired_or_limited_use_of_language,
+         blind_or_limited_vision, mental_health_condition, intellectually_or_developmental_disability, other_disabilities,
+         hyperactive_or_impulsive_behavior, no_disabilities)
+
+disab_no <- disab %>%
+  filter(no_disabilities %in% c("false", "No")) 
+
+# I manually checked each of the disability columns and they all contain some `'true' or 'Yes' values 
+
+# Now check if any of the columns have disabilities == Yes/true when filtering for the opposite
+
+disab_yes <- disab %>%
+  filter(no_disabilities %in% c("true", "Yes")) ## there are NO Yes/true values in the other disability columns so we're OK
+
 # create data frame of just stops with disabilities
+
 av_stops_disabled <- av_stops %>% filter(no_disabilities %in% c("false", "No"))
 
 # double check all have a disability
@@ -105,6 +123,19 @@ df <- data.frame(stops,
                  av_enrollment_disabled, 
                  pct_enrollment_w_disability)
 
+#### Clean up final df for postgres #####
+
+df<-df%>%
+  mutate(geography="Antelope Valley Union High School District",
+         reportingcategory_re="Students with Disabilities")%>%
+  rename("stops_total"="stops",
+         "stops_disability_count"="stops_w_disability",
+         "stops_disability_rate"="pct_stops_w_disability",
+         "enrollment_total"="av_enrollment",
+         "enrollment_disabled_count"="av_enrollment_disabled",
+         "enrollment_disability_rate"="pct_enrollment_w_disability")%>%
+  select(geography, reportingcategory_re, everything())
+
 
 ############### SEND TO POSTGRES ########################
 
@@ -117,34 +148,39 @@ charvect = rep("varchar", ncol(df)) #create vector that is "varchar" for the num
 
 names(charvect) <- colnames(df)
 
-table_name <- "analysis_stops_disability"
+table_name <- "analysis_stops_disability_avuhsd"
+schema <- "data"
+indicator <- "Analysis table of AVUSHD LASD stops by disability and CDE enrollment by disability."
+source <- "R script: W://Project//RJS//CTC//Github//CR//cancel_the_contract//Analysis//analysis_stops_disability.R"
+qa_filepath <- "W://Project//RJS//CTC//Documentation//QA_Sheet_Disability.R" 
+table_comment <- paste0(indicator, source)
+table_name <- "analysis_stops_disability_avuhsd"
 
 # push to postgres
 dbWriteTable(con,  table_name, df,
-             overwrite = FALSE, row.names = FALSE,
+             overwrite = TRUE, row.names = FALSE,
              field.types = charvect)
 
 # add meta data
 
-table_comment <- paste0("COMMENT ON TABLE analysis_stops_disability IS 'Analysis table of AVUSHD LASD stops by disability and CDE enrollment by disability.
-R script: W:/Project/RJS/CTC/Github/CR/cancel_the_contract/Analysis/analysis_stops_disability.R
-QA document: W:\\Project\\RJS\\CTC\\Documentation\\QA_Sheet_Disability.R;
 
- COMMENT ON COLUMN analysis_stops_disability.stops IS LASD stops in AVUHSD;
- COMMENT ON COLUMN analysis_stops_disability.stops_w_disability IS LASD stops with a disability in AVUHSD;
- COMMENT ON COLUMN analysis_stops_disability.pct_stops_w_disability IS Percent of LASD stops with a disability in AVUHSD;
- COMMENT ON COLUMN analysis_stops_disability.av_enrollment IS AVUHSD enrollment;
- COMMENT ON COLUMN analysis_stops_disability.av_enrollment_disabled IS AVUHSD enrollment with a disability;
- COMMENT ON COLUMN analysis_stops_disability.pct_enrollment_w_disability IS Percent of AVUHSD enrollment with a disability;'
+# Comment on table and columns
 
-")
+column_names <- colnames(df) # Get column names
+column_comments <- c(
+  "geography level",
+  "CDE reporting category recoded",
+  "LASD stops in AVUHSD",
+  "LASD stops with a disability in AVUHSD",
+  "Percent of LASD stops with a disability in AVUHSD",
+  "AVUHSD enrollment",
+  "AVUHSD enrollment with a disability",
+  "Percent of AVUHSD enrollment with a disability"
+  )
 
-# send table comment + column metadata
-dbSendQuery(conn = con, table_comment)
-
+add_table_comments(con, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
 
 dbDisconnect(con)
-dbDisconnect(con_shared)
 
 
 
