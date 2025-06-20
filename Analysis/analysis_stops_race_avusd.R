@@ -45,73 +45,78 @@ ORDER BY school_name
 lasd_persons <- dbGetQuery(con_shared, "SELECT * FROM crime_and_justice.lasd_stops_person_2018_2023")
 
 
-############### CALCULATE STOPS BY DISABILITY ########################
+############### CLEAN UP AND RECODE COLUMNS ########################
 
-av_stops <- lasd_incidents %>% left_join(lasd_persons, by = "contact_id")
+av_stops <- lasd_persons %>% right_join(lasd_incidents, by = "contact_id")
 
-# check how many of each category of no_disabilities
-table(av_stops$no_disabilities)
+# explore call for service break down
 
-# QA: Explore the other separate disability columns to make sure the no_disabilities flag accounts for those
+table(av_stops$call_for_service) ## 65% not CFS, 35% CFS 
 
-disab<-lasd_persons%>%
-  select(person_id, contact_id, deaf_or_difficulty_hearing, speech_impaired_or_limited_use_of_language,
-         blind_or_limited_vision, mental_health_condition, intellectually_or_developmental_disability, other_disabilities,
-         hyperactive_or_impulsive_behavior, no_disabilities)
+# I am going to do the analysis for CFS, Not CFS and Combined
 
-disab_no <- disab %>%
-  filter(no_disabilities %in% c("false", "No")) 
+# first create a cleaner cfs flag
 
-# I manually checked each of the disability columns and they all contain some `'true' or 'Yes' values 
+av_stops<-av_stops%>%
+  mutate(cfs=ifelse(call_for_service %in% "false", 0,
+                    ifelse(call_for_service %in% "No", 0,
+                           ifelse(call_for_service %in% "true", 1,
+                                  1
+                    ))))
 
-# Now check if any of the columns have disabilities == Yes/true when filtering for the opposite
+# double check it
 
-disab_yes <- disab %>%
-  filter(no_disabilities %in% c("true", "Yes")) ## there are NO Yes/true values in the other disability columns so we're OK
+table(av_stops$cfs)
 
-# create data frame of just stops with disabilities
+# select columns of interest and clean up columns 
 
-av_stops_disabled <- av_stops %>% filter(no_disabilities %in% c("false", "No"))
+test<-av_stops%>%
+  select(1,2,159, 25:31)%>%
+  mutate(across(3:10, ~ case_when(
+    . %in% c("Yes", "true") ~ 1,
+    . %in% c("No", "false") ~ 0,
+    TRUE ~ NA_real_)))%>%
+  mutate(aian_flag=ifelse(native_american==1, 1,0))%>%
+  mutate(nhpi_flag=ifelse(pacific_islander==1, 1,0))%>%
+  mutate(nhpi_flag=ifelse(middle_eastern_south_asian==1, 1,0))%>%
+  mutate(latinx=ifelse(hispanic_latino_latina==1, 1,
+                ifelse(white==1 & (white == 1 | black_african_american == 1 | 
+                                     asian == 1 | native_american == 1 | 
+                                     pacific_islander == 1 | middle_eastern_south_asian==1), 1, 0)))%>%
+  mutate(total=n())
 
-# double check all have a disability
-table(av_stops_disabled$no_disabilities)
+# pivot data longer                          
+                          
+av_stops_long<-test%>%
+  pivot_longer(
+    cols = 4:10,
+    names_to = "reportingcategory",
+    values_to = "value"
+  )%>%
+  group_by(contact_id, person_id)%>%
+  filter(value!=0) # only keep where at least one of the racial columns == 1 
 
-# check that all disabilities have at least one true - all except blind or limited vision
-table(av_stops_disabled$deaf_or_difficulty_hearing) 
-table(av_stops_disabled$speech_impaired_or_limited_use_of_language)
-table(av_stops_disabled$blind_or_limited_vision)
-table(av_stops_disabled$mental_health_condition)
-table(av_stops_disabled$intellectually_or_developmental_disability)
-table(av_stops_disabled$other_disabilities)
-table(av_stops_disabled$hyperactive_or_impulsive_behavior)
+# Explore duplicates (these should be people where more than 1 race column == 1
 
-# calculate number of stops with a disability
-stops_w_disability <- nrow(av_stops_disabled)
+dup<-av_stops_long %>%
+  group_by(person_id) %>%
+  filter(n() > 1)
 
-# calculate total stops
-stops <- nrow(av_stops)
+####################### Calculate rates for CFS+Not CFS ######################
 
-# calculate stops with a disability as a percent of total stops
-pct_stops_w_disability <- stops_w_disability / stops * 100
+tot<-av_stops_long%>%
+  group_by(reportingcategory)%>%
+  mutate(count=n(),
+         rate=count/total*100)
+  
 
-
-############### GET ENROLLMENT DATA and CALUCLATE ENROLLMENT BY DISABILITY ########################
+############### GET ENROLLMENT DATA and CALUCLATE ENROLLMENT BY RACE ########################
 
 enrollment <- dbGetQuery(con_shared, "SELECT * FROM education.cde_multigeo_enrollment_census_day_2024_25")
 
 # get Antelope Valley Union High School District enrollment
 av_enrollment <- enrollment %>% filter(districtname == "Antelope Valley Union High" & charter == "ALL" & 
-                                         reportingcategory == "TA") %>% 
-  pull(total_enr)
-
-# get AVUHSD disabled enrollment
-av_enrollment_disabled <- enrollment %>% filter(districtname == "Antelope Valley Union High" & 
-                                                  charter == "ALL" & 
-                                                  reportingcategory == "SG_DS") %>% 
-  pull(total_enr)
-
-# calculate enrollment with a disability as a percent of total enrollment
-pct_enrollment_w_disability <- av_enrollment_disabled / av_enrollment * 100
+                                         reportingcategory == "TA")
 
 
 ############### PUT IT TOGETHER ########################
