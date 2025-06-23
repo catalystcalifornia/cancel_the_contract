@@ -10,7 +10,7 @@ library(rmapshaper) # plot()
 library(stringr)
 
 source("W:\\RDA Team\\R\\credentials_source.R")
-con<- connect_to_db("cancel_the_contract")
+con <- connect_to_db("cancel_the_contract")
 con_rda <- connect_to_db("rda_shared_data")
 con_bv <- connect_to_db("bold_vision")
 
@@ -149,10 +149,52 @@ plot(st_geometry(saf_boundaries)) +
 ### Filter LASD stops that didn't match to a SPA using AV place names and/or zipcodes - 1003 stops
 av_lasd_na_stops <- lasd_na_agency %>%
   filter(city %in% av_place_names | 
-           zip_code %in% av_zips |
-           str_length(zip_code)<5) 
+           zip_code %in% av_zips)
 
 View(as.data.frame(table(av_lasd_na_stops$patrol_station_recode, useNA = "ifany")))
+
+#### Combine all SPA 1 LASD stops and export to pg ------------------------------------------------------
+all_av <- rbind(lasd_spa1, av_lasd_na_stops) %>%
+  select(-c(spa, spa_name, prc_area))
+
+table_name <- "lasd_stops_spa1_2023"
+schema <- 'data'
+indicator <- "2023 LASD stops identified as taking place in SPA 1 (Antelope Valley)."
+source <- "County of Los Angeles Sheriff Officer Contacts Incident Details imported to rda_shared_data."
+
+dbWriteTable(con, Id(schema, table_name), all_av,
+           overwrite = FALSE, row.names = FALSE)
+
+qa_filepath <- "W:\\Project\\RJS\\CTC\\Documentation\\QA_lasd_geocode.docx" 
+
+# comment on table and columns
+column_names <- colnames(all_av)
+column_comments <- c('Contact ID',
+                     'Date and time',
+                     'Date reformatted',
+                     'Patrol station',
+                     'Number of minutes of stop',
+                     'Street number',
+                     'Direction',
+                     'Street name',
+                     'Street type (e.g., RD, ST, DR, AVE)',
+                     'Suite number or unit',
+                     'Cross street',
+                     'Landmark',
+                     'Full Street',
+                     'City',
+                     'State',
+                     'ZIP Code',
+                     'K through 12 school',
+                     'School name',
+                     'Call for service',
+                     'Civilians contacted',
+                     'Object ID',
+                     'Patrol Station Recoded')
+
+# add comment on table and columns using add_table_comments() (accessed via credentials script) 
+add_table_comments(con, schema, table_name, indicator, source, qa_filepath, column_names, column_comments) 
+
 
 #### Check LASD Stop Address Data Quality ---------------------------------------------------------------
 # ## check if full_street is best column to use for geocoding
@@ -276,5 +318,3 @@ View(as.data.frame(table(av_lasd_na_stops$patrol_station_recode, useNA = "ifany"
 # # Some stops have cross streets recorded under "street"; may want to recode as is_cross_street 
 # check_cross_streets <- lasd_stops %>%
 #   filter(is_cross_street==FALSE & grepl("/", street, fixed=TRUE)) 
-
-##### 2)	PREP AV STOP ADDRESSES FOR GEOCODING  #####
