@@ -55,19 +55,6 @@ table(av_stops$call_for_service) ## 65% not CFS, 35% CFS
 
 # I am going to do the analysis for CFS, Not CFS and Combined
 
-# first create a cleaner cfs flag
-
-av_stops<-av_stops%>%
-  mutate(cfs=ifelse(call_for_service %in% "false", 0,
-                    ifelse(call_for_service %in% "No", 0,
-                           ifelse(call_for_service %in% "true", 1,
-                                  1
-                    ))))
-
-# double check it
-
-table(av_stops$cfs)
-
 # select columns of interest and clean up columns 
 
 av_stops_re<-av_stops%>%
@@ -106,7 +93,7 @@ dup<-av_stops_long %>%
 
 # From this we see there is only one stop/person that had 7 races indicated, and one stop/person that had 4 races indicated. 
 # All others are 2 races --these can be recoded as nh_twoormor as long as one of the races is NOT latinx (if one race is latinx the coding is latinx) 
-# The person with 4 races indicated--recode as nh_twoormor as long as one of teh races is NOT latinx
+# The person with 4 races indicated--recode as nh_twoormor as long as one of the races is NOT latinx
 # Person with 7 races indicated --recode as NULL 
 
 test<-av_stops_long%>%
@@ -337,50 +324,36 @@ av_enrollment<-av_enrollment%>%
                                                                                              reportingcategory))))))))))%>%
   select(cdscode, districtname, reportingcategory_re, total_enr)
 
-
-
-
-
-
-
-
-
-
-
-
-
-#### Clean up final df for postgres #####
+############### JOIN AVUSD ENROLLMENT DATA TO STOP RATES  ########################
 
 df<-df%>%
-  mutate(geography="Antelope Valley Union High School District",
-         reportingcategory_re="Students with Disabilities")%>%
-  rename("stops_total"="stops",
-         "stops_disability_count"="stops_w_disability",
-         "stops_disability_rate"="pct_stops_w_disability",
-         "enrollment_total"="av_enrollment",
-         "enrollment_disabled_count"="av_enrollment_disabled",
-         "enrollment_disability_rate"="pct_enrollment_w_disability")%>%
-  select(geography, reportingcategory_re, everything())
+  left_join(av_enrollment, by=c("reportingcategory_re"="reportingcategory_re"))%>%
+  select(-c("cdscode", "districtname"))%>%
+  rename("enrollment_race_count"="total_enr")%>%
+  mutate(rate_enr_1k=count/enrollment_race_count*1000,
+        total_enrollment=21958,
+        enrollment_rate=enrollment_race_count/total_enrollment*100
+       )
 
 
-############### SEND TO POSTGRES ########################
-
+############### PUSH TABLE TO POSTGRES #####################
 
 # set column types
 
 charvect = rep("varchar", ncol(df)) #create vector that is "varchar" for the number of columns in df
+charvect <- replace(charvect, c(4,5,6,7,8,9,10), c("numeric"))
 
 # add df colnames to the character vector
 
 names(charvect) <- colnames(df)
 
-table_name <- "analysis_stops_disability_avuhsd"
+table_name <- "analysis_stops_race_avuhsd"
 schema <- "data"
-indicator <- "Analysis table of AVUSHD LASD stops by disability and CDE enrollment by disability."
-source <- "R script: W://Project//RJS//CTC//Github//CR//cancel_the_contract//Analysis//analysis_stops_disability.R"
-qa_filepath <- "W://Project//RJS//CTC//Documentation//QA_Sheet_Disability.R" 
+indicator <- "Analysis table of AVUSHD LASD stops by perceived race, stops per 1000 total CDE enrollment by race, and CDE enrollment/rates by race"
+source <- "R script: W://Project//RJS//CTC//Github//CR//cancel_the_contract//Analysis//analysis_stops_race_avuhsd.R"
+qa_filepath <- "W://Project//RJS//CTC//Documentation//QA_analysis_stops_race_avuhsd.R" 
 table_comment <- paste0(indicator, source)
-table_name <- "analysis_stops_disability_avuhsd"
+table_name <- "analysis_stops_race_avuhsd"
 
 # push to postgres
 dbWriteTable(con,  table_name, df,
@@ -389,19 +362,18 @@ dbWriteTable(con,  table_name, df,
 
 # add meta data
 
-
-# Comment on table and columns
-
 column_names <- colnames(df) # Get column names
 column_comments <- c(
-  "geography level",
+  "Universe: call for service, NOT call for service, or COMBINED CFS+Not CFs",
+   "geography level",
   "CDE reporting category recoded",
-  "LASD stops in AVUHSD",
-  "LASD stops with a disability in AVUHSD",
-  "Percent of LASD stops with a disability in AVUHSD",
-  "AVUHSD enrollment",
-  "AVUHSD enrollment with a disability",
-  "Percent of AVUHSD enrollment with a disability"
+  "TOtal LASD stops in AVUHSD",
+  "Count of LASD stops by perceived race in AVUHSD",
+  "Percent of LASD stops by perceived race in AVUHSD",
+  "AVUHSD enrollment by race",
+  "Rate of stops of in AVUHSD by perceived race per 1,000 total students enrolled in AVUHSD by race",
+  "AVUHSD total enrollment",
+  "AVUHSD enrollment percentages by race"
 )
 
 add_table_comments(con, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
