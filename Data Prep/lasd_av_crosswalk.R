@@ -131,20 +131,69 @@ plot(st_geometry(saf_boundaries)) +
 
 ## AV Place names
 av_place_names <- c(rbind(av_ct_places$place_name, av_ct_places$namelsad, av_ct_places$tract_name))
+
+# # HK QA: Check if AV place names are associated with non-AV census tracts - not the case
+# qa_cts <- ct_places %>%
+#   select(tract_geoid, place_geoid, place_name) %>%
+#   st_drop_geometry %>%
+#   filter(place_name %in% av_place_names) %>%
+#   left_join(av_ct_geos, by ="tract_geoid", relationship = "many-to-many") %>%
+#   filter(is.na(st_name))
+
+
 av_place_names <- toupper(unique(av_place_names))
 av_place_names
+# # HK QA: Check is place names is good to use (compare place names to stop cities)
+# # missing AV place names included: Hasley Canyon, Sun Village, and Desert View Highlands
+# # last two are unincorporated communities
+# # based on place names we can estimate 47540 stops
+# av_places_string <- paste(av_place_names, collapse="|")
+# lasd_cities <- as.data.frame(table(lasd_stops$city, useNA = "ifany"))
+# lasd_av_cities <- lasd_cities %>%
+#   filter(str_detect(Var1, av_places_string))
+# sum(lasd_av_cities$Freq) # 48330
+# av_places_match <- as.data.frame(av_place_names) %>%
+#   full_join(lasd_av_cities, by=c("av_place_names"="Var1"), keep = TRUE)
+
 
 ## AV ZIPs
 av_saf_zips <- st_intersection(av_saf_spa_geom, zips)
-av_saf_zips$prc_area <- st_area(av_saf_spa_geom)
+av_saf_zips <- av_saf_zips %>%
+  mutate(intersect_area = st_area(av_saf_zips)) %>%
+  select(zipcode, intersect_area, zip_area) %>%
+  group_by(zipcode) %>%
+  summarise(total_intersect=sum(intersect_area)) %>%
+  ungroup() %>%
+  st_drop_geometry() %>%
+  left_join(zips, by="zipcode") %>%
+  st_drop_geometry() %>%
+  mutate(
+         zip_overlap = round(as.numeric(total_intersect)/as.numeric(zip_area)*100, 4),
+         spa1_coverage = case_when(zip_overlap<=10 ~ "none",
+                                   zip_overlap>=90 ~ "full", 
+                                   zip_overlap>10 & zip_overlap <90 ~"partial",
+                                   .default=NA))
 
-av_zips <- zips %>% filter(zipcode %in% av_saf_zips$zipcode) 
+av_zips <- zips %>% 
+  filter(zipcode %in% av_saf_zips$zipcode) %>%
+  left_join(av_saf_zips, by="zipcode")
 
 # visually confirmed ZIP and ZCTA matches to SPA 1
-plot(st_geometry(saf_boundaries)) +
-  plot(st_geometry(av_saf_spa_geom), col="black", add=TRUE) +
-  plot(st_geometry(av_zips), col=adjustcolor("green", alpha.f = 0.5), border = "red", add=TRUE)
+colors <- ifelse(av_zips$spa1_coverage == "full", 
+                 adjustcolor("blue", alpha.f = 0.5),
+                 adjustcolor("orange", alpha.f = 0.5))
 
+# Create the plot
+plot(st_geometry(saf_boundaries))
+plot(st_geometry(av_saf_spa_geom), col="black", add=TRUE)
+plot(st_geometry(av_zips), col=colors, border = "green", add=TRUE)
+
+# Optional: Add a legend
+legend("bottomright", 
+       legend = c("Full", "Partial"),
+       fill = c(adjustcolor("blue", alpha.f = 0.5), 
+                adjustcolor("orange", alpha.f = 0.5)),
+       title = "SPA1 Coverage")
 
 ### Filter LASD stops that didn't match to a SPA using AV place names and/or zipcodes - 1003 stops
 av_lasd_na_stops <- lasd_na_agency %>%
