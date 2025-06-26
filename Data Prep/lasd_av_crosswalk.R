@@ -1,7 +1,7 @@
 # Script modified from Bold Vision 2023 to crosswalk 2023 LASD stops to
 # LA County SPAs to isolate SPA 1 (Antelope Valley) for analysis.
-# The crosswalk won't be applicable for all 2023 stops, so those addresses
-# will also be prepped for geocoding.
+# The crosswalk won't be applicable for all 2023 stops, so unmatched stops
+# will need to be attributed to SPA 1 through geocoding or some other method.
 
 
 ##### Workspace Setup ######
@@ -147,10 +147,10 @@ av_place_names
 # # missing AV place names included: Hasley Canyon, Sun Village, and Desert View Highlands
 # # last two are unincorporated communities
 # # based on place names we can estimate 47540 stops
-# av_places_string <- paste(av_place_names, collapse="|")
-# lasd_cities <- as.data.frame(table(lasd_stops$city, useNA = "ifany"))
-# lasd_av_cities <- lasd_cities %>%
-#   filter(str_detect(Var1, av_places_string))
+av_places_string <- paste(av_place_names, collapse="|")
+lasd_cities <- as.data.frame(table(lasd_stops$city, useNA = "ifany"))
+lasd_av_cities <- lasd_cities %>%
+  filter(str_detect(Var1, av_places_string))
 # sum(lasd_av_cities$Freq) # 48330
 # av_places_match <- as.data.frame(av_place_names) %>%
 #   full_join(lasd_av_cities, by=c("av_place_names"="Var1"), keep = TRUE)
@@ -176,12 +176,13 @@ av_saf_zips <- av_saf_zips %>%
 
 av_zips <- zips %>% 
   filter(zipcode %in% av_saf_zips$zipcode) %>%
-  left_join(av_saf_zips, by="zipcode")
+  left_join(av_saf_zips, by="zipcode") %>%
+  filter(spa1_coverage=="full" | spa1_coverage=="partial") # 91342 drops out, should make sure that's ok
 
 # visually confirmed ZIP and ZCTA matches to SPA 1
-colors <- ifelse(av_zips$spa1_coverage == "full", 
-                 adjustcolor("blue", alpha.f = 0.5),
-                 adjustcolor("orange", alpha.f = 0.5))
+colors <- case_when(av_zips$spa1_coverage == "full" ~ adjustcolor("blue", alpha.f = 0.5), 
+                    # av_zips$spa1_coverage == "none" ~ adjustcolor("grey", alpha.f = 0.5),
+                    av_zips$spa1_coverage == "partial" ~ adjustcolor("orange", alpha.f = 0.5))
 
 # Create the plot
 plot(st_geometry(saf_boundaries))
@@ -190,21 +191,65 @@ plot(st_geometry(av_zips), col=colors, border = "green", add=TRUE)
 
 # Optional: Add a legend
 legend("bottomright", 
-       legend = c("Full", "Partial"),
-       fill = c(adjustcolor("blue", alpha.f = 0.5), 
+       legend = c("Full", "Partial"), # legend = c("Full", "None", "Partial"),
+       fill = c(adjustcolor("blue", alpha.f = 0.5),
+                # adjustcolor("grey", alpha.f = 0.5),
                 adjustcolor("orange", alpha.f = 0.5)),
        title = "SPA1 Coverage")
 
-### Filter LASD stops that didn't match to a SPA using AV place names and/or zipcodes - 1003 stops
+### Filter LASD stops that didn't match to a SPA using AV place names and/or zipcodes - 1059 stops
 av_lasd_na_stops <- lasd_na_agency %>%
-  filter(city %in% av_place_names | 
-           zip_code %in% av_zips)
+  filter(city %in% lasd_av_cities$Var1 | 
+           zip_code %in% av_zips$zipcode)
+
+# # HK QA: Check which stops are in "partial" SPA 1 ZIP codes
+# # Cross checking against LA County geography that parts of the 
+# # ZIP Codes outside of SPA 1 overlap the San Gabriel Mountains
+# # Additionally only 2 stops are connected with the partial ZIPS
+# # Checked in google maps and they coordinates are in SPA 1
+# partial_zips <- av_zips %>%
+#   filter(spa1_coverage=="partial") %>%
+#   select(zipcode)
+# av_partial_stops <- av_lasd_na_stops %>%
+#   filter(zip_code %in% partial_zips$zipcode)
 
 View(as.data.frame(table(av_lasd_na_stops$patrol_station_recode, useNA = "ifany")))
 
 #### Combine all SPA 1 LASD stops and export to pg ------------------------------------------------------
 all_av <- rbind(lasd_spa1, av_lasd_na_stops) %>%
-  select(-c(spa, spa_name, prc_area))
+  select(-c(spa, spa_name, prc_area)) # 51,333 (prev. 51,227)
+
+# ## HK QA: check where 56 additional stops came from
+# # Increased counts for: CASTAIC - VAL VERDE (+44)
+# # GORMAN (+1) - Not a place name in our list, matching on ZIP
+# # LLANO (+1) - Not a place name in our list, matching on ZIP
+# # PEARBLOSSOM (+1) - Not a place name in our list, matching on ZIP
+# # UNINCORPORATED LANCASTER (+4)
+# # UNINCORPORATED PALMDALE (+2)
+# # UNINCORPORATED SANTA CLARITA (+3) - These were missing from old table
+# # I think the old method was not using robust string matching, for example
+# # it was only pulling CASTAIC-VAL VERDE when a ZIP Code in our list was also 
+# # recorded; after fixing it pulls ALL CASTAIC-VAL VERDE even is ZIP is NA.
+# 
+# old <- dbGetQuery(con, "SELECT * FROM data.lasd_stops_spa1_2023_old;") 
+# old_count <- old%>%
+#   select(city) %>%
+#   group_by(city) %>%
+#   summarise(count = n())
+# 
+# new <- all_av 
+# 
+# new_count <- new %>%
+#   select(city) %>%
+#   group_by(city) %>%
+#   summarise(count = n())
+# 
+# compare_counts <- full_join(old_count, new_count, by="city", keep=TRUE, suffix = c("_old", "_new")) %>%
+#   filter(is.na(count_old) | is.na(count_new) | count_old != count_new)
+# 
+# compare_stops <- new %>% 
+#   left_join(old, suffix = c("_new", "_old"), keep=TRUE) %>%
+#   filter(is.na(contact_id_old))
 
 table_name <- "lasd_stops_spa1_2023"
 schema <- 'data'
