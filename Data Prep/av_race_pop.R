@@ -24,7 +24,7 @@ con_shared<-connect_to_db("rda_shared_data")
 # Read in tables from postgres ----
 
 # race table
-df<- dbGetQuery(con_shared, "SELECT * FROM demographics.acs_5yr_multigeo_2023_race_long")
+race<- dbGetQuery(con_shared, "SELECT * FROM demographics.acs_5yr_multigeo_2023_race_long")
 
 # grab SPA-tract xwalk so that we can get all tracts within SPA 1 which we are using as our AV geography
 
@@ -70,7 +70,7 @@ soasian_av<-soasian%>%
 # Calculate race estimates for AV ----
 
 ##### standard race groups  ------
-av_race<-df%>%
+av_race<-race%>%
   filter(geoid %in% ct_av) # grab only tracts in SPA 1
 
 ##### asian minus south asian  ------
@@ -143,11 +143,11 @@ names(charvect) <- colnames(df_final)
 table_name <- "av_population_race"
 schema <- 'data'
 indicator <- "2023 ACS Race estimates and rates for Antelope Valley"
-source <- "AV to census tract xwalk from the Region 5 State of the Child report. Race data from ACS
+source <- "SPA to tract xwalk filtering for SPA 1. Race data from ACS
 imported to rda_shared_data."
 
 dbWriteTable(con, Id(schema, table_name), df_final,
-             overwrite = FALSE, row.names = FALSE)
+             overwrite = TRUE, row.names = FALSE)
 
 qa_filepath <- "W:\\Project\\RJS\\CTC\\Documentation\\QA_av_race_pop.docx" 
 
