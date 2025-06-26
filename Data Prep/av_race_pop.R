@@ -26,9 +26,14 @@ con_shared<-connect_to_db("rda_shared_data")
 # race table
 df<- dbGetQuery(con_shared, "SELECT * FROM demographics.acs_5yr_multigeo_2023_race_long")
 
-# AV-tract xwalk from the AV State of the Child project
+# grab SPA-tract xwalk so that we can get all tracts within SPA 1 which we are using as our AV geography
 
-av_ct<-dbGetQuery(con, "SELECT * FROM av_ct")
+spa<-dbGetQuery( con_shared, "SELECT * FROM crosswalks.lacounty_health_district_spa_tract_2022")%>%
+  filter(spa_num==1)
+
+# pull out the tracts for spa 1
+
+ct_av<-spa$ct_geoid
 
 # South asian estimates ----
 # calculate south asian pop to subtract from nh_asian pop 
@@ -56,7 +61,7 @@ colnames(soasian)<-tolower(names(soasian))
 
 ## Calculate South Asian Count in AV
 soasian_av<-soasian%>%
-  filter(geoid %in% av_ct$tract_geoid)%>%
+  filter(geoid %in% ct_av)%>% # grab only tracts in SPA 1
   group_by(geoid)%>%
   summarise(soasian_count=sum(estimate),
             soasian_moe=moe_sum(moe,estimate))
@@ -66,7 +71,7 @@ soasian_av<-soasian%>%
 
 ##### standard race groups  ------
 av_race<-df%>%
-  filter(geoid %in% av_ct$tract_geoid)
+  filter(geoid %in% ct_av) # grab only tracts in SPA 1
 
 ##### asian minus south asian  ------
 # reference for calcs using tidycensus https://psrc.github.io/psrccensus/articles/calculate-reliability-moe-transformed-acs.html
