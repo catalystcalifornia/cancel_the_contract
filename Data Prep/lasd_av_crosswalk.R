@@ -16,34 +16,41 @@ con_bv <- connect_to_db("bold_vision")
 
 
 ##### Import Data #####
-# Get LAPD public safety station table
-saf_boundaries <-  st_read(con_rda, 
+# Get AV/SPA 1 geom
+lac_spa <- st_read(con_rda, 
+                   query = "SELECT * FROM geographies_la.la_county_service_planning_areas_2022") %>%
+  st_set_crs(4326) %>%
+  st_transform(3310)
+spa1_geom <- lac_spa %>% filter(SPA=="1")
+
+# Get LAPD public safety station geoms
+station_boundaries <-  st_read(con_rda, 
                            query = "SELECT st_name, geom FROM geographies_la.la_public_safety_station_boundaries_2023") %>%
   st_transform(3310)
-st_crs(saf_boundaries)
 
-plot(st_geometry(saf_boundaries))
+# plot(st_geometry(station_boundaries, col="blue")) +
+#   plot(st_geometry(spa1_geom), col=adjustcolor("magenta4", alpha.f = 0.5), add=TRUE)
 
-# get public safety stations-SPA xwalk
-pubsafety_stations_spas_xwalk <- dbGetQuery(con_bv, "SELECT station, spa, spa_name, prc_area FROM bv_2023.crosswalk_pubsafety_stations_spas_2022") %>% arrange(station)
-pubsafety_stations_spas_xwalk$station <- gsub(" Police", "", pubsafety_stations_spas_xwalk$station)
-pubsafety_stations_spas_xwalk$station <- gsub(" Sheriff", "", pubsafety_stations_spas_xwalk$station)
-
+# get patrol stations-SPA xwalk
+station_spa_xwalk <- dbGetQuery(con_bv, "SELECT station, spa, spa_name, prc_area FROM bv_2023.crosswalk_pubsafety_stations_spas_2022") %>% arrange(station)
+station_spa_xwalk$station <- gsub(" Police", "", station_spa_xwalk$station)
+station_spa_xwalk$station <- gsub(" Sheriff", "", station_spa_xwalk$station)
+  
 # visualize SPA 1/AV public safety station boundaries
-av_saf_spa_geom <- saf_boundaries %>% left_join(pubsafety_stations_spas_xwalk, 
-                                             by = c("st_name" = "station"),
-                                             relationship = "many-to-many") %>%
-  filter(spa=='1') %>%
-  mutate(saf_area=st_area(geom))
+spa1_station_geoms <- station_boundaries %>% 
+  left_join(station_spa_xwalk,
+            by = c("st_name" = "station"),
+            relationship = "many-to-many") %>%
+  filter(spa=='1')
 
-plot(st_geometry(saf_boundaries)) +
-  plot(st_geometry(av_saf_spa_geom), col="blue", add=TRUE)
-
+# # Note: SCT station accounts for ~23k stops but only overlaps SPA 1 about 23%
+# plot(st_geometry(station_boundaries)) +
+#   plot(st_geometry(spa1_station_geoms), col=adjustcolor("blue", alpha.f = 0.5), add=TRUE) +
+#   plot(st_geometry(spa1_geom), col=adjustcolor("magenta4", alpha.f = 0.5), add=TRUE)
 
 # get 2023 LASD RIPA stop address data - # 225753 unique stops
 lasd_stops <- dbGetQuery(con_rda, statement="SELECT * FROM crime_and_justice.lasd_stops_incident_2018_2023
 WHERE date_time LIKE '%/2023%';")
-
 
 # get 2023 AV cts and shapes
 ct_geos <- st_read(con_rda, query="SELECT ct_geoid as tract_geoid, geom_3310 as geom FROM geographies_ca.cb_2023_06_tract_500k WHERE countyfp='037';") %>%
@@ -53,6 +60,10 @@ ct_geos <- st_read(con_rda, query="SELECT ct_geoid as tract_geoid, geom_3310 as 
 ct_places <- dbGetQuery(con_rda, statement = "SELECT ct_geoid as tract_geoid, place_geoid, place_name, namelsad FROM crosswalks.ct_place_2023") %>%
   right_join(ct_geos, by="tract_geoid")
 
+# get neighborhoods
+neighborhoods <- st_read(con_rda, query="SELECT name, type, geom FROM geographies_la.latimes_lacounty_neighborhoods_2020") %>%
+  mutate(neighborhood_area=st_area(geom))
+
 # Get zip shapes
 zips <- st_read(con_rda, query="SELECT zipcode, geom FROM geographies_la.lacounty_zipcodes_2022;") %>%
   st_transform(3310) %>%
@@ -61,133 +72,60 @@ zips <- st_read(con_rda, query="SELECT zipcode, geom FROM geographies_la.lacount
 plot(st_geometry(zips), col="red")
 
 ##### 1)	IDENTIFY AV STOPS  #####
-#### BV Crosswalk ---------------------------------------------------------------
-# recode patrol station to full name
-lasd_recode <- lasd_stops %>% 
-  mutate(patrol_station_recode = recode(patrol_station,
-                                        AIR = "Airborne", 
-                                        AVA = "Avalon",
-                                        CAS = "Carson",
-                                        CCS = "Unknown", 
-                                        CEN = "Century",
-                                        CER = "Cerritos",
-                                        CPT = "Compton", 
-                                        CSB = "County Services Bureau", 
-                                        CVS = "Crescenta Valley",
-                                        DET = "Unknown", 
-                                        ELA = "East Los Angeles",
-                                        EOB = "Emergency Outreach Bureau", 
-                                        FPK = "Firestone Park",  
-                                        IDT = "Industry",
-                                        LAN = "Lancaster",
-                                        LHS = "Malibu / Lost Hills",
-                                        LKD = "Lakewood",
-                                        LMT = "Lomita",
-                                        LNX = "South Los Angeles", 
-                                        MDR = "Marina Del Rey",
-                                        NWK = "Norwalk",
-                                        OCS = "Office of County Services",  
-                                        OPS = "Office of Public Safety",  
-                                        OTH = "Other", 
-                                        PKB = "Parks Bureau", 
-                                        PLM = "Palmdale", 
-                                        PRV = "Pico Rivera",
-                                        SCT = "Santa Clarita Valley",
-                                        SDM = "San Dimas",
-                                        SLA = "South Los Angeles",
-                                        TEM = "Temple",
-                                        TSB = "Transit Services Bureau", 
-                                        WAL = "Walnut / Diamond Bar",
-                                        WHD = "West Hollywood"))
+#### Get AV place names, and ZIP Codes ---------------------------------------------------------------
+## AV Neighborhoods - keep names where at least 50% of neighborhood intersects SPA1
+av_nb_intersect <- st_intersection(spa1_geom, neighborhoods) %>%
+  mutate(overlap=st_area(geometry)) %>%
+  mutate(prc_overlap=as.numeric(overlap)/as.numeric(neighborhood_area)*100) %>% 
+  filter(as.numeric(prc_overlap)>=50) %>%
+  select(name)
 
-View(as.data.frame(table(lasd_recode$patrol_station_recode, useNA = "ifany")))
+av_neighborhoods <- neighborhoods %>% 
+  filter(name %in% av_nb_intersect$name)
 
-lasd_spa <- lasd_recode %>% left_join(pubsafety_stations_spas_xwalk, 
-                                      by = c("patrol_station_recode" = "station"),
-                                      relationship = "many-to-many") 
+# # Note some of SPA 1 not covered by an LA Time neighborhood (e.g., Gorman)
+# # List is still more expansive then using census tract to place crosswalk for names
+# plot(st_geometry(station_boundaries)) +
+#   plot(st_geometry(spa1_geom), col=adjustcolor("magenta4", alpha.f = 0.5), add=TRUE) +
+#   plot(st_geometry(av_neighborhoods), col=adjustcolor("green", alpha.f = 0.5), add=TRUE) 
 
-# filter for SPA 1/AV LASD stops - 50274 stops
-lasd_spa1 <- lasd_spa %>%
-  filter(spa=="1")
+# City names as reported by the County of LA Public Health website: http://publichealth.lacounty.gov/chs/services.htm
+# and here: http://publichealth.lacounty.gov/cardio/docs/2012-08-01%20SPA%20Map%20with%20cities_all.pdf
+cities <- c("Acton", "Del Sur", "Gorman", "Green Valley", "Hi Vista", "Lake Hughes", "Lake Los Angeles",
+            "Lancaster", "Leona Valley", "Littlerock", "Llano", "Palmdale",
+            "Pearblossom", "Quartz Hill", "Redman", "Sandberg", "South Antelope Valley", 
+            "Valyermo")
 
-# these don't have a SPA and probably need to be geo-coded - 9954
-lasd_na_agency <- lasd_spa %>% 
-  filter(is.na(spa))
-
-View(as.data.frame(table(lasd_na_agency$patrol_station_recode, useNA = "ifany")))
-
-#### Get AV CT Shapes, place names, and ZIP Codes ---------------------------------------------------------------
-## AV CT Shapes
-av_ct_geos <- st_intersection(av_saf_spa_geom, ct_geos) 
-av_ct_places <- av_ct_geos %>%
-  left_join(ct_places, by="tract_geoid",
-            relationship = "many-to-many") %>%
-  filter(!is.na(place_geoid))
-
-# visually confirmed against https://public.tableau.com/app/profile/luz3725/viz/2020CensusData-AVBESTSTARTREGION5/MainPanel
-plot(st_geometry(saf_boundaries)) +
-  plot(st_geometry(av_saf_spa_geom), col="blue", add=TRUE) +
-  plot(st_geometry(av_ct_geos), col=adjustcolor("green", alpha.f = 0.5), add=TRUE)
-
-## AV Place names
-av_place_names <- c(rbind(av_ct_places$place_name, av_ct_places$namelsad, av_ct_places$tract_name))
-
-# # HK QA: Check if AV place names are associated with non-AV census tracts - not the case
-# qa_cts <- ct_places %>%
-#   select(tract_geoid, place_geoid, place_name) %>%
-#   st_drop_geometry %>%
-#   filter(place_name %in% av_place_names) %>%
-#   left_join(av_ct_geos, by ="tract_geoid", relationship = "many-to-many") %>%
-#   filter(is.na(st_name))
+av_cities <- toupper(unique(append(cities, av_neighborhoods$name)))
 
 
-av_place_names <- toupper(unique(av_place_names))
-av_place_names
-# # HK QA: Check is place names is good to use (compare place names to stop cities)
-# # missing AV place names included: Hasley Canyon, Sun Village, and Desert View Highlands
-# # last two are unincorporated communities
-# # based on place names we can estimate 47540 stops
-av_places_string <- paste(av_place_names, collapse="|")
+# HK QA: Check is place names is good to use (compare place names to stop cities)
+# missing AV place names included: Hasley Canyon, Sun Village, and Desert View Highlands
+# last two are unincorporated communities
+# based on place names we can estimate 47540 stops
+av_places_string <- paste(av_cities, collapse="|")
 lasd_cities <- as.data.frame(table(lasd_stops$city, useNA = "ifany"))
 lasd_av_cities <- lasd_cities %>%
   filter(str_detect(Var1, av_places_string))
-# sum(lasd_av_cities$Freq) # 48330
-# av_places_match <- as.data.frame(av_place_names) %>%
-#   full_join(lasd_av_cities, by=c("av_place_names"="Var1"), keep = TRUE)
-
+sum(lasd_av_cities$Freq) # 28662
+av_nomatch <- as.data.frame(av_cities) %>%
+  full_join(lasd_av_cities, by=c("av_cities"="Var1"), keep = TRUE) %>%
+  filter(is.na(Var1))
+  
 
 ## AV ZIPs
-av_saf_zips <- st_intersection(av_saf_spa_geom, zips)
-av_saf_zips <- av_saf_zips %>%
-  mutate(intersect_area = st_area(av_saf_zips)) %>%
-  select(zipcode, intersect_area, zip_area) %>%
-  group_by(zipcode) %>%
-  summarise(total_intersect=sum(intersect_area)) %>%
-  ungroup() %>%
-  st_drop_geometry() %>%
-  left_join(zips, by="zipcode") %>%
-  st_drop_geometry() %>%
-  mutate(
-         zip_overlap = round(as.numeric(total_intersect)/as.numeric(zip_area)*100, 4),
-         spa1_coverage = case_when(zip_overlap<=10 ~ "none",
-                                   zip_overlap>=90 ~ "full", 
-                                   zip_overlap>10 & zip_overlap <90 ~"partial",
-                                   .default=NA))
+spa1_zips <- st_intersection(spa1_geom, zips) %>%
+  mutate(overlap=as.numeric(st_area(geometry))) %>%
+  mutate(prc_overlap=as.numeric(overlap)/as.numeric(zip_area)*100) %>%
+  filter(prc_overlap >1 )
 
-av_zips <- zips %>% 
-  filter(zipcode %in% av_saf_zips$zipcode) %>%
-  left_join(av_saf_zips, by="zipcode") %>%
-  filter(spa1_coverage=="full" | spa1_coverage=="partial") # 91342 drops out, should make sure that's ok
+av_zips <- zips %>% filter(zipcode %in% spa1_zips$zipcode)
 
-# visually confirmed ZIP and ZCTA matches to SPA 1
-colors <- case_when(av_zips$spa1_coverage == "full" ~ adjustcolor("blue", alpha.f = 0.5), 
-                    # av_zips$spa1_coverage == "none" ~ adjustcolor("grey", alpha.f = 0.5),
-                    av_zips$spa1_coverage == "partial" ~ adjustcolor("orange", alpha.f = 0.5))
 
 # Create the plot
-plot(st_geometry(saf_boundaries))
-plot(st_geometry(av_saf_spa_geom), col="black", add=TRUE)
-plot(st_geometry(av_zips), col=colors, border = "green", add=TRUE)
+plot(st_geometry(station_boundaries)) +
+plot(st_geometry(spa1_geom), col=adjustcolor("magenta4", alpha.f = 0.3), add=TRUE) +
+plot(st_geometry(av_zips), col=adjustcolor("green", alpha.f = 0.5), border="red", add=TRUE)
 
 # Optional: Add a legend
 legend("bottomright", 
@@ -196,11 +134,34 @@ legend("bottomright",
                 # adjustcolor("grey", alpha.f = 0.5),
                 adjustcolor("orange", alpha.f = 0.5)),
        title = "SPA1 Coverage")
+# #### BV Crosswalk ---------------------------------------------------------------
+# # recode patrol station to full name
+# lasd_recode <- lasd_stops 
+# 
+# View(as.data.frame(table(lasd_recode$patrol_station_recode, useNA = "ifany")))
+# 
+# lasd_spa <- lasd_recode %>% left_join(pubsafety_stations_spas_xwalk, 
+#                                       by = c("patrol_station_recode" = "station"),
+#                                       relationship = "many-to-many") 
+# 
+# # filter for SPA 1/AV LASD stops - 50274 stops
+# lasd_spa1 <- lasd_spa %>%
+#   filter(spa=="1") %>%
+#   mutate(source="xwalk")
+# 
+# # these don't have a SPA and probably need to be geo-coded - 9954
+# lasd_na_agency <- lasd_spa %>% 
+#   filter(is.na(spa))
+# 
+# View(as.data.frame(table(lasd_na_agency$patrol_station_recode, useNA = "ifany")))
+
+
 
 ### Filter LASD stops that didn't match to a SPA using AV place names and/or zipcodes - 1059 stops
 av_lasd_na_stops <- lasd_na_agency %>%
-  filter(city %in% lasd_av_cities$Var1 | 
-           zip_code %in% av_zips$zipcode)
+  filter(str_detect(city, av_places_string) | 
+           zip_code %in% av_zips$zipcode) %>%
+  mutate(source="filter")
 
 # # HK QA: Check which stops are in "partial" SPA 1 ZIP codes
 # # Cross checking against LA County geography that parts of the 
@@ -217,27 +178,33 @@ View(as.data.frame(table(av_lasd_na_stops$patrol_station_recode, useNA = "ifany"
 
 #### Combine all SPA 1 LASD stops and export to pg ------------------------------------------------------
 all_av <- rbind(lasd_spa1, av_lasd_na_stops) %>%
-  select(-c(spa, spa_name, prc_area)) # 51,333 (prev. 51,227)
+  select(-c(spa, spa_name, prc_area)) # 51,489 (prev. 51,227)
 
-# ## HK QA: check where 56 additional stops came from
-# # Increased counts for: CASTAIC - VAL VERDE (+44)
-# # GORMAN (+1) - Not a place name in our list, matching on ZIP
-# # LLANO (+1) - Not a place name in our list, matching on ZIP
-# # PEARBLOSSOM (+1) - Not a place name in our list, matching on ZIP
-# # UNINCORPORATED LANCASTER (+4)
-# # UNINCORPORATED PALMDALE (+2)
-# # UNINCORPORATED SANTA CLARITA (+3) - These were missing from old table
-# # I think the old method was not using robust string matching, for example
-# # it was only pulling CASTAIC-VAL VERDE when a ZIP Code in our list was also 
-# # recorded; after fixing it pulls ALL CASTAIC-VAL VERDE even is ZIP is NA.
+# # ## HK QA: check where 262 additional stops came from
+# # # Changes in counts for: 
+# # # NEWHALL (+82) - added to places filter
+# # # CASTAIC - VAL VERDE (+44) - fixed place filter to use str_detect
+# # # GORMAN (+40) - added to places filter
+# # # CANYON COUNTRY (+21) - added to places filter
+# # # VALENCIA (+7) - added to places filter
+# # # UNINCORPORATED LANCASTER (+4) - fixed place filter to use str_detect
+# # # UNINCORPORATED SANTA CLARITA (+3) - fixed place filter to use str_detect
+# # # PEARBLOSSOM (+2) - added to places filter
+# # # SAUGUS (+2) - added to places filter
+# # # UNINCORPORATED PALMDALE (+2) - fixed place filter to use str_detect
+# # # CANYON COUNTRY EAST(+1) - added to places filter
+# # # DEL SUR(+1) - added to places filter
+# # # HI VISTA(+1) - added to places filter
+# # # LLANO (+1) - added to places filter
+# # # SOUTH ANTELOPE VALLEY (+1) - added to places filter
 # 
-# old <- dbGetQuery(con, "SELECT * FROM data.lasd_stops_spa1_2023_old;") 
+# old <- dbGetQuery(con, "SELECT * FROM data.lasd_stops_spa1_2023_old;")
 # old_count <- old%>%
 #   select(city) %>%
 #   group_by(city) %>%
 #   summarise(count = n())
 # 
-# new <- all_av 
+# new <- all_av
 # 
 # new_count <- new %>%
 #   select(city) %>%
@@ -245,15 +212,30 @@ all_av <- rbind(lasd_spa1, av_lasd_na_stops) %>%
 #   summarise(count = n())
 # 
 # compare_counts <- full_join(old_count, new_count, by="city", keep=TRUE, suffix = c("_old", "_new")) %>%
-#   filter(is.na(count_old) | is.na(count_new) | count_old != count_new)
+#   filter(is.na(count_old) | is.na(count_new) | count_old != count_new) %>%
+#   mutate(difference = count_new - count_old)
 # 
-# compare_stops <- new %>% 
+# compare_stops <- new %>%
 #   left_join(old, suffix = c("_new", "_old"), keep=TRUE) %>%
 #   filter(is.na(contact_id_old))
 
+# ### HK QA: Check incidence rates of SPA 1 patrols to see if other cities should be in places filter
+# incidence <- as.data.frame(table(all_av$city, all_av$source))
+# incidence <- incidence %>% 
+#   pivot_wider(names_from = Var2, values_from = Freq, names_prefix = "source_") %>%
+#   mutate(total_source = source_filter + source_xwalk) %>%
+#   left_join(lasd_cities, by="Var1") %>%
+#   rename(total_lasd = Freq) %>%
+#   mutate(prc=total_source/total_lasd*100,
+#          in_filter=ifelse(Var1 %in% lasd_av_cities$Var1, "yes", "no")) 
+# # Filter for just names not already in our place filter with incidence rate > 80% and < 100%
+# add_cities <- incidence %>%
+#   filter(total_source != total_lasd) %>%
+#   filter(in_filter=="no" & prc>80 & prc<100)
+
 table_name <- "lasd_stops_spa1_2023"
 schema <- 'data'
-indicator <- "2023 LASD stops identified as taking place in SPA 1 (Antelope Valley)."
+indicator <- "2023 LASD stops identified as taking place in SPA 1 (Antelope Valley)"
 source <- "County of Los Angeles Sheriff Officer Contacts Incident Details imported to rda_shared_data."
 
 dbWriteTable(con, Id(schema, table_name), all_av,
@@ -284,7 +266,8 @@ column_comments <- c('Contact ID',
                      'Call for service',
                      'Civilians contacted',
                      'Object ID',
-                     'Patrol Station Recoded')
+                     'Patrol Station Recoded',
+                     'Method of attributing stop to SPA 1: patrol station to SPA ("xwalk") or by place data like city or ZIP Code ("filter")')
 
 # add comment on table and columns using add_table_comments() (accessed via credentials script) 
 add_table_comments(con, schema, table_name, indicator, source, qa_filepath, column_names, column_comments) 
