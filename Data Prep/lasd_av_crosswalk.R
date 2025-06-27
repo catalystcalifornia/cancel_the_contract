@@ -43,7 +43,7 @@ spa1_station_geoms <- station_boundaries %>%
             relationship = "many-to-many") %>%
   filter(spa=='1')
 
-# # Note: SCT station accounts for ~23k stops but only overlaps SPA 1 about 23%
+# # Note: SCT station accounts for ~23k stops (~ 50% of total AV stops) but only overlaps SPA 1 about 23%
 # plot(st_geometry(station_boundaries)) +
 #   plot(st_geometry(spa1_station_geoms), col=adjustcolor("blue", alpha.f = 0.5), add=TRUE) +
 #   plot(st_geometry(spa1_geom), col=adjustcolor("magenta4", alpha.f = 0.5), add=TRUE)
@@ -51,14 +51,6 @@ spa1_station_geoms <- station_boundaries %>%
 # get 2023 LASD RIPA stop address data - # 225753 unique stops
 lasd_stops <- dbGetQuery(con_rda, statement="SELECT * FROM crime_and_justice.lasd_stops_incident_2018_2023
 WHERE date_time LIKE '%/2023%';")
-
-# get 2023 AV cts and shapes
-ct_geos <- st_read(con_rda, query="SELECT ct_geoid as tract_geoid, geom_3310 as geom FROM geographies_ca.cb_2023_06_tract_500k WHERE countyfp='037';") %>%
-  mutate(ct_area=st_area(geom))
-
-# get AV CT place names
-ct_places <- dbGetQuery(con_rda, statement = "SELECT ct_geoid as tract_geoid, place_geoid, place_name, namelsad FROM crosswalks.ct_place_2023") %>%
-  right_join(ct_geos, by="tract_geoid")
 
 # get neighborhoods
 neighborhoods <- st_read(con_rda, query="SELECT name, type, geom FROM geographies_la.latimes_lacounty_neighborhoods_2020") %>%
@@ -95,14 +87,18 @@ cities <- c("Acton", "Del Sur", "Gorman", "Green Valley", "Hi Vista", "Lake Hugh
             "Lancaster", "Leona Valley", "Littlerock", "Llano", "Palmdale",
             "Pearblossom", "Quartz Hill", "Redman", "Sandberg", "South Antelope Valley", 
             "Valyermo")
+cities_qa_add <- c("Neenach")
 
-av_cities <- toupper(unique(append(cities, av_neighborhoods$name)))
-
+av_cities <- append(cities, av_neighborhoods$name)
+av_cities <- append(av_cities, cities_qa_add)
+av_cities <- sort(toupper(unique(av_cities)))
+av_cities
 
 # HK QA: Check is place names is good to use (compare place names to stop cities)
-# missing AV place names included: Hasley Canyon, Sun Village, and Desert View Highlands
-# last two are unincorporated communities
-# based on place names we can estimate 47540 stops
+# AV place names not in LASD stops: "DESERT VIEW HIGHLANDS", "NORTHEAST ANTELOPE VALLEY",
+# "NORTHWEST ANTELOPE VALLEY", "NORTHWEST PALMDALE", "REDMAN", "SANDBERG", 
+# "SOUTHEAST ANTELOPE VALLEY", "SUN VILLAGE"
+# based on place names we can estimate 28662 stops
 av_places_string <- paste(av_cities, collapse="|")
 lasd_cities <- as.data.frame(table(lasd_stops$city, useNA = "ifany"))
 lasd_av_cities <- lasd_cities %>%
@@ -111,7 +107,6 @@ sum(lasd_av_cities$Freq) # 28662
 av_nomatch <- as.data.frame(av_cities) %>%
   full_join(lasd_av_cities, by=c("av_cities"="Var1"), keep = TRUE) %>%
   filter(is.na(Var1))
-  
 
 ## AV ZIPs
 spa1_zips <- st_intersection(spa1_geom, zips) %>%
@@ -119,86 +114,181 @@ spa1_zips <- st_intersection(spa1_geom, zips) %>%
   mutate(prc_overlap=as.numeric(overlap)/as.numeric(zip_area)*100) %>%
   filter(prc_overlap >1 )
 
-av_zips <- zips %>% filter(zipcode %in% spa1_zips$zipcode)
-
+av_zips_keep <- zips %>% 
+  filter(zipcode %in% spa1_zips$zipcode) %>%
+  mutate(keep = ifelse(zipcode!="91387", "keep", "discard"))
 
 # Create the plot
+# Compared against this to consider geographical characteristics:
+# https://geohub.lacity.org/datasets/lahub::zip-codes-la-county/explore?filters=eyJaSVBDT0RFIjpbIjkzNTUyIiwiOTM1OTEiLCI5MzUzNCIsIjkzNTM1IiwiOTM1MjMiLCI5MzUzNiIsIjkzNTQ0IiwiOTM1NTEiLCI5MzUxMCIsIjkzMjQzIiwiOTM1NDMiLCI5MzU1MCIsIjkzNTUzIiwiOTEzOTAiLCI5MzUzMiIsIjkxMzg3IiwiOTM1NjMiXX0%3D&location=34.725415%2C-118.605497%2C11.56
+
+colors <- ifelse(av_zips_keep$keep == "keep", 
+                 adjustcolor("green", alpha.f = 0.5),
+                 adjustcolor("grey", alpha.f = 0.5))
+
 plot(st_geometry(station_boundaries)) +
 plot(st_geometry(spa1_geom), col=adjustcolor("magenta4", alpha.f = 0.3), add=TRUE) +
-plot(st_geometry(av_zips), col=adjustcolor("green", alpha.f = 0.5), border="red", add=TRUE)
+plot(st_geometry(av_zips_keep), col=colors, border="red", add=TRUE)
 
-# Optional: Add a legend
 legend("bottomright", 
-       legend = c("Full", "Partial"), # legend = c("Full", "None", "Partial"),
-       fill = c(adjustcolor("blue", alpha.f = 0.5),
-                # adjustcolor("grey", alpha.f = 0.5),
-                adjustcolor("orange", alpha.f = 0.5)),
-       title = "SPA1 Coverage")
+       legend = c("Keep", "Discard"),
+       fill = c(adjustcolor("green", alpha.f = 0.5), 
+                adjustcolor("grey", alpha.f = 0.5)),
+       title = "SPA 1 ZIP Code Coverage")
+
+# Based on the above, 91387 should be excluded, it overlaps very little with SPA 1
+# and contains Canyon Country which is associated with SPA 2. The remaining 
+# ZIP Codes contain SPA 1 cities and the areas that extend beyond SPA 1 are 
+# mostly mountain, canyons, etc.
+
+lasd_zips <- as.data.frame(table(lasd_stops$zip_code, useNA = "ifany"))
+lasd_av_zips <- lasd_zips %>%
+  filter(Var1 %in% av_zips_keep$zipcode)
+sum(lasd_av_zips$Freq) # 1462
+zip_freq <- av_zips_keep %>%
+  full_join(lasd_av_zips, by=c("zipcode"="Var1"), keep = TRUE)  # No match: 93523 (Edwards AFB)
+
+# Note 91387 stops are all associated with SCT patrol and SPA 2 cities (Santa Clarita, Canyon Country, Castaic, Val Verde)
+
+av_zips <- av_zips_keep %>%
+  st_drop_geometry() %>%
+  filter(keep=="keep") %>%
+  select(zipcode)
+
 # #### BV Crosswalk ---------------------------------------------------------------
-# # recode patrol station to full name
-# lasd_recode <- lasd_stops 
-# 
-# View(as.data.frame(table(lasd_recode$patrol_station_recode, useNA = "ifany")))
-# 
-# lasd_spa <- lasd_recode %>% left_join(pubsafety_stations_spas_xwalk, 
-#                                       by = c("patrol_station_recode" = "station"),
-#                                       relationship = "many-to-many") 
-# 
-# # filter for SPA 1/AV LASD stops - 50274 stops
-# lasd_spa1 <- lasd_spa %>%
-#   filter(spa=="1") %>%
-#   mutate(source="xwalk")
-# 
-# # these don't have a SPA and probably need to be geo-coded - 9954
-# lasd_na_agency <- lasd_spa %>% 
-#   filter(is.na(spa))
-# 
-# View(as.data.frame(table(lasd_na_agency$patrol_station_recode, useNA = "ifany")))
+# recode patrol station to full name for xwalk
+lasd_recode <- lasd_stops %>%
+  mutate(patrol_station_recode = recode(patrol_station,
+                                      AIR = "Airborne", 
+                                      AVA = "Avalon",
+                                      CAS = "Carson",
+                                      CCS = "Unknown", 
+                                      CEN = "Century",
+                                      CER = "Cerritos",
+                                      CPT = "Compton", 
+                                      CSB = "County Services Bureau", 
+                                      CVS = "Crescenta Valley",
+                                      DET = "Unknown", 
+                                      ELA = "East Los Angeles",
+                                      EOB = "Emergency Outreach Bureau", 
+                                      FPK = "Firestone Park",  
+                                      IDT = "Industry",
+                                      LAN = "Lancaster",
+                                      LHS = "Malibu / Lost Hills",
+                                      LKD = "Lakewood",
+                                      LMT = "Lomita",
+                                      LNX = "South Los Angeles", 
+                                      MDR = "Marina Del Rey",
+                                      NWK = "Norwalk",
+                                      OCS = "Office of County Services",  
+                                      OPS = "Office of Public Safety",  
+                                      OTH = "Other", 
+                                      PKB = "Parks Bureau", 
+                                      PLM = "Palmdale", 
+                                      PRV = "Pico Rivera",
+                                      SCT = "Santa Clarita Valley",
+                                      SDM = "San Dimas",
+                                      SLA = "South Los Angeles",
+                                      TEM = "Temple",
+                                      TSB = "Transit Services Bureau", 
+                                      WAL = "Walnut / Diamond Bar",
+                                      WHD = "West Hollywood"))
 
+View(as.data.frame(table(lasd_recode$patrol_station_recode, useNA = "ifany")))
 
+lasd_spa <- lasd_recode %>% left_join(station_spa_xwalk,
+                                      by = c("patrol_station_recode" = "station"),
+                                      relationship = "many-to-many")
 
-### Filter LASD stops that didn't match to a SPA using AV place names and/or zipcodes - 1059 stops
-av_lasd_na_stops <- lasd_na_agency %>%
-  filter(str_detect(city, av_places_string) | 
-           zip_code %in% av_zips$zipcode) %>%
-  mutate(source="filter")
+plot(st_geometry(station_boundaries)) +
+  
+  plot(st_geometry(spa1_geom), col=adjustcolor("magenta4", alpha.f = 0.5), add=TRUE) +
+  plot(st_geometry(av_zips_keep), col=colors, border="red", add=TRUE) +
+  plot(st_geometry(spa1_station_geoms), col=adjustcolor("blue", alpha.f = 0.5), add=TRUE)
 
-# # HK QA: Check which stops are in "partial" SPA 1 ZIP codes
-# # Cross checking against LA County geography that parts of the 
-# # ZIP Codes outside of SPA 1 overlap the San Gabriel Mountains
-# # Additionally only 2 stops are connected with the partial ZIPS
-# # Checked in google maps and they coordinates are in SPA 1
-# partial_zips <- av_zips %>%
-#   filter(spa1_coverage=="partial") %>%
-#   select(zipcode)
-# av_partial_stops <- av_lasd_na_stops %>%
-#   filter(zip_code %in% partial_zips$zipcode)
+# Based on the above, I think we should only assign LAN and PLM station stops to
+# SPA 1 and filter remaining stops on the cities and ZIPs identified above
 
-View(as.data.frame(table(av_lasd_na_stops$patrol_station_recode, useNA = "ifany")))
+# filter for SPA 1/AV LASD stops - 27291 stops
+lasd_spa1_stations <- lasd_spa %>%
+  filter(spa=="1" & patrol_station!="SCT") %>%
+  mutate(source="station_xwalk") %>%
+  select(-c(spa, spa_name, patrol_station_recode, prc_area))
+
+# filter remaining LASD stops on city and ZIP Code - 1474
+lasd_spa1_places <- lasd_stops %>%
+  filter(!(contact_id %in% lasd_spa1_stations$contact_id)) %>%
+  filter(str_detect(city, av_places_string) | zip_code %in% av_zips$zipcode) %>%
+  mutate(source="place_filter")
+
+all_spa1_stops <- rbind(lasd_spa1_stations, lasd_spa1_places)
+
+View(as.data.frame(table(all_spa1_stops$patrol_station, useNA = "ifany")))
+
+# # HK: Looking at SCT - the place filter pulls 1047 stops (out of 22,983) as SPA 1; 
+# # about 50 may still be outside SPA 1 (Santa Clarita, Stevenson Ranch, Lebec, Castaic)
+# sct_spa1 <- all_spa1_stops %>% filter(patrol_station=="SCT") %>% select(city, zip_code) %>%
+#   group_by(city, zip_code) %>%
+#   summarise(count=n())
+# 
+# all_sct <- lasd_stops %>%
+#   filter(patrol_station=="SCT") %>% select(city, zip_code) %>%
+#   group_by(city, zip_code) %>%
+#   summarise(count=n())
+# 
+# all_spa1 <- all_spa1_stops %>% select(city, zip_code) %>%
+#     group_by(city, zip_code) %>%
+#     summarise(count=n())
+# 
+# all_lasd <- lasd_stops %>% select(city, zip_code) %>%
+#   group_by(city, zip_code) %>%
+#   summarise(count=n())
+# 
+# qa_places <- full_join(all_lasd, all_spa1, by=c("city", "zip_code"), suffix = c("_lasd", "_spa1")) 
+# 
+# qa_places_sum <- qa_places %>%
+#   mutate(av_zip = ifelse(zip_code %in% av_zips$zipcode, TRUE, FALSE)) %>%
+#   select(city, av_zip) %>%
+#   group_by(city) %>%
+#   summarise(av_zip=sum(av_zip)) %>%
+#   ungroup() %>%
+#   mutate(av_zip = ifelse(av_zip>0, TRUE, FALSE)) %>%
+#   left_join(qa_places) %>%
+#   select(city, av_zip, count_lasd, count_spa1) %>%
+#   group_by(city, av_zip) %>%
+#   summarise(total_lasd = sum(count_lasd, na.rm = TRUE),
+#             total_spa1 = sum(count_spa1, na.rm=TRUE)) %>%
+#   ungroup()%>%
+#   mutate(prc=total_spa1/total_lasd*100,
+#          av_city=str_detect(city, av_places_string)) %>%
+#   select(city, total_spa1, total_lasd, prc, av_zip, av_city)
+# 
+# # Cities we did not match to SPA 1 (no SPA 1 patrol, no AV city, no AV ZIP)
+# not_spa1 <- qa_places_sum %>% filter(prc==0 & av_city==FALSE & av_zip==FALSE)
+# 
+# # Cities we should have matched to SPA 1 but missed: none (good)
+# missed_spa1 <- qa_places_sum %>% filter(prc==0 & av_city==TRUE | av_zip==TRUE)
+# 
+# # These are stops made by patrol stations associated with SPA 1 but
+# # the cities and zips do not match our filters. We could use this rationale
+# # to exclude these cities from AV universe, but should probably keep the unincorporated ones (n=12)
+# spa1_station <- qa_places_sum %>% filter(prc>0 & av_city==FALSE & av_zip==FALSE)
+# 
+# # Places that matched either city or ZIP filters, may want to 
+# # exclude some: La Palma, Castaic-Val Verde, Lebec, Santa Clarita
+# # include some in our city list to get all stops: Neenach
+# spa1_places <- qa_places_sum %>% filter(prc>0 & (av_city+av_zip==1))
+# 
+# # Stops that matched on city and zip are all 100% (good)
+# spa1_places <- qa_places_sum %>% filter(prc>0 & (av_city==TRUE & av_zip==TRUE))
+
 
 #### Combine all SPA 1 LASD stops and export to pg ------------------------------------------------------
-all_av <- rbind(lasd_spa1, av_lasd_na_stops) %>%
-  select(-c(spa, spa_name, prc_area)) # 51,489 (prev. 51,227)
+all_av <- all_spa1_stops #28768
 
-# # ## HK QA: check where 262 additional stops came from
-# # # Changes in counts for: 
-# # # NEWHALL (+82) - added to places filter
-# # # CASTAIC - VAL VERDE (+44) - fixed place filter to use str_detect
-# # # GORMAN (+40) - added to places filter
-# # # CANYON COUNTRY (+21) - added to places filter
-# # # VALENCIA (+7) - added to places filter
-# # # UNINCORPORATED LANCASTER (+4) - fixed place filter to use str_detect
-# # # UNINCORPORATED SANTA CLARITA (+3) - fixed place filter to use str_detect
-# # # PEARBLOSSOM (+2) - added to places filter
-# # # SAUGUS (+2) - added to places filter
-# # # UNINCORPORATED PALMDALE (+2) - fixed place filter to use str_detect
-# # # CANYON COUNTRY EAST(+1) - added to places filter
-# # # DEL SUR(+1) - added to places filter
-# # # HI VISTA(+1) - added to places filter
-# # # LLANO (+1) - added to places filter
-# # # SOUTH ANTELOPE VALLEY (+1) - added to places filter
-# 
-# old <- dbGetQuery(con, "SELECT * FROM data.lasd_stops_spa1_2023_old;")
+# ## HK QA: check difference in results from current script and initial table 
+# old <- dbGetQuery(con, "SELECT * FROM data.lasd_stops_spa1_2023_old;") %>%
+#   select(-patrol_station_recode)
 # old_count <- old%>%
 #   select(city) %>%
 #   group_by(city) %>%
@@ -211,24 +301,25 @@ all_av <- rbind(lasd_spa1, av_lasd_na_stops) %>%
 #   group_by(city) %>%
 #   summarise(count = n())
 # 
-# compare_counts <- full_join(old_count, new_count, by="city", keep=TRUE, suffix = c("_old", "_new")) %>%
-#   filter(is.na(count_old) | is.na(count_new) | count_old != count_new) %>%
+# compare_counts <- full_join(old_count, new_count, by="city", suffix = c("_old", "_new")) %>%
+#   replace_na(list(count_new=0, count_old=0)) %>%
 #   mutate(difference = count_new - count_old)
 # 
 # compare_stops <- new %>%
-#   left_join(old, suffix = c("_new", "_old"), keep=TRUE) %>%
-#   filter(is.na(contact_id_old))
+#   full_join(old, suffix = c("_new", "_old"), keep=TRUE) %>%
+#   filter(is.na(contact_id_old)|is.na(contact_id_new))
 
 # ### HK QA: Check incidence rates of SPA 1 patrols to see if other cities should be in places filter
 # incidence <- as.data.frame(table(all_av$city, all_av$source))
-# incidence <- incidence %>% 
+# incidence <- incidence %>%
 #   pivot_wider(names_from = Var2, values_from = Freq, names_prefix = "source_") %>%
-#   mutate(total_source = source_filter + source_xwalk) %>%
+#   mutate(total_source = source_place_filter + source_station_xwalk) %>%
 #   left_join(lasd_cities, by="Var1") %>%
 #   rename(total_lasd = Freq) %>%
 #   mutate(prc=total_source/total_lasd*100,
-#          in_filter=ifelse(Var1 %in% lasd_av_cities$Var1, "yes", "no")) 
+#          in_filter=ifelse(Var1 %in% lasd_av_cities$Var1, "yes", "no"))
 # # Filter for just names not already in our place filter with incidence rate > 80% and < 100%
+# # returns neenach and lebec (should add neenach; lebec outside of SPA 1)
 # add_cities <- incidence %>%
 #   filter(total_source != total_lasd) %>%
 #   filter(in_filter=="no" & prc>80 & prc<100)
@@ -267,7 +358,7 @@ column_comments <- c('Contact ID',
                      'Civilians contacted',
                      'Object ID',
                      'Patrol Station Recoded',
-                     'Method of attributing stop to SPA 1: patrol station to SPA ("xwalk") or by place data like city or ZIP Code ("filter")')
+                     'Method of attributing stop to SPA 1: patrol station to SPA ("station_xwalk") or by place data like city or ZIP Code ("place_filter")')
 
 # add comment on table and columns using add_table_comments() (accessed via credentials script) 
 add_table_comments(con, schema, table_name, indicator, source, qa_filepath, column_names, column_comments) 
