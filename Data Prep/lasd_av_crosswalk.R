@@ -8,6 +8,7 @@
 library(sf)
 library(rmapshaper) # plot()
 library(stringr)
+library(writexl)
 
 source("W:\\RDA Team\\R\\credentials_source.R")
 con <- connect_to_db("cancel_the_contract")
@@ -311,11 +312,20 @@ qa_places_sum <- qa_places %>%
 # # the cities and zips do not match our filters. We could use this rationale
 # # to exclude these cities from AV universe, but should probably keep the unincorporated ones (n=12)
  spa1_station <- qa_places_sum %>% filter(prc>0 & av_city==FALSE & av_zip==FALSE)
+ 
+ # QA: Write the spa1_station df to excel file to share with partners
+ 
+ write_xlsx(spa1_station, "W://Project//RJS//CTC//Data//stops_spa1station_nozip_nocity.xlsx")
+ 
 # 
 # # Places that matched either city or ZIP filters, may want to 
 # # exclude some: La Palma, Castaic-Val Verde, Lebec, Santa Clarita
 # # include some in our city list to get all stops: Neenach
 spa1_places <- qa_places_sum %>% filter(prc>0 & (av_city+av_zip==1))
+
+# QA: Write the spa1_places df to excel file to share with partners
+
+write_xlsx(spa1_places, "W://Project//RJS//CTC//Data//stops_nospa1station_zip_or_city.xlsx")
 # 
 # # Stops that matched on city and zip are all 100% (good)
  spa1_places <- qa_places_sum %>% filter(prc>0 & (av_city==TRUE & av_zip==TRUE))
