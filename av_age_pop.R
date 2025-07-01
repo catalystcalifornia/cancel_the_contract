@@ -105,11 +105,22 @@ df_e<-age_av %>%
   pivot_longer(3:18, names_to = "variable", values_to = "age")%>%
   filter(!grepl("moe", variable))
 
+# QA check that all age categories were grabbed
+unique(df_e$variable)
+
 df_m<-age_av %>%
   pivot_longer(3:18, names_to = "variable", values_to = "moe")%>%
   filter(grepl("moe", variable))
+# QA check that all age categories were grabbed
+unique(df_m$variable)
 
 df_long<-cbind(df_e, df_m)
+
+# QA check that the cbind is okay to do, given that the geoid and name columns are the same
+all(df_long$geoid==df_long$geoid.1)
+all(df_long$name==df_long$name.1)
+# QA check that the age category matches the right moe age category
+all(mapply(function(x, y) str_detect(x, fixed(y)), df_long$variable.1, df_long$variable))
 
 df_long<-df_long%>%
   select(1:4, 8)%>%
@@ -172,6 +183,12 @@ group_by(age_re) %>%
   select(geography, age_re, total, count, rate, moe, cv)%>%
   filter(age_re!="Total")
 
+# QA check that AV's population totals in df_final matches population totals from age_av
+qa <- age_av %>%
+  summarise(total_av_pop = sum(total),
+            total_17under = sum(age0_17),
+            total_55_64 = sum(age55_64))
+
 
 # Finalize and push table to postgres --------------------------------
 # set field types for postgresql db
@@ -186,11 +203,10 @@ names(charvect) <- colnames(df_final)
 table_name <- "av_population_age"
 schema <- 'data'
 indicator <- "2023 ACS Age estimates and rates for Antelope Valley"
-source <- "SPA to tract xwalk filtering for SPA 1. Race data from ACS
-imported to rda_shared_data."
+source <- "SPA to tract xwalk filtering for SPA 1."
 
-dbWriteTable(con, Id(schema, table_name), df_final,
-             overwrite = TRUE, row.names = FALSE)
+# dbWriteTable(con, Id(schema, table_name), df_final,
+             # overwrite = TRUE, row.names = FALSE)
 
 qa_filepath <- "W:\\Project\\RJS\\CTC\\Documentation\\QA_av_age_pop.docx" 
 
