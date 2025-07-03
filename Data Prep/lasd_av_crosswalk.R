@@ -214,16 +214,16 @@ lasd_spa <- lasd_recode %>% left_join(station_spa_xwalk,
                                       relationship = "many-to-many")
 
 # QA: Only pull out santa clarita station for mapping
-
-santa_clarita_station_geom<-spa1_station_geoms%>%
-filter(st_name=="Santa Clarita Valley")
-
-plot(st_geometry(station_boundaries)) +
-  
-  plot(st_geometry(spa1_geom), col=adjustcolor("magenta4", alpha.f = 0.5), add=TRUE) +
-  plot(st_geometry(av_zips_keep), col=colors, border="red", add=TRUE) +
-  plot(st_geometry(spa1_station_geoms), col=adjustcolor("blue", alpha.f = 0.3), add=TRUE)+
-  plot(st_geometry(santa_clarita_station_geom), col=adjustcolor("orange", alpha.f = 0.5), add=TRUE) # add only not LAN/ PLM stations so I can see
+# 
+# santa_clarita_station_geom<-spa1_station_geoms%>%
+# filter(st_name=="Santa Clarita Valley")
+# 
+# plot(st_geometry(station_boundaries)) +
+#   
+#   plot(st_geometry(spa1_geom), col=adjustcolor("magenta4", alpha.f = 0.5), add=TRUE) +
+#   plot(st_geometry(av_zips_keep), col=colors, border="red", add=TRUE) +
+#   plot(st_geometry(spa1_station_geoms), col=adjustcolor("blue", alpha.f = 0.3), add=TRUE)+
+#   plot(st_geometry(santa_clarita_station_geom), col=adjustcolor("orange", alpha.f = 0.5), add=TRUE) # add only not LAN/ PLM stations so I can see
 
 # Based on the above, I think we should only assign LAN and PLM station stops to
 # SPA 1 and filter remaining stops on the cities and ZIPs identified above
@@ -330,9 +330,22 @@ write_xlsx(spa1_places, "W://Project//RJS//CTC//Data//stops_nospa1station_zip_or
 # # Stops that matched on city and zip are all 100% (good)
  spa1_places <- qa_places_sum %>% filter(prc>0 & (av_city==TRUE & av_zip==TRUE))
 
+# QA Update 7/3/24: Based off partner feedback these are the cities/stops from spa1_splaces and spa1_station that need to be excluded-------
+ # based on their review of W://Project//RJS//CTC//Data//stops_nospa1station_zip_or_city.xlsx and W://Project//RJS//CTC//Data//stops_spa1station_nozip_nocity.xlsx
+ 
+ notspa1station_exclude<-c("CASTAIC - VAL VERDE", "LA PALMA", "LEBEC", "STEVENSON RANCH")
+ notspa1place_exclude<-c("CHINO", "HAWTHORNE", "LA CANADA FLINTRIDGE", "LITTLE RIVER", "LOS ALTOS", "OLANCHA", "SANTA CLARA")
+ 
+ 
+ # Combine the exclusion lists
+ exclude_cities <- c(notspa1station_exclude, notspa1place_exclude)
+ 
+ # Filter them out of the city column
+ all_spa1_stops <- all_spa1_stops %>%
+   filter(!city %in% exclude_cities)
 
 #### Combine all SPA 1 LASD stops and export to pg ------------------------------------------------------
-all_av <- all_spa1_stops #28768
+all_av <- all_spa1_stops #28768 prior to 7/3 update. NEW value 7/3/25: 28716
 
 # ## HK QA: check difference in results from current script and initial table 
 old <- dbGetQuery(con, "SELECT * FROM data.lasd_stops_spa1_2023_old;") %>%
@@ -378,7 +391,7 @@ indicator <- "2023 LASD stops identified as taking place in SPA 1 (Antelope Vall
 source <- "County of Los Angeles Sheriff Officer Contacts Incident Details imported to rda_shared_data."
 
 dbWriteTable(con, Id(schema, table_name), all_av,
-           overwrite = FALSE, row.names = FALSE)
+           overwrite = TRUE, row.names = FALSE)
 
 qa_filepath <- "W:\\Project\\RJS\\CTC\\Documentation\\QA_lasd_geocode.docx" 
 
