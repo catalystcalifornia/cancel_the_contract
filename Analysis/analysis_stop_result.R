@@ -79,7 +79,7 @@ twoormor<-av_stops_result%>%
 
 # explore stop reasons
 
-table(av_stops_result$stop_reason) # the top result is result_of_contact_in_field_cite_and_release = 620
+stop_reasons<-as.data.frame(table(av_stops_result_long$stop_reason)) # the top result is result_of_contact_in_field_cite_and_release = 620
 
 ##### Export stops where a person was stopped for an in field cite and release and the accompanying citation code for CS to review #######
 
@@ -90,20 +90,6 @@ infield<-av_stops%>%
 
 # export as excel file
 
-
-
-#### Clean up final df for postgres #####
-
-df<-df%>%
-  mutate(geography="Antelope Valley Union High School District",
-         reportingcategory_re="Students with Disabilities")%>%
-  rename("stops_total"="stops",
-         "stops_disability_count"="stops_w_disability",
-         "stops_disability_rate"="pct_stops_w_disability",
-         "enrollment_total"="av_enrollment",
-         "enrollment_disabled_count"="av_enrollment_disabled",
-         "enrollment_disability_rate"="pct_enrollment_w_disability")%>%
-  select(geography, reportingcategory_re, everything())
 
 
 ############### SEND TO POSTGRES ########################
