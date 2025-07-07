@@ -181,6 +181,8 @@ column_comments <- c(
 add_table_comments(con, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
 
 dbDisconnect(con)
+dbDisconnect(con_shared)
+
 
 
 
