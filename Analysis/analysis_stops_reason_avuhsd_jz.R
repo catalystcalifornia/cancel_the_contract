@@ -54,8 +54,6 @@ not_rs<-person_reason%>%
     !grepl("Reasonable suspicion", reason_for_contact),
     apply(select(., starts_with("reasonable_suspicion_")), 1, function(row) any(row %in% c("true", "Yes")))) # turns up 0 so we know those columns are clean
 
-
-
 # now lets focus in on reasonable suspicion
 
 rs<-person_reason%>%
