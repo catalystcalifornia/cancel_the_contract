@@ -122,7 +122,7 @@ df_final <- df_final %>%
   ) %>%
   mutate(
     total = count[race == "total"],
-    rate = count / total,
+    rate = count / total * 100,
     cv = moe / (1.645 * count),   # Recalculate CV from new MOE and count
     geography = "Antelope Valley"
   ) %>%
