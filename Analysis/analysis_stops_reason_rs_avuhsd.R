@@ -1,3 +1,6 @@
+
+# Explore raw meta data here: https://data.lacounty.gov/datasets/lacounty::sheriff-officer-contacts-person-details-/about 
+
 library(RPostgres)
 library(dplyr)
 library(stringr)
@@ -114,4 +117,17 @@ table(rs_re$reasonable_suspicion_reason) # majority are reasonable_suspicion_per
 rs_witness_victim<-rs_re_codes%>%
   filter(reasonable_suspicion_reason=="reasonable_suspicion_person_witness_or_victim_ofsuspect")
 
-# Explore raw meta data here: https://data.lacounty.gov/datasets/lacounty::sheriff-officer-contacts-person-details-/about 
+# Rate: Offense codes / all citations WITHIN reasonable suspicion
+
+df1<-rs_re_codes%>%
+  group_by(reasonable_suspicion_reason)%>%
+  mutate(total=n())%>%
+  group_by(reasonable_suspicion_reason, statute_literal_25, offense_type_of_charge)%>%
+  mutate(count=n(),
+         rate=count/total*100)%>%
+  slice(1)%>%
+  ungroup()%>%
+  select(reason_for_contact, reasonable_suspicion_reason, statute_literal_25, offense_type_of_charge, total, count, rate)%>%
+  arrange(reasonable_suspicion_reason, -rate)
+
+
