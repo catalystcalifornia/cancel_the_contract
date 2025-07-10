@@ -309,7 +309,6 @@ indicator <- "Analysis table of AVUSHD LASD stops by age by perceived race" # ad
 source <- "R script: W://Project//RJS//CTC//Github//CR//cancel_the_contract//Analysis//analysis_stops_age_by_race.R" # adjusted from race_avuhsd
 qa_filepath <- "W://Project//RJS//CTC//Documentation//QA_analysis_stops_age_by_race.docx" # adjusted from race_avuhsd
 table_comment <- paste0(indicator, source)
-table_name <- "analysis_stops_age_by_race" # adjusted from race_avuhsd
 
 # push to postgres
 dbWriteTable(con,  table_name, df,
@@ -358,7 +357,6 @@ indicator <- "Analysis table of AVUSHD LASD stops by age" # adjusted from race_a
 source <- "R script: W://Project//RJS//CTC//Github//CR//cancel_the_contract//Analysis//analysis_stops_age_by_race.R" # adjusted from race_avuhsd
 qa_filepath <- "W://Project//RJS//CTC//Documentation//QA_analysis_stops_age_by_race.docx" # adjusted from race_avuhsd
 table_comment <- paste0(indicator, source)
-table_name <- "analysis_stops_age" # adjusted from race_avuhsd
 
 # push to postgres
 dbWriteTable(con, table_name, just_age,
@@ -380,5 +378,52 @@ column_comments <- c(
 add_table_comments(con, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
 
 
-#dbDisconnect(con)
-#dbDisconnect(con_shared)
+############## Just Race ######################
+
+
+just_race <- df %>% group_by(universe, reportingcategory_re) %>%
+  summarize(geography = first(geography),
+            total = first(total),
+            count = sum(count),
+            rate = sum(count)/sum(total)*100)
+
+
+############### PUSH TABLE TO POSTGRES #####################
+
+# set column types
+
+charvect = rep("varchar", ncol(just_race)) #create vector that is "varchar" for the number of columns in df
+charvect <- replace(charvect, c(4,5,6), c("numeric")) # adjusted from race_avuhsd
+
+# add df colnames to the character vector
+
+names(charvect) <- colnames(just_race)
+
+table_name <- "analysis_stops_race" # adjusted from race_avuhsd
+schema <- "data"
+indicator <- "Analysis table of AVUSHD LASD stops by race" # adjusted from race_avuhsd
+source <- "R script: W://Project//RJS//CTC//Github//CR//cancel_the_contract//Analysis//analysis_stops_age_by_race.R" # adjusted from race_avuhsd
+qa_filepath <- "W://Project//RJS//CTC//Documentation//QA_analysis_stops_age_by_race.docx" # adjusted from race_avuhsd
+table_comment <- paste0(indicator, source)
+
+# push to postgres
+dbWriteTable(con, table_name, just_race,
+             overwrite = TRUE, row.names = FALSE,
+             field.types = charvect)
+
+# add meta data
+
+column_names <- colnames(just_race) # Get column names
+column_comments <- c(
+  "Universe: call for service, NOT call for service, or COMBINED CFS+Not CFs",
+  "geography level",
+  "Race category_recoded", # adjusted from race_avuhsd
+  "Total LASD stops in Antelope Valley", # adjusted from race_avuhsd
+  "Count of LASD stops by race", # adjusted from race_avuhsd
+  "Percent of LASD stops by race" # adjusted from race_avuhsd
+)
+
+add_table_comments(con, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
+
+dbDisconnect(con)
+dbDisconnect(con_shared)
