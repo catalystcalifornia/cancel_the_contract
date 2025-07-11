@@ -129,7 +129,8 @@ av_stops_long_re<-av_stops_long_re%>%
                                                    ifelse(reportingcategory %in% "hispanic_latino_latina", "latinx", 
                                                           ifelse(reportingcategory %in% "pacific_islander", "nh_nhpi",  
                                                                  ifelse(reportingcategory %in% "white", "nh_white", 
-                                                                        reportingcategory)))))))
+                                                                        reportingcategory)))))))%>%
+  mutate(across(contains("_id"), as.character))
 
 
 table(av_stops_long_re$reportingcategory_re)
