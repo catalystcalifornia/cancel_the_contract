@@ -121,19 +121,32 @@ nonjoin<-nonjoin%>%left_join(person_reason%>%select(contact_id, person_id, reaso
 # we can see now more offense codes get filled in. Lets clean up the offense_code column a bit
 
 nonjoin<-nonjoin%>%
-  select(1:5)%>%
-  mutate(ifelse())
-  
+  select(1:5)
 
+# going to manually recode the ones that seem obvious to me but leave the rest. I am not 100% sure what the best way to go about these are.
 
+# the only ones I feel comfortable recoding are the ones with a standalone number that is also in the fresno codes table:
 
-# Continue exploring the stops that did join to the offense code description---------
+manually_add<-c("602", "32210", "211", "242", "415(2)", "25608", "243.4e1pc", "211")
 
-# note there is a many to many relationship to the join because some offense statutes have different actual offense codes and some are M/I/F
+add<-nonjoin%>%
+  filter(grepl(paste(manually_add, collapse = "|"), offense_code_of_the_reasonable_suspicion))
+
+rs_re<-rs_re%>%
+  mutate(offense_code_of_the_reasonable_suspicion = ifelse(grepl("602 PC", offense_code_of_the_reasonable_suspicion), "602",
+                              ifelse(grepl("602 pc", offense_code_of_the_reasonable_suspicion), "602",
+                                 ifelse(grepl("242pc", offense_code_of_the_reasonable_suspicion), "242",
+                                               ifelse(grepl("32210 M", offense_code_of_the_reasonable_suspicion), "32210", 
+                                                      ifelse(grepl("25608abp", offense_code_of_the_reasonable_suspicion), "25608", 
+                                                             ifelse(grepl("243.4e1pc", offense_code_of_the_reasonable_suspicion), "243.4(E)(1)", 
+                                                                    ifelse(grepl("211PC", offense_code_of_the_reasonable_suspicion), "211", 
+                                                                           offense_code_of_the_reasonable_suspicion))))))))
+           
+
+# Continue exploring the reasonable suspicion subtypes---------
 
 # look at the different reasonable suspicion subtypes
 table(rs_re$reasonable_suspicion_reason) # majority are reasonable_suspicion_person_witness_or_victim_ofsuspect: 662
-
 
 # ANALYSIS 1: Calculate Counts and Rates of the Reasonable Suspicion offense codes WITHIN each Reasonable Suspicion subtype---------
 
