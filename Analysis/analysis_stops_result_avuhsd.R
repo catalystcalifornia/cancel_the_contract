@@ -21,9 +21,9 @@ con<- connect_to_db("cancel_the_contract")
 ############### GET DATA ########################
 
 result <- dbGetQuery(con, "SELECT * FROM rel_school_result")
-lasd_persons <- dbGetQuery(con_shared, "SELECT * FROM crime_and_justice.lasd_stops_person_2018_2023")
+race<-dbGetQuery(con, "SELECT * FROM rel_school_race_recode") # as of 7/11  NOT QA-ED YET but with CR for QA
 
 # Join result table with persons table to get race
 
 df<-result%>%
-  left_join(lasd_persons%>%select(contact_id, person_id, ))
+  left_join(race%>%select(contact_id, person_id, ))
