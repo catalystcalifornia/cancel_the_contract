@@ -99,7 +99,8 @@ av_stops_long_re<-av_stops_long_re%>%
                                                           ifelse(reportingcategory %in% "pacific_islander", "nh_nhpi",  
                                                                  ifelse(reportingcategory %in% "white", "nh_white", 
                                                                         reportingcategory))))))))%>%
-  mutate(across(contains("_id"), as.character))
+  mutate(contact_id=as.character(contact_id),
+         person_id=as.character(person_id)) 
 
 
 table(av_stops_long_re$reportingcategory_re)
