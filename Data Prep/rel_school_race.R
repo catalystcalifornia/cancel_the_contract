@@ -107,7 +107,7 @@ multi<-av_stops_re%>%filter(contact_id %in% dup$contact_id)
 av_stops_long_re<-av_stops_long%>%
   group_by(contact_id, person_id) %>%
   mutate(reportingcategory = ifelse(n() >= 2 & n() <= 6 & latinx != 1, 
-                                    "nh_nhpi", 
+                                    "pacific_islander", 
                                     ifelse(n() >= 2 & n() <= 6 & latinx == 1, "latinx", # add this so if someone has more than 1 race indicated and one of them is latinx then that person is coded as latinx       
                                            ifelse(n() >=6, "NULL",    
                                                   reportingcategory))))%>%
