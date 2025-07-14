@@ -74,7 +74,7 @@ dup<-av_stops_long %>%
 # If someone has 2+ races marked but one is latinx then they will be coded as latinx
 
 
-av_stops_long<-av_stops_long%>%
+av_stops_long_re<-av_stops_long%>%
    group_by(contact_id, person_id) %>%
   mutate(reportingcategory = ifelse(n() >= 2 & n() <=4 & latinx != 1, "nh_twoormor", 
                               ifelse(n() >= 2 & n() <=4 & latinx == 1, "latinx", 
