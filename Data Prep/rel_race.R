@@ -102,9 +102,11 @@ av_stops_long_re<-av_stops_long_re%>%
                                                    ifelse(reportingcategory %in% "hispanic_latino_latina", "latinx", 
                                                           ifelse(reportingcategory %in% "pacific_islander" & latinx!=1, "nh_nhpi",  
                                                                  ifelse(reportingcategory %in% "white" & latinx!=1, "nh_white", 
-                                                                        "latinx"))))))))%>%
+                                                                        ifelse(is.na(reportingcategory), "NULL", 
+                                                                        "latinx")))))))))%>%
   mutate(contact_id=as.character(contact_id),
-         person_id=as.character(person_id)) 
+         person_id=as.character(person_id),
+         reportingcategory_re = na_if(reportingcategory_re, "NULL")) 
 
 
 table(av_stops_long_re$reportingcategory_re)

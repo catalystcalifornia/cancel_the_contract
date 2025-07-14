@@ -110,7 +110,8 @@ av_stops_long_re<-av_stops_long%>%
                                     "nh_nhpi", 
                                     ifelse(n() >= 2 & n() <= 6 & latinx == 1, "latinx", # add this so if someone has more than 1 race indicated and one of them is latinx then that person is coded as latinx       
                                            ifelse(n() >=6, "NULL",    
-                                                  reportingcategory))))
+                                                  reportingcategory))))%>%
+  mutate(reportingcategory = na_if(reportingcategory, "NULL"))
 
 # Check why there are no sswana rows in the reportingcategory column left
 
@@ -135,10 +136,11 @@ av_stops_long_re<-av_stops_long_re%>%
                                                           ifelse(reportingcategory %in% "hispanic_latino_latina", "latinx", 
                                                                  ifelse(reportingcategory %in% "pacific_islander" & latinx!=1, "nh_nhpi",  
                                                                         ifelse(reportingcategory %in% "white" & latinx!=1, "nh_white", 
-                                                                               "latinx"))))))))%>%
+                                                                               ifelse(is.na(reportingcategory), "NULL", 
+                                                                                      "latinx")))))))))%>%
   mutate(contact_id=as.character(contact_id),
-         person_id=as.character(person_id)) 
-
+         person_id=as.character(person_id),
+         reportingcategory_re = na_if(reportingcategory_re, "NULL")) 
 
 table(av_stops_long_re$reportingcategory_re)
 
