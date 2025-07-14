@@ -74,11 +74,15 @@ dup<-av_stops_long %>%
 # If someone has 2+ races marked but one is latinx then they will be coded as latinx
 
 
-av_stops_long_re<-av_stops_long%>%
+av_stops_long<-av_stops_long%>%
    group_by(contact_id, person_id) %>%
   mutate(reportingcategory = ifelse(n() >= 2 & n() <=4 & latinx != 1, "nh_twoormor", 
-                              ifelse(n() >= 7, "NULL", reportingcategory)))%>%
+                              ifelse(n() >= 2 & n() <=4 & latinx == 1, "latinx", 
+                              ifelse(n() >= 7, "NULL", reportingcategory))))%>%
   mutate(reportingcategory = na_if(reportingcategory, "NULL"))
+
+# test view the people/stops with more than 1 race indicated and spot check some of these people against what they are recoded as in av_stops_long
+multi<-av_stops_re%>%filter(contact_id %in% dup$contact_id)
 
 
 # Now that all the races are recoded I can clean up the groups so every stop/person is one row

@@ -91,10 +91,15 @@ test<-av_stops_long%>%
   group_by(contact_id, person_id) %>%
   mutate(reportingcategory = ifelse(n() >= 2 & n() <= 6 & latinx != 1, 
                                     "nh_twoormor", 
-                                    reportingcategory))%>%
+                                    ifelse(n() >= 2 & n() <= 6 & latinx == 1, 
+                                     "latinx", 
+                                    reportingcategory)))%>%
   filter(reportingcategory=="nh_twoormor")
 
 check<-av_stops%>%filter(person_id == '132767')
+
+# test view the people/stops with more than 1 race indicated and spot check some of these people against what they are recoded as in av_stops_long
+multi<-av_stops_re%>%filter(contact_id %in% dup$contact_id)
 
 # Doing this made me realize the ONLY person with 2+ races where one is NOT latinx is someone who is Black/Pacific Islander.
 # Instead of coding them as nh_twoormor I want to code them as NHPI since that group is commonly multiracial and is underrepresented. 
