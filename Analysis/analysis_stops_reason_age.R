@@ -38,6 +38,76 @@ av_stops_re<-av_stops%>%
                                                        age >= 65 ~ "65 plus"))
 
 
+
+# EXPLORE how many people age 0-17 are stopped that are NOT in any of the AV schools-----------
+
+
+av_schools<-c('Antelope Valley High',
+              'Antelope Valley Union High',
+              'Eastside High',
+              'Highland High',
+              'William J. (Pete) Knight High',
+              'Lancaster High',
+              'Littlerock High',
+              'Palmdale High',
+              'Quartz Hill High',
+              'R. Rex Parris High',
+              'Desert Winds Continuation High',
+              'Phoenix High Community Day',
+              'Phoenix Continuation')
+
+nonschool<-av_stops%>%
+  filter(school_name != av_schools )%>%
+  select(1,2,14,40, 41, 44:53)%>% 
+  mutate(across(6:14, ~ case_when( 
+    . %in% c("Yes", "true") ~ 1,
+    . %in% c("No", "false") ~ 0,
+    TRUE ~ NA_real_)))%>% mutate(age_re=case_when(age <= 17 ~ "0 to 17",
+                                                  age >= 18 & age <= 24 ~ "18 to 24",
+                                                  age >= 25 & age <= 34 ~ "25 to 34",
+                                                  age >= 35 & age <= 44 ~ "35 to 44",
+                                                  age >= 45 & age <= 54 ~ "45 to 54",
+                                                  age >= 55 & age <= 64 ~ "55 to 64",
+                                                  age >= 65 ~ "65 plus"))
+
+school<-av_stops%>%
+  filter(school_name %in% av_schools )%>%
+  select(1,2,14,40, 41, 44:53)%>% 
+  mutate(across(6:14, ~ case_when( 
+    . %in% c("Yes", "true") ~ 1,
+    . %in% c("No", "false") ~ 0,
+    TRUE ~ NA_real_)))%>% mutate(age_re=case_when(age <= 17 ~ "0 to 17",
+                                                  age >= 18 & age <= 24 ~ "18 to 24",
+                                                  age >= 25 & age <= 34 ~ "25 to 34",
+                                                  age >= 35 & age <= 44 ~ "35 to 44",
+                                                  age >= 45 & age <= 54 ~ "45 to 54",
+                                                  age >= 55 & age <= 64 ~ "55 to 64",
+                                                  age >= 65 ~ "65 plus"))
+
+
+test<-av_stops%>%
+  filter(age <= 17) %>%
+  select(person_id, contact_id, school_name, age)%>%
+  mutate(av_district=ifelse(school_name %in% av_schools, 1, 0))
+
+lasd_stops_schools <- dbGetQuery(con_rda, "SELECT street_number, full_street, contact_id, k_12_school, school_name, civilians_contacted, call_for_service FROM crime_and_justice.lasd_stops_incident_2018_2023
+WHERE school_name
+IN (
+'Antelope Valley High',
+'Antelope Valley Union High',
+'Eastside High',
+'Highland High',
+'William J. (Pete) Knight High',
+'Lancaster High',
+'Littlerock High',
+'Palmdale High',
+'Quartz Hill High',
+'R. Rex Parris High',
+'Desert Winds Continuation High',
+'Phoenix High Community Day',
+'Phoenix Continuation')
+ORDER BY school_name") 
+
 ######### ANALYSIS 1a: Just look at reason_for_contact by age group ######
 ## DENOM == out of all people stopped in SPA 1
 
@@ -49,6 +119,27 @@ reason<-av_stops_re%>%
          geography="Antelope Valley")%>%
   slice(1)%>%
   select(geography, age_re, reason_for_contact, total, count, rate)
+
+reason_nonschool<-nonschool%>%
+  mutate(total=n())%>%
+  group_by(age_re, reason_for_contact)%>%
+  mutate(count=n(),
+         rate=count/total*100,
+         geography="Antelope Valley")%>%
+  slice(1)%>%
+  select(geography, age_re, reason_for_contact, total, count, rate)
+
+reason_school<-school%>%
+  mutate(total=n())%>%
+  group_by(age_re, reason_for_contact)%>%
+  mutate(count=n(),
+         rate=count/total*100,
+         geography="Antelope Valley")%>%
+  slice(1)%>%
+  select(geography, age_re, reason_for_contact, total, count, rate)
+
+# 
+
 
 
 ######### ANALYSIS 1b: Just look at reason_for_contact by age group WITHIN each age group ######
@@ -87,12 +178,6 @@ reason_overall<-av_stops_re%>%
   arrange(-rate)
 
 # we can see after traffic the #2 most common reason is reasonable suspicion
-
-# EXPLORE how many people age 0-17 are stopped that are NOT in any of the AV schools------
-
-xwalk<-dbGetQuery(con, "SELECT * FROM ")
-nonschool<-av_stops_re
-
 
 
 
