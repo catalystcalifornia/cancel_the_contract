@@ -123,13 +123,14 @@ av_stops_long_re<-av_stops_long_re%>%
 # now recode the racial category column
 
 av_stops_long_re<-av_stops_long_re%>%
-  mutate(reportingcategory_re=ifelse(reportingcategory %in% "black_african_american", "nh_black",
-                                     ifelse(reportingcategory %in% "native_american", "nh_aian", 
-                                            ifelse(reportingcategory %in% "asian", "nh_asian", 
-                                                   ifelse(reportingcategory %in% "hispanic_latino_latina", "latinx", 
-                                                          ifelse(reportingcategory %in% "pacific_islander", "nh_nhpi",  
-                                                                 ifelse(reportingcategory %in% "white", "nh_white", 
-                                                                        reportingcategory)))))))%>%
+  mutate(reportingcategory_re=ifelse(reportingcategory %in% "black_african_american" & latinx!=1, "nh_black",
+                                     ifelse(reportingcategory %in% "middle_eastern_south_asian" & latinx!=1, "sswana_aoic",
+                                            ifelse(reportingcategory %in% "native_american" & latinx!=1, "nh_aian", 
+                                                   ifelse(reportingcategory %in% "asian" & latinx!=1, "nh_asian", 
+                                                          ifelse(reportingcategory %in% "hispanic_latino_latina", "latinx", 
+                                                                 ifelse(reportingcategory %in% "pacific_islander" & latinx!=1, "nh_nhpi",  
+                                                                        ifelse(reportingcategory %in% "white" & latinx!=1, "nh_white", 
+                                                                               "latinx"))))))))%>%
   mutate(contact_id=as.character(contact_id),
          person_id=as.character(person_id)) 
 
