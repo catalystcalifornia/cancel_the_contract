@@ -9,23 +9,7 @@ con_rda <- connect_to_db("rda_shared_data")
 con_ctc <- connect_to_db("cancel_the_contract")
 
 # Get LASD stop-level data for Antelope Valley high schools
-lasd_incidents <- dbGetQuery(con_rda, "SELECT * FROM crime_and_justice.lasd_stops_incident_2018_2023
-WHERE school_name
-IN (
-'Antelope Valley High',
-'Antelope Valley Union High',
-'Eastside High',
-'Highland High',
-'William J. (Pete) Knight High',
-'Lancaster High',
-'Littlerock High',
-'Palmdale High',
-'Quartz Hill High',
-'R. Rex Parris High',
-'Desert Winds Continuation High',
-'Phoenix High Community Day',
-'Phoenix Continuation')
-ORDER BY school_name") 
+lasd_incidents <- dbGetQuery(con_ctc, "SELECT * FROM lasd_stops_spa1_2023") 
 
 # Get LASD person-level data
 lasd_persons <- dbGetQuery(con_rda, "SELECT * FROM crime_and_justice.lasd_stops_person_2018_2023")
@@ -35,17 +19,82 @@ lasd_persons <- dbGetQuery(con_rda, "SELECT * FROM crime_and_justice.lasd_stops_
 av_stops <- lasd_persons %>% right_join(lasd_incidents, by = "contact_id")
 
 
-############### CLEAN UP AND RECODE COLUMNS ########################
+ ############### CLEAN UP AND RECODE COLUMNS ########################
 
 # select columns I want and across the reasonable suspicion columns recode them to be 1/0 columns
+# then recode age column to be in age brackets
 
 av_stops_re<-av_stops%>%
   select(1,2,14,40, 41, 44:53)%>% 
   mutate(across(6:14, ~ case_when( 
     . %in% c("Yes", "true") ~ 1,
     . %in% c("No", "false") ~ 0,
-    TRUE ~ NA_real_)))
-  
+    TRUE ~ NA_real_)))%>% mutate(age_re=case_when(age <= 17 ~ "0 to 17",
+                                                       age >= 18 & age <= 24 ~ "18 to 24",
+                                                       age >= 25 & age <= 34 ~ "25 to 34",
+                                                       age >= 35 & age <= 44 ~ "35 to 44",
+                                                       age >= 45 & age <= 54 ~ "45 to 54",
+                                                       age >= 55 & age <= 64 ~ "55 to 64",
+                                                       age >= 65 ~ "65 plus"))
+
+
+######### ANALYSIS 1a: Just look at reason_for_contact by age group ######
+## DENOM == out of all people stopped in SPA 1
+
+reason<-av_stops_re%>%
+  mutate(total=n())%>%
+  group_by(age_re, reason_for_contact)%>%
+  mutate(count=n(),
+         rate=count/total*100,
+         geography="Antelope Valley")%>%
+  slice(1)%>%
+  select(geography, age_re, reason_for_contact, total, count, rate)
+
+
+######### ANALYSIS 1b: Just look at reason_for_contact by age group WITHIN each age group ######
+## DENOM == out of all people stopped WITHIN each age group
+
+reason_age<-av_stops_re%>%
+  group_by(age_re)%>%
+  mutate(total_age=n())%>%
+  group_by(age_re, reason_for_contact)%>%
+  mutate(count=n(),
+         age_rate=count/total_age*100,
+         geography="Antelope Valley")%>%
+  slice(1)%>%
+  select(geography, age_re, reason_for_contact, total_age, count, age_rate)
+
+
+### Combine Analysis 1a and 1b into one table ######
+
+df<-rbind(reason, reason_age)
+
+# JZ notes: realizing I don't see how helpful this is to our narrative since a lot of the 0-17 people in SPA 1 probably are the people stopped
+# in schools so there is an overlap. Doesn't add anything really new to the narrative?
+
+## and if just looking at reasons by age / total people (in the reason df) the highest rates are not for people 0-17. 
+
+######### ANALYSIS 2: Just look at reason_for_contact rates in SPA 1 ######
+
+reason_overall<-av_stops_re%>%
+  mutate(total=n())%>%
+  group_by(reason_for_contact)%>%
+  mutate(count=n(),
+         rate=count/total*100,
+         geography="Antelope Valley")%>%
+  slice(1)%>%
+  select(geography, reason_for_contact, total, count, rate)%>%
+  arrange(-rate)
+
+# we can see after traffic the #2 most common reason is reasonable suspicion
+
+# EXPLORE how many people age 0-17 are stopped that are NOT in any of the AV schools------
+
+xwalk<-dbGetQuery(con, "SELECT * FROM ")
+nonschool<-av_stops_re
+
+
+
 
 # EXPLORE/RECODE:  People who are given more than 1 stop reason----------------------------
 
@@ -58,7 +107,7 @@ av_stops_long<-av_stops_re%>%
     values_to = "value"
   )%>%
   group_by(contact_id, person_id)%>%
-  filter(value!=0) # only keep where at least one of the racial columns == 1 
+  filter(value!=0)  
 
 reason_age<-av_stops_long%>%
   group_by(contact_id, person_id)%>%
