@@ -44,10 +44,18 @@ ORDER BY school_name
 # persons
 lasd_persons <- dbGetQuery(con_shared, "SELECT * FROM crime_and_justice.lasd_stops_person_2018_2023")
 
+# race
+race <- dbGetQuery(con, "SELECT * FROM rel_school_race_recode")
 
 ############### CLEAN UP AND RECODE COLUMNS ########################
 
-av_stops <- lasd_persons %>% right_join(lasd_incidents, by = "contact_id")
+av_stops <- lasd_persons %>% right_join(lasd_incidents, by = "contact_id")%>%
+  mutate(contact_id = as.character(contact_id),
+         person_id = as.character(person_id))
+         
+
+av_stops<-av_stops%>%
+  left_join(race) # add relational race table
 
 # explore call for service break down
 
@@ -58,95 +66,19 @@ table(av_stops$call_for_service) ## 65% not CFS, 35% CFS
 # select columns of interest and clean up columns 
 
 av_stops_re<-av_stops%>%
-  select(1,2,159, 25:31)%>%
-  mutate(across(3:10, ~ case_when(
-    . %in% c("Yes", "true") ~ 1,
-    . %in% c("No", "false") ~ 0,
-    TRUE ~ NA_real_)))%>%
-  mutate(aian_flag=ifelse(native_american==1, 1,0))%>%
-  mutate(nhpi_flag=ifelse(pacific_islander==1, 1,0))%>%
-  mutate(sswana_flag=ifelse(middle_eastern_south_asian==1, 1,0))%>%
-  mutate(latinx=ifelse(hispanic_latino_latina==1, 1,
-                ifelse(hispanic_latino_latina==1 & (white == 1 | black_african_american == 1 | 
-                                     asian == 1 | native_american == 1 | 
-                                     pacific_islander == 1 | middle_eastern_south_asian==1), 1, 0)))%>%
-  mutate(total=n())
-
-# pivot data longer                          
-                          
-av_stops_long<-av_stops_re%>%
-  pivot_longer(
-    cols = 4:10,
-    names_to = "reportingcategory",
-    values_to = "value"
-  )%>%
-  group_by(contact_id, person_id)%>%
-  filter(value!=0) # only keep where at least one of the racial columns == 1 
-
-# Explore duplicates (these should be people where more than 1 race column == 1 
-
-dup<-av_stops_long %>%
-  group_by(contact_id, person_id) %>%
-  filter(n() > 1)%>%
-  tally()%>%
-  arrange(-n)
-
-# From this we see there is only one stop/person that had 7 races indicated, and one stop/person that had 4 races indicated. 
-# All others are 2 races --these can be recoded as nh_twoormor as long as one of the races is NOT latinx (if one race is latinx the coding is latinx) 
-# The person with 4 races indicated--recode as nh_twoormor as long as one of the races is NOT latinx
-# Person with 7 races indicated --recode as NULL 
-
-test<-av_stops_long%>%
-  group_by(contact_id, person_id) %>%
-  mutate(reportingcategory = ifelse(n() >= 2 & n() <= 6 & latinx != 1, 
-                                    "nh_twoormor", 
-                                    reportingcategory))%>%
-  filter(reportingcategory=="nh_twoormor")
-
-check<-av_stops%>%filter(person_id == '132767')
-
-# Doing this made me realize the ONLY person with 2+ races where one is NOT latinx is someone who is Black/Pacific Islander.
-# Instead of coding them as nh_twoormor I want to code them as NHPI since that group is commonly multiracial and is underrepresented. 
-
-av_stops_long_re<-av_stops_long%>%
-  group_by(contact_id, person_id) %>%
-  mutate(reportingcategory = ifelse(n() >= 2 & n() <= 6 & latinx != 1, 
-                                    "nh_nhpi", 
-                               ifelse(n() >= 2 & n() <= 6 & latinx == 1, "latinx", # add this so if someone has more than 1 race indicated and one of them is latinx then that person is coded as latinx       
-                                      ifelse(n() >=6, "NULL",    
-                                      reportingcategory))))
-
-# Check why there are no sswana rows in the reportingcategory column left
-
-sswana_check<-av_stops%>%filter(middle_eastern_south_asian=="true" | middle_eastern_south_asian== 
-                                  "Yes") # looks like everyone who was perceived as SSWANA also was perceived as Latinx so they were recoded as Latinx but they will still have a sswana_flag
-
-
-# Now that all the races are recoded I can clean up the groups so every stop/person is one row
-
-av_stops_long_re<-av_stops_long_re%>%
-  group_by(contact_id, person_id)%>%
-  slice(1)
-
-# now recode the racial category column
-
-av_stops_long_re<-av_stops_long_re%>%
-  mutate(reportingcategory_re=ifelse(reportingcategory %in% "black_african_american", "nh_black",
-                                     ifelse(reportingcategory %in% "native_american", "nh_aian", 
-                                            ifelse(reportingcategory %in% "asian", "nh_asian", 
-                                                          ifelse(reportingcategory %in% "hispanic_latino_latina", "latinx", 
-                                                                        ifelse(reportingcategory %in% "pacific_islander", "nh_nhpi",  
-                                                                                      ifelse(reportingcategory %in% "white", "nh_white", 
-                                                                                             reportingcategory)))))))
-         
-  
-table(av_stops_long_re$reportingcategory_re)
+  select(contact_id, person_id, call_for_service, reportingcategory_re, aian_flag, nhpi_flag, sswana_flag, latinx)%>%
+  mutate(call_for_service = case_when(
+    call_for_service %in% c("Yes", "true")  ~ 1,
+    call_for_service %in% c("No", "false")  ~ 0,
+    TRUE                                    ~ NA_real_
+  ))
 
 ####################### Calculate rates for CFS+Not CFS ######################
 
 # for all nh races
 
-tot<-av_stops_long_re%>%
+tot<-av_stops_re%>%
+  mutate(total=n())%>%
   group_by(reportingcategory_re)%>%
   mutate(count=n(),
          rate=count/total*100)%>%
@@ -158,13 +90,14 @@ tot<-av_stops_long_re%>%
 
 # for AIAN/NHPI/SSWANA
 
-tot_flags <- av_stops_long_re %>%
+tot_flags <- av_stops_re %>%
   ungroup() %>%
   filter(reportingcategory_re != 'NULL') %>%
   pivot_longer(cols = c(aian_flag, nhpi_flag, sswana_flag), 
                names_to = "flag_type", 
                values_to = "flag_value") %>%
   filter(flag_value == 1) %>%
+  mutate(total=904)%>%
   group_by(flag_type) %>%
   summarise(
     total = first(total),
@@ -193,7 +126,7 @@ tot<-tot%>%
 
 # for all nh races
 
-tot_cfs<-av_stops_long_re%>%
+tot_cfs<-av_stops_re%>%
   filter(call_for_service==1)%>%
   ungroup()%>%
   mutate(total=n())%>%
@@ -208,7 +141,7 @@ tot_cfs<-av_stops_long_re%>%
 
 # for AIAN/NHPI/SSWANA
 
-tot_flags_cfs <- av_stops_long_re %>%
+tot_flags_cfs <- av_stops_re %>%
   ungroup() %>%
   filter(call_for_service==1)%>%
   mutate(total=n())%>%
@@ -245,7 +178,7 @@ tot_cfs<-tot_cfs%>%
 
 # for all nh races
 
-tot_nocfs<-av_stops_long_re%>%
+tot_nocfs<-av_stops_re%>%
   filter(call_for_service==0)%>%
   ungroup()%>%
   mutate(total=n())%>%
@@ -260,7 +193,7 @@ tot_nocfs<-av_stops_long_re%>%
 
 # for AIAN/NHPI/SSWANA
 
-tot_flags_nocfs <- av_stops_long_re %>%
+tot_flags_nocfs <- av_stops_re %>%
   ungroup() %>%
   filter(call_for_service==0)%>%
   mutate(total=n())%>%
