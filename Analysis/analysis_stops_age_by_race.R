@@ -50,13 +50,13 @@ av_stops_re<-av_stops%>%
     call_for_service %in% c("Yes", "true")  ~ 1,
     call_for_service %in% c("No", "false")  ~ 0,
     TRUE                                    ~ NA_real_
-  )) %>% mutate(age_re=case_when(age <= 17 ~ "0 to 17",
-                    age >= 18 & age <= 24 ~ "18 to 24",
-                    age >= 25 & age <= 34 ~ "25 to 34",
-                    age >= 35 & age <= 44 ~ "35 to 44",
-                    age >= 45 & age <= 54 ~ "45 to 54",
-                    age >= 55 & age <= 64 ~ "55 to 64",
-                    age >= 65 ~ "65 plus"))
+  )) %>% mutate(age_re=case_when(age <= 17 ~ "17 and under",
+                    age >= 18 & age <= 24 ~ "18-24",
+                    age >= 25 & age <= 34 ~ "25-34",
+                    age >= 35 & age <= 44 ~ "35-44",
+                    age >= 45 & age <= 54 ~ "45-54",
+                    age >= 55 & age <= 64 ~ "55-64",
+                    age >= 65 ~ "65 and older"))
 
 
 ####################### Calculate rates for CFS+Not CFS ######################
