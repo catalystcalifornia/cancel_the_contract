@@ -56,6 +56,9 @@ av_stops_result<-av_stops%>%
 
 # convert to long form
 
+# see the unique values across columns 3:19
+lapply(av_stops_result[ , 3:19], unique)
+
 av_stops_result_long<-av_stops_result%>%
   mutate(across(3:19, ~ case_when(
     . %in% c("Yes", "true") ~ 1,
@@ -69,6 +72,9 @@ av_stops_result_long<-av_stops_result%>%
   group_by(contact_id, person_id)%>%
   filter(value!=0) # only keep where at least one of the result columns == 1 
 
+# verified that value only contains 1
+unique(av_stops_result_long$value)
+
 # Explore if the same person had 2 different stop results vs only 1 stop result-----------------------
 
 twoormor<-av_stops_result_long%>%
@@ -76,6 +82,8 @@ twoormor<-av_stops_result_long%>%
   mutate(count=n())%>%
   filter(count > 1) %>%
   ungroup() # some people are stopped with 4 results at most but majority have 2 results 
+
+table(twoormor$count)
 
 # count how many distinct people had 2 or more stop results
 n_distinct(twoormor$person_id)  # 392 --- this is about 43% of total people stopped so I don't want to just recode these as 'two or more results'
@@ -134,6 +142,8 @@ df<-df%>%
            str_replace_all("_", " "), # clean up stop result column
          stop_result_re=ifelse(result_twoormor_flag==1, "Two or more results", stop_result))%>%
   select(contact_id, person_id, stop_result, stop_result_re, result_twoormor_flag)
+
+n_distinct(df$person_id) #904 unique persons
 
 ############### SEND TO POSTGRES ########################
 
