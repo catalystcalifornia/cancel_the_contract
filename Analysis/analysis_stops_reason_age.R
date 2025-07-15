@@ -14,6 +14,10 @@ lasd_incidents <- dbGetQuery(con_ctc, "SELECT * FROM lasd_stops_spa1_2023")
 # Get LASD person-level data
 lasd_persons <- dbGetQuery(con_rda, "SELECT * FROM crime_and_justice.lasd_stops_person_2018_2023")
 
+# race
+
+race<-dbGetQuery(con_ctc, "SELECT * FROM rel_race_recode") 
+
 # join stops and person level table together so each row is a person
 
 av_stops <- lasd_persons %>% right_join(lasd_incidents, by = "contact_id")
@@ -38,108 +42,18 @@ av_stops_re<-av_stops%>%
                                                        age >= 65 ~ "65 plus"))
 
 
-
-# EXPLORE how many people age 0-17 are stopped that are NOT in any of the AV schools-----------
-
-
-av_schools<-c('Antelope Valley High',
-              'Antelope Valley Union High',
-              'Eastside High',
-              'Highland High',
-              'William J. (Pete) Knight High',
-              'Lancaster High',
-              'Littlerock High',
-              'Palmdale High',
-              'Quartz Hill High',
-              'R. Rex Parris High',
-              'Desert Winds Continuation High',
-              'Phoenix High Community Day',
-              'Phoenix Continuation')
-
-nonschool<-av_stops%>%
-  filter(school_name != av_schools )%>%
-  select(1,2,14,40, 41, 44:53)%>% 
-  mutate(across(6:14, ~ case_when( 
-    . %in% c("Yes", "true") ~ 1,
-    . %in% c("No", "false") ~ 0,
-    TRUE ~ NA_real_)))%>% mutate(age_re=case_when(age <= 17 ~ "0 to 17",
-                                                  age >= 18 & age <= 24 ~ "18 to 24",
-                                                  age >= 25 & age <= 34 ~ "25 to 34",
-                                                  age >= 35 & age <= 44 ~ "35 to 44",
-                                                  age >= 45 & age <= 54 ~ "45 to 54",
-                                                  age >= 55 & age <= 64 ~ "55 to 64",
-                                                  age >= 65 ~ "65 plus"))
-
-school<-av_stops%>%
-  filter(school_name %in% av_schools )%>%
-  select(1,2,14,40, 41, 44:53)%>% 
-  mutate(across(6:14, ~ case_when( 
-    . %in% c("Yes", "true") ~ 1,
-    . %in% c("No", "false") ~ 0,
-    TRUE ~ NA_real_)))%>% mutate(age_re=case_when(age <= 17 ~ "0 to 17",
-                                                  age >= 18 & age <= 24 ~ "18 to 24",
-                                                  age >= 25 & age <= 34 ~ "25 to 34",
-                                                  age >= 35 & age <= 44 ~ "35 to 44",
-                                                  age >= 45 & age <= 54 ~ "45 to 54",
-                                                  age >= 55 & age <= 64 ~ "55 to 64",
-                                                  age >= 65 ~ "65 plus"))
-
-
-test<-av_stops%>%
-  filter(age <= 17) %>%
-  select(person_id, contact_id, school_name, age)%>%
-  mutate(av_district=ifelse(school_name %in% av_schools, 1, 0))
-
-lasd_stops_schools <- dbGetQuery(con_rda, "SELECT street_number, full_street, contact_id, k_12_school, school_name, civilians_contacted, call_for_service FROM crime_and_justice.lasd_stops_incident_2018_2023
-WHERE school_name
-IN (
-'Antelope Valley High',
-'Antelope Valley Union High',
-'Eastside High',
-'Highland High',
-'William J. (Pete) Knight High',
-'Lancaster High',
-'Littlerock High',
-'Palmdale High',
-'Quartz Hill High',
-'R. Rex Parris High',
-'Desert Winds Continuation High',
-'Phoenix High Community Day',
-'Phoenix Continuation')
-ORDER BY school_name") 
-
 ######### ANALYSIS 1a: Just look at reason_for_contact by age group ######
 ## DENOM == out of all people stopped in SPA 1
 
 reason<-av_stops_re%>%
-  mutate(total=n())%>%
+  mutate(denom="Total people stopped",
+         total=n())%>%
   group_by(age_re, reason_for_contact)%>%
   mutate(count=n(),
          rate=count/total*100,
          geography="Antelope Valley")%>%
   slice(1)%>%
-  select(geography, age_re, reason_for_contact, total, count, rate)
-
-reason_nonschool<-nonschool%>%
-  mutate(total=n())%>%
-  group_by(age_re, reason_for_contact)%>%
-  mutate(count=n(),
-         rate=count/total*100,
-         geography="Antelope Valley")%>%
-  slice(1)%>%
-  select(geography, age_re, reason_for_contact, total, count, rate)
-
-reason_school<-school%>%
-  mutate(total=n())%>%
-  group_by(age_re, reason_for_contact)%>%
-  mutate(count=n(),
-         rate=count/total*100,
-         geography="Antelope Valley")%>%
-  slice(1)%>%
-  select(geography, age_re, reason_for_contact, total, count, rate)
-
-# 
-
+  select(geography, denom, age_re, reason_for_contact, total, count, rate)
 
 
 ######### ANALYSIS 1b: Just look at reason_for_contact by age group WITHIN each age group ######
@@ -147,113 +61,114 @@ reason_school<-school%>%
 
 reason_age<-av_stops_re%>%
   group_by(age_re)%>%
-  mutate(total_age=n())%>%
+  mutate(denom="Total people stopped in age group",
+         total=n())%>%
   group_by(age_re, reason_for_contact)%>%
   mutate(count=n(),
-         age_rate=count/total_age*100,
+         rate=count/total*100,
          geography="Antelope Valley")%>%
   slice(1)%>%
-  select(geography, age_re, reason_for_contact, total_age, count, age_rate)
+  select(geography, denom, age_re, reason_for_contact, total, count, rate)
 
 
 ### Combine Analysis 1a and 1b into one table ######
 
 df<-rbind(reason, reason_age)
 
-# JZ notes: realizing I don't see how helpful this is to our narrative since a lot of the 0-17 people in SPA 1 probably are the people stopped
-# in schools so there is an overlap. Doesn't add anything really new to the narrative?
 
-## and if just looking at reasons by age / total people (in the reason df) the highest rates are not for people 0-17. 
+# Push table to postgres--------------------------------
 
-######### ANALYSIS 2: Just look at reason_for_contact rates in SPA 1 ######
+table_name <- "analysis_stops_reason_age"
+schema <- "data"
+indicator <- "Rate of reason for contact at the person level within each age group out of all people stopped in SPA 1 AND out of all people stopped within each age group.
+Denominator is specified in the denom column"
+source <- "R Script: W:\\Project\\RJS\\CTC\\Github\\JZ\\cancel_the_contract\\Analysis\\analysis_stops_reason_age.R"
+qa_filepath <- " W:\\Project\\RJS\\CTC\\Documentation\\QA_analysis_stops_reason_ages.docx" 
+table_comment <- paste0(indicator, source)
 
-reason_overall<-av_stops_re%>%
-  mutate(total=n())%>%
-  group_by(reason_for_contact)%>%
+dbWriteTable(con_ctc, Id(schema, table_name), df, overwrite = TRUE, row.names = FALSE)
+
+# Comment on table and columns
+column_names <- colnames(df) # Get column names
+column_comments <- c(
+  "geography level",
+  "denominator used in rate calculation. Total people stopped == everyone stopped in SPA 1. Total people stopped in age group == everyone stopped within each age bracket",
+  "Age group recoded",
+  "Stop reason",
+  "Total (see denominator column for specific definition of total)",
+  "Count of people stopped within each age bracket and stop reason",
+  "Rate of people stopped within age bracket for each stop reason"
+)
+
+add_table_comments(con_ctc, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
+
+
+######### ANALYSIS 2a: Explore stop reason by age AND race ######
+
+# I want to add race and see if it is worth exporting --start again where denom == out of all people stopped in SPA 1
+
+av_stops_re<-av_stops_re%>%
+  mutate(contact_id=as.character(contact_id),
+         person_id=as.character(person_id))%>%
+  left_join(race)%>%
+  filter(!is.na(reportingcategory_re)) # need to filter out our NULL Race groups or where # of races was >= 6
+
+
+reason_race<-av_stops_re%>%
+  mutate(denom="Total people stopped",
+         total=n())%>%
+  group_by(reason_for_contact, age_re, reportingcategory_re)%>%
   mutate(count=n(),
          rate=count/total*100,
          geography="Antelope Valley")%>%
   slice(1)%>%
-  select(geography, reason_for_contact, total, count, rate)%>%
-  arrange(-rate)
+  select(geography, denom, reason_for_contact, reportingcategory_re, age_re, total, count, rate)%>%
+  arrange( reportingcategory_re, age_re, -rate)
 
-# we can see after traffic the #2 most common reason is reasonable suspicion
+######### ANALYSIS 2b: Explore stop reason by age AND race: denom == total stops within each age group ######
 
-
-
-# EXPLORE/RECODE:  People who are given more than 1 stop reason----------------------------
-
-# pivot data longer                          
-
-av_stops_long<-av_stops_re%>%
-  pivot_longer(
-    cols = 6:14, # adjusted from race_avuhsd
-    names_to = "reportingcategory",
-    values_to = "value"
-  )%>%
-  group_by(contact_id, person_id)%>%
-  filter(value!=0)  
-
-reason_age<-av_stops_long%>%
-  group_by(contact_id, person_id)%>%
-  mutate(total=n()) # we can see there are people who have more than 1 stop reason
-
-# filter out everyone who shows up more than once 
-
-reason_age_multi<-reason_age%>%
-  filter(total>1)
-
-length(unique(reason_age_multi$person_id)) # 75 distinct people have stops for more than 1 reason out of 904 total people. I feel OK just recoding these to be "two or more"
-
-# Recode my wide AND long table
-
-av_stops_re<-av_stops_re%>%
-  mutate(reason_for_contact=ifelse(person_id %in% reason_age_multi$person_id, "Two or more reasons", reason_for_contact))
-
-av_stops_long<-av_stops_long%>%
-  mutate(reason_for_contact=ifelse(person_id %in% reason_age_multi$person_id, "Two or more reasons", reason_for_contact))%>%
-  group_by(person_id, contact_id)%>%
-  slice(1) # now we can remove duplicate rows because the stop reason has been recoded
-
-length(unique(av_stops_long$person_id)) # now only 811 unique people but there should be 904?
-
-# see who is dropped
-
-join<-av_stops_re%>%
-  left_join(av_stops_long)%>%
-  filter(is.na(reportingcategory)) # these are people where NONE of the 1/0 reasonable suspicion columns are indicated. These need to stay in the data
-
-# redo the av_long tablea code but make sure to keep the 93 people who have 0 dummy variables marked
-
-keep<-join$person_id
-
-av_stops_long_fix<-av_stops_re%>%
-  pivot_longer(
-    cols = 6:14, # adjusted from race_avuhsd
-    names_to = "reportingcategory",
-    values_to = "value"
-  )%>%
-  group_by(contact_id, person_id)%>%
-  filter(any(value != 0) | person_id %in% keep)
-
-check<-av_stops_long_fix%>%
-  filter(person_id %in% keep )
+reason_race1<-av_stops_re%>%
+  group_by(age_re)%>%
+  mutate(denom="Total people stopped in age group",
+         total=n())%>%
+  group_by(reason_for_contact, age_re, reportingcategory_re)%>%
+  mutate(count=n(),
+         rate=count/total*100,
+         geography="Antelope Valley")%>%
+  slice(1)%>%
+  select(geography, denom, reason_for_contact, reportingcategory_re, age_re, total, count, rate)%>%
+  arrange( reportingcategory_re, age_re, -rate)
 
 
-# Recode age categories-----------------------------
+### Combine Analysis 2a and 2b into one table ######
 
-av_stops_re <- av_stops_re %>% mutate(age_re=case_when(age <= 17 ~ "0 to 17",
-                                                              age >= 18 & age <= 24 ~ "18 to 24",
-                                                              age >= 25 & age <= 34 ~ "25 to 34",
-                                                              age >= 35 & age <= 44 ~ "35 to 44",
-                                                              age >= 45 & age <= 54 ~ "45 to 54",
-                                                              age >= 55 & age <= 64 ~ "55 to 64",
-                                                              age >= 65 ~ "65 plus"))
+df<-rbind(reason_race, reason_race1)
 
 
+# Push table to postgres--------------------------------
 
+table_name <- "analysis_stops_reason_age_race"
+schema <- "data"
+indicator <- "Rate of reason for contact at the person level within each perceived race and age group out of all people stopped in SPA 1 AND out of all people stopped within each age group.
+Denominator is specified in the denom column. NOTE 19 people have NULL racial group because LASD indicated them as having 6+ races so they are filtered out of the analyses."
+source <- "R Script: W:\\Project\\RJS\\CTC\\Github\\JZ\\cancel_the_contract\\Analysis\\analysis_stops_reason_age.R"
+qa_filepath <- " W:\\Project\\RJS\\CTC\\Documentation\\QA_analysis_stops_reason_ages.docx" 
+table_comment <- paste0(indicator, source)
 
+dbWriteTable(con_ctc, Id(schema, table_name), df, overwrite = TRUE, row.names = FALSE)
 
+# Comment on table and columns
+column_names <- colnames(df) # Get column names
+column_comments <- c(
+  "geography level",
+  "denominator used in rate calculation. Total people stopped == everyone stopped in SPA 1. Total people stopped in age group == everyone stopped within each age bracket",
+  "Perceived racial group",
+  "Age group recoded",
+  "Stop reason",
+  "Total (see denominator column for specific definition of total)",
+  "Count of people stopped within each age bracket and stop reason",
+  "Rate of people stopped within age bracket for each stop reason"
+)
 
+add_table_comments(con_ctc, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
 
-         
