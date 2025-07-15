@@ -24,7 +24,7 @@ con_shared<-connect_to_db("rda_shared_data")
 # Read in tables from postgres ----
 
 # age table
-age<- dbGetQuery(con_shared, "SELECT geoid, name, 
+age<- dbGetQuery(con_shared, "SELECT geoid, name, geolevel, 
         s0101_c01_001e,  s0101_c01_001m,
          s0101_c01_022e, s0101_c01_022m,
          s0101_c01_023e, s0101_c01_023m,
@@ -38,6 +38,23 @@ age<- dbGetQuery(con_shared, "SELECT geoid, name,
          s0101_c01_014e, s0101_c01_014m, 
          s0101_c01_030e, s0101_c01_030m
                 FROM demographics.acs_5yr_s0101_multigeo_2023 WHERE geolevel='tract'")
+n_distinct(age$geoid)
+
+age_check<- dbGetQuery(con_shared, "SELECT geoid, name, geolevel, 
+        s0101_c01_001e,  s0101_c01_001m,
+         s0101_c01_022e, s0101_c01_022m,
+         s0101_c01_023e, s0101_c01_023m,
+         s0101_c01_007e, s0101_c01_007m,
+         s0101_c01_008e ,s0101_c01_008m,
+         s0101_c01_009e, s0101_c01_009m,
+         s0101_c01_010e, s0101_c01_010m,
+         s0101_c01_011e, s0101_c01_011m,
+         s0101_c01_012e, s0101_c01_012m,
+         s0101_c01_013e, s0101_c01_013m,
+         s0101_c01_014e, s0101_c01_014m, 
+         s0101_c01_030e, s0101_c01_030m
+                FROM demographics.acs_5yr_s0101_multigeo_2023")
+n_distinct(age_check$geoid)
 
 # grab SPA-tract xwalk so that we can get all tracts within SPA 1 which we are using as our AV geography
 
@@ -51,6 +68,10 @@ ct_av<-spa$ct_geoid
 # filter age data to be only for spa 1 tracts
 
 age_av<-age%>%
+  filter(geoid %in% ct_av)
+
+
+age_av_check<-age_check%>%
   filter(geoid %in% ct_av)
 
 # Rename columns, then create additional age bracket groupings via aggregating for age 25-34, 35-44, and 45-54 
@@ -185,6 +206,10 @@ qa <- age_av %>%
             total_17under = sum(age0_17),
             total_55_64 = sum(age55_64))
 
+# Check that the total population across the age brackets is 408374
+sum(df_final$count) 
+# Check that rates sum to 100%
+sum(df_final$rate)
 
 # Finalize and push table to postgres --------------------------------
 # set field types for postgresql db
