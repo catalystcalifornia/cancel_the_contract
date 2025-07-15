@@ -67,10 +67,11 @@ ct_av<-spa$ct_geoid
 
 # filter age data to be only for spa 1 tracts
 
+# has 93 obs
 age_av<-age%>%
   filter(geoid %in% ct_av)
 
-
+# WHERE geolevel='tract' doesn't make a difference, still 93 obs 
 age_av_check<-age_check%>%
   filter(geoid %in% ct_av)
 
