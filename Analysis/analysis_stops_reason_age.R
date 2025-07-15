@@ -18,10 +18,14 @@ lasd_persons <- dbGetQuery(con_rda, "SELECT * FROM crime_and_justice.lasd_stops_
 
 race<-dbGetQuery(con_ctc, "SELECT * FROM rel_race_recode") 
 
+# age population data
+
+age<-dbGetQuery(con_ctc, "SELECT * FROM av_population_age") 
+
 # join stops and person level table together so each row is a person
 
-av_stops <- lasd_persons %>% right_join(lasd_incidents, by = "contact_id")
-
+av_stops <- lasd_persons %>% 
+  right_join(lasd_incidents, by = "contact_id")
 
  ############### CLEAN UP AND RECODE COLUMNS ########################
 
@@ -33,13 +37,14 @@ av_stops_re<-av_stops%>%
   mutate(across(6:14, ~ case_when( 
     . %in% c("Yes", "true") ~ 1,
     . %in% c("No", "false") ~ 0,
-    TRUE ~ NA_real_)))%>% mutate(age_re=case_when(age <= 17 ~ "0 to 17",
-                                                       age >= 18 & age <= 24 ~ "18 to 24",
-                                                       age >= 25 & age <= 34 ~ "25 to 34",
-                                                       age >= 35 & age <= 44 ~ "35 to 44",
-                                                       age >= 45 & age <= 54 ~ "45 to 54",
-                                                       age >= 55 & age <= 64 ~ "55 to 64",
-                                                       age >= 65 ~ "65 plus"))
+    TRUE ~ NA_real_)))%>% mutate(age_re=case_when(age <= 17 ~ "17 and under",
+                                                       age >= 18 & age <= 24 ~ "18-24",
+                                                       age >= 25 & age <= 34 ~ "25-34",
+                                                       age >= 35 & age <= 44 ~ "35-44",
+                                                       age >= 45 & age <= 54 ~ "45-54",
+                                                       age >= 55 & age <= 64 ~ "55-64",
+                                                       age >= 65 ~ "65 and older"))%>%
+  left_join(age%>%select(age_re, count)%>%rename(age_total=count))
 
 
 ######### ANALYSIS 1a: Just look at reason_for_contact by age group ######
@@ -70,11 +75,26 @@ reason_age<-av_stops_re%>%
   slice(1)%>%
   select(geography, denom, age_re, reason_for_contact, total, count, rate)
 
+######### ANALYSIS 1c: Just look at reason_for_contact by age group WITHIN each age group ######
+## DENOM == out of TOTAL POP within each age group
+
+### THESE RATES are really low and I'm not sure if we need it as it doesn't really add any narrative value in my opinion.
+# so I am going to NOT include this in the postgres table export
+
+reason_age_pop<-av_stops_re%>%
+  mutate(denom="Total age population")%>%
+  group_by(age_re, reason_for_contact)%>%
+  mutate(count=n(),
+         rate=count/age_total*1000,
+         geography="Antelope Valley")%>%
+  slice(1)%>%
+  rename(total=age_total)%>%
+  select(geography, denom, age_re, reason_for_contact, total, count, rate)
+
 
 ### Combine Analysis 1a and 1b into one table ######
 
 df<-rbind(reason, reason_age)
-
 
 # Push table to postgres--------------------------------
 
