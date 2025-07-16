@@ -423,7 +423,7 @@ race_check<-av_stops%>%left_join(race)%>%group_by(reportingcategory_re)%>%summar
 race_cfs_check<-av_stops%>%left_join(race)%>%filter(call_for_service =="Yes")%>%
   group_by(reportingcategory_re)%>%summarise(count=n()) # these match the just_race values where the universe is CFS
 
-# so I think the CR method is OK For the just_race table. No changes needed
+# so I think the CR method is OK For the just_race table. No changes needed. 
 
 just_race <- df %>% group_by(universe, reportingcategory_re) %>%
   summarize(geography = first(geography),
