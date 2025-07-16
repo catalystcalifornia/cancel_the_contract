@@ -352,6 +352,8 @@ sum(jz$count[jz$age_re=="17 and under" & jz$denom=="Total people stopped"]) # 98
 # So now we have to repeat these steps for calls for service
 
 just_age_revised_cfs<-av_stops_re%>%
+  filter(call_for_service==1)%>%
+  ungroup()%>%
   mutate(total=n())%>%
   group_by(call_for_service, age_re)%>%
   mutate(geography="Antelope Valley",
@@ -359,11 +361,26 @@ just_age_revised_cfs<-av_stops_re%>%
          rate=count/total*100)%>%
   slice(1)%>%
   ungroup()%>%
-  mutate(universe=ifelse(call_for_service %in% 0, "Stops with no call for service", "Stops with call for service"))%>%
-  select(universe, geography, age_re, total, count, rate) 
+  mutate(universe="Stops with call for service")%>%
+  select(universe, geography, age_re, total, count, rate)
 
-# combine both
-just_age<-rbind(just_age_revised_total, just_age_revised_cfs)
+# and NOT calls for service
+
+just_age_revised_nocfs<-av_stops_re%>%
+  filter(call_for_service==0)%>%
+  ungroup()%>%
+  mutate(total=n())%>%
+  group_by(call_for_service, age_re)%>%
+  mutate(geography="Antelope Valley",
+         count=n(),
+         rate=count/total*100)%>%
+  slice(1)%>%
+  ungroup()%>%
+  mutate(universe="Stops with no call for service")%>%
+  select(universe, geography, age_re, total, count, rate)
+
+# combine all three
+just_age<-rbind(just_age_revised_total, just_age_revised_cfs, just_age_revised_nocfs)
 
 ############### PUSH TABLE TO POSTGRES #####################
 
@@ -376,7 +393,7 @@ charvect <- replace(charvect, c(4,5,6), c("numeric"))
 
 names(charvect) <- colnames(just_age)
 
-table_name <- "analysis_stops_age_new"
+table_name <- "analysis_stops_age"
 schema <- "data"
 indicator <- "Analysis table of AVUSHD LASD stops by age"
 source <- "R script: W://Project//RJS//CTC//Github//CR//cancel_the_contract//Analysis//analysis_stops_age_by_race.R"
@@ -405,7 +422,7 @@ add_table_comments(con, schema, table_name, indicator, source, qa_filepath, colu
 
 ############## Just Race ######################
 
-# QA: I wwant to check if doing this my way produces the same results as just_race
+# QA: I want to check if doing this my way produces the same results as just_race
 
 just_race_revised_total<-av_stops_re%>%
   mutate(universe="All stops",
