@@ -405,6 +405,25 @@ add_table_comments(con, schema, table_name, indicator, source, qa_filepath, colu
 
 ############## Just Race ######################
 
+# QA: I wwant to check if doing this my way produces the same results as just_race
+
+just_race_revised_total<-av_stops_re%>%
+  mutate(universe="All stops",
+         total=n())%>%
+  group_by(reportingcategory_re)%>%
+  mutate(geography="Antelope Valley",
+         count=n(),
+         rate=count/total*100)%>%
+  slice(1)%>%
+  select(universe, geography, age_re, total, count, rate) 
+
+race_check<-av_stops%>%left_join(race)%>%group_by(reportingcategory_re)%>%summarise(count=n()) # these match the just_race values where the universe is all stops
+
+
+race_cfs_check<-av_stops%>%left_join(race)%>%filter(call_for_service =="Yes")%>%
+  group_by(reportingcategory_re)%>%summarise(count=n()) # these match the just_race values where the universe is CFS
+
+# so I think the CR method is OK For the just_race table. No changes needed
 
 just_race <- df %>% group_by(universe, reportingcategory_re) %>%
   summarize(geography = first(geography),
