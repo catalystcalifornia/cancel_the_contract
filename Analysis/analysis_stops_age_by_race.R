@@ -50,14 +50,37 @@ av_stops_re<-av_stops%>%
     call_for_service %in% c("Yes", "true")  ~ 1,
     call_for_service %in% c("No", "false")  ~ 0,
     TRUE                                    ~ NA_real_
-  )) %>% mutate(age_re=case_when(age <= 17 ~ "0 to 17",
-                    age >= 18 & age <= 24 ~ "18 to 24",
-                    age >= 25 & age <= 34 ~ "25 to 34",
-                    age >= 35 & age <= 44 ~ "35 to 44",
-                    age >= 45 & age <= 54 ~ "45 to 54",
-                    age >= 55 & age <= 64 ~ "55 to 64",
-                    age >= 65 ~ "65 plus"))
+  )) %>% mutate(age_re=case_when(age <= 17 ~ "17 and under",
+                    age >= 18 & age <= 24 ~ "18-24",
+                    age >= 25 & age <= 34 ~ "25-34",
+                    age >= 35 & age <= 44 ~ "35-44",
+                    age >= 45 & age <= 54 ~ "45-54",
+                    age >= 55 & age <= 64 ~ "55-64",
+                    age >= 65 ~ "65 and older"))
 
+# QA: Check  CFS recoding worked
+
+ qa<-av_stops%>%
+     filter(call_for_service %in% c("true", "Yes"))%>%
+     summarise(count=n())  # n = 6983
+sum(av_stops_re$call_for_service) # 6983 
+
+# QA age recoding
+
+qa17<-av_stops%>%
+  filter(age<=17)%>%
+  mutate(count=n()) # this produces 982 obs
+
+check<-av_stops_re%>%
+  filter(age_re=="17 and under") # also 982
+
+qa55<-av_stops%>%
+  filter(age>=55 & age <= 64)%>%
+  summarise(count=n()) # 2395
+
+check<-av_stops_re%>%
+  filter(age_re=="55-64")%>%
+  summarise(count=n()) # also 2359
 
 ####################### Calculate rates for CFS+Not CFS ######################
 
@@ -73,6 +96,9 @@ tot<-av_stops_re%>%
   filter(reportingcategory_re!="NULL")%>%
   slice(1)%>%
   select(universe, geography, reportingcategory_re, age_re, total, count, rate)
+
+# QA: I checked all the numerators in the count column against what I got in 'analysis_stops_reason_age_race' and they all check out
+
 
 # for AIAN/NHPI/SSWANA
 
@@ -107,6 +133,18 @@ tot_flags <- av_stops_re %>%
 tot<-tot%>%
   rbind(tot_flags)%>%
   arrange(-rate)
+
+# QA
+
+check<-av_stops_re%>%filter(age <= 17)%>%
+  filter(reportingcategory_re != 'NULL') %>%
+  filter( aian_flag==1 | sswana_flag==1 | nhpi_flag==1)%>%
+  select(age, aian_flag, sswana_flag, nhpi_flag)
+
+#these all match what I see in tot_flags
+sum(check$aian_flag)
+sum(check$nhpi_flag)
+sum(check$sswana_flag)
 
 ####################### Calculate rates for CFS ######################
 
@@ -159,6 +197,19 @@ tot_flags_cfs <- av_stops_re %>%
 tot_cfs<-tot_cfs%>%
   rbind(tot_flags_cfs)%>%
   arrange(-rate)
+
+# QA 
+
+check<-av_stops_re%>%filter(age <= 17)%>%
+  filter(reportingcategory_re != 'NULL') %>%
+  filter(call_for_service==1)%>%
+  filter( aian_flag==1 | sswana_flag==1 | nhpi_flag==1)%>%
+  select(age, aian_flag, sswana_flag, nhpi_flag)
+
+#these all match what I see in tot_flags_cfs
+sum(check$aian_flag)
+sum(check$nhpi_flag)
+sum(check$sswana_flag)
 
 
 ####################### Calculate rates for NON CFS ######################
@@ -265,6 +316,71 @@ just_age <- df %>% group_by(universe, age_re) %>%
             count = sum(count),
             rate = sum(count)/sum(total)*100)
 
+# QA
+
+check<-av_stops%>%
+  filter(age<=17)%>%
+  summarise(count=n()) ## this is 982 ---I also get this in analysis_stops_reason_age. but in just_age the total is 988
+
+# the reason is because the just_age code is just summing the count column from df. But that has the AIAN/NHPI/SSWANA AOIC
+# so there is some double counting happening.
+
+# You need to recalculate using av_stops not df
+
+just_age_revised_total<-av_stops_re%>%
+  mutate(universe="All stops",
+         total=n())%>%
+  group_by(age_re)%>%
+  mutate(geography="Antelope Valley",
+         count=n(),
+         rate=count/total*100)%>%
+  slice(1)%>%
+  select(universe, geography, age_re, total, count, rate) # now we see total for 0-17 is 982
+
+# run more checks
+
+check<-av_stops%>%
+  filter(age>=18 & age<= 24)%>%
+  summarise(count=n()) # matches just_age_revised_total. we can see all the values in just_age are just slightly inflated
+
+# pull in my analysis table to check things:
+
+jz<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_age")
+
+sum(jz$count[jz$age_re=="17 and under" & jz$denom=="Total people stopped"]) # 982
+
+# So now we have to repeat these steps for calls for service
+
+just_age_revised_cfs<-av_stops_re%>%
+  filter(call_for_service==1)%>%
+  ungroup()%>%
+  mutate(total=n())%>%
+  group_by(call_for_service, age_re)%>%
+  mutate(geography="Antelope Valley",
+         count=n(),
+         rate=count/total*100)%>%
+  slice(1)%>%
+  ungroup()%>%
+  mutate(universe="Stops with call for service")%>%
+  select(universe, geography, age_re, total, count, rate)
+
+# and NOT calls for service
+
+just_age_revised_nocfs<-av_stops_re%>%
+  filter(call_for_service==0)%>%
+  ungroup()%>%
+  mutate(total=n())%>%
+  group_by(call_for_service, age_re)%>%
+  mutate(geography="Antelope Valley",
+         count=n(),
+         rate=count/total*100)%>%
+  slice(1)%>%
+  ungroup()%>%
+  mutate(universe="Stops with no call for service")%>%
+  select(universe, geography, age_re, total, count, rate)
+
+# combine all three
+just_age<-rbind(just_age_revised_total, just_age_revised_cfs, just_age_revised_nocfs)
 
 ############### PUSH TABLE TO POSTGRES #####################
 
@@ -306,6 +422,25 @@ add_table_comments(con, schema, table_name, indicator, source, qa_filepath, colu
 
 ############## Just Race ######################
 
+# QA: I want to check if doing this my way produces the same results as just_race
+
+just_race_revised_total<-av_stops_re%>%
+  mutate(universe="All stops",
+         total=n())%>%
+  group_by(reportingcategory_re)%>%
+  mutate(geography="Antelope Valley",
+         count=n(),
+         rate=count/total*100)%>%
+  slice(1)%>%
+  select(universe, geography, age_re, total, count, rate) 
+
+race_check<-av_stops%>%left_join(race)%>%group_by(reportingcategory_re)%>%summarise(count=n()) # these match the just_race values where the universe is all stops
+
+
+race_cfs_check<-av_stops%>%left_join(race)%>%filter(call_for_service =="Yes")%>%
+  group_by(reportingcategory_re)%>%summarise(count=n()) # these match the just_race values where the universe is CFS
+
+# so I think the CR method is OK For the just_race table. No changes needed. 
 
 just_race <- df %>% group_by(universe, reportingcategory_re) %>%
   summarize(geography = first(geography),
