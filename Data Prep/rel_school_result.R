@@ -72,6 +72,18 @@ av_stops_result_long<-av_stops_result%>%
   group_by(contact_id, person_id)%>%
   filter(value!=0) # only keep where at least one of the result columns == 1 
 
+# explore results as a mixed list 
+mixed <- av_stops_result_long %>%
+  group_by(contact_id, person_id) %>%
+  mutate(stop_result_clean = str_remove(stop_result, "^result_of_contact_")%>% # clean up stop result column
+           str_replace_all("_", " "),
+        mixed_result = paste(sort(unique(stop_result_clean)), collapse = ", "))
+
+qa <- data.frame(table(mixed$mixed_result)) %>%
+  mutate(total=sum(Freq), 
+         rate=Freq/total*100)
+
+
 # verified that value only contains 1
 unique(av_stops_result_long$value)
 

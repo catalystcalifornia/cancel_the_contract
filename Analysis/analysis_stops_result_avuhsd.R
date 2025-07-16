@@ -41,6 +41,11 @@ result<-df%>%
   select(geography, stop_result, total, count, rate)%>%
   arrange(-rate)
 
+# check that summing over column count gives the total 1419
+sum(result$count) 
+# check that rates add up to 100%
+sum(result$rate) 
+
 #### Push to postgres 
 
 # set column types
@@ -115,6 +120,14 @@ df_target <- combined_df %>%
   mutate(target_result=ifelse(target_check == FALSE, 1, 0)) %>%
   select(-c(stop_result_list2, target_check))
 
+qa <- df_target %>%
+  filter(target_result==0) 
+unique(qa$stop_result_list) # all the unique values of stop_result_list contain a "serious" result, as expected
+
+qa <- df_target %>%
+  filter(target_result==1) 
+unique(qa$stop_result_list) # all the unique values of stop_result_list contain only  "non serious" results, as expected
+
 
 # confirm worked
 table(df_target$stop_result_list)
@@ -179,6 +192,10 @@ df_aoic <- df_target %>%
     )
   ) %>%
   select(geography,target_result, reportingcategory_re, total, count, rate)
+
+# how many aoic persons are there? 12
+sum(df_aoic$count)
+sum(race$aian_flag) + sum(race$nhpi_flag) + sum(race$sswana_flag)
 
 # combine everything
 
