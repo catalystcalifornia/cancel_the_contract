@@ -37,7 +37,7 @@ age<- dbGetQuery(con_shared, "SELECT geoid, name,
          s0101_c01_013e, s0101_c01_013m,
          s0101_c01_014e, s0101_c01_014m, 
          s0101_c01_030e, s0101_c01_030m
-                FROM demographics.acs_5yr_s0101_multigeo_2023")
+                FROM demographics.acs_5yr_s0101_multigeo_2023 WHERE geolevel='tract'")
 
 # grab SPA-tract xwalk so that we can get all tracts within SPA 1 which we are using as our AV geography
 
@@ -81,18 +81,14 @@ age_av<-age_av%>%
          "age65over"= "s0101_c01_030e",
          "age65over_moe"="s0101_c01_030m"
   )%>%
-  mutate(age25_34=sum(age25_29, age30_34),
-         age25_34_moe=moe_sum(estimate=c(age25_29, age30_34),
-                              moe=c(age25_29_moe, age30_34_moe)),
-         age35_44=sum(age35_39,age40_44),
-         age35_44_moe=moe_sum(estimate=c(age35_39,age40_44),
-                              moe=c(age35_39_moe, age40_44_moe)),
-         age45_54=sum(age45_49,age50_54),
-         age45_54_moe=moe_sum(estimate=c(age45_49,age50_54),
-                              moe=c(age45_49_moe, age50_54_moe)),
-         age55_64=sum(age55_59,age60_64),
-         age55_64_moe=moe_sum(estimate=c(age55_59,age60_64),
-                              moe=c(age55_59_moe, age60_64_moe))
+  mutate(age25_34=age25_29+age30_34,
+         age25_34_moe=sqrt(age25_29_moe^2 + age30_34_moe^2),
+         age35_44=age35_39+age40_44,
+         age35_44_moe=sqrt(age35_39_moe^2 + age40_44_moe^2),
+         age45_54=age45_49+age50_54,
+         age45_54_moe=sqrt(age45_49_moe^2 + age50_54_moe^2),
+         age55_64=age55_59+age60_64,
+         age55_64_moe=sqrt(age55_59_moe^2 + age60_64_moe^2)
   )%>%
   select(name, geoid, total, total_moe, age0_17, age0_17_moe, age18_24, age18_24_moe,
          age25_34, age25_34_moe, age35_44, age35_44_moe, age45_54, age45_54_moe, 
@@ -176,7 +172,7 @@ group_by(age_re) %>%
   ) %>%
   mutate(
     total = count[age_re == "Total"],
-    rate = count / total,
+    rate = count / total*100,
     cv = moe / (1.645 * count),   # Recalculate CV from new MOE and count
     geography = "Antelope Valley"
   ) %>%
@@ -205,8 +201,8 @@ schema <- 'data'
 indicator <- "2023 ACS Age estimates and rates for Antelope Valley"
 source <- "SPA to tract xwalk filtering for SPA 1."
 
-# dbWriteTable(con, Id(schema, table_name), df_final,
-             # overwrite = TRUE, row.names = FALSE)
+ dbWriteTable(con, Id(schema, table_name), df_final,
+              overwrite = TRUE, row.names = FALSE)
 
 qa_filepath <- "W:\\Project\\RJS\\CTC\\Documentation\\QA_av_age_pop.docx" 
 
