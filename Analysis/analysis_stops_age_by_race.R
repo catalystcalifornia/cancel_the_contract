@@ -58,6 +58,29 @@ av_stops_re<-av_stops%>%
                     age >= 55 & age <= 64 ~ "55-64",
                     age >= 65 ~ "65 and older"))
 
+# QA: Check  CFS recoding worked
+
+ qa<-av_stops%>%
+     filter(call_for_service %in% c("true", "Yes"))%>%
+     summarise(n)  # n = 6983
+sum(av_stops_re$call_for_service) # 6983 
+
+# QA age recoding
+
+qa17<-av_stops%>%
+  filter(age<=17)%>%
+  mutate(count=n()) # this produces 982 obs
+
+check<-av_stops_re%>%
+  filter(age_re=="17 and under") # also 982
+
+qa55<-av_stops%>%
+  filter(age>=55 & age <= 64)%>%
+  summarise(count=n()) # 2395
+
+check<-av_stops_re%>%
+  filter(age_re=="55-64")%>%
+  summarise(count=n()) # also 2359
 
 ####################### Calculate rates for CFS+Not CFS ######################
 
