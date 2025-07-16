@@ -91,6 +91,7 @@ check <- person_reason %>%
 
 table(check$sum) # 59 cases where zero 1/0 columns selected, 70 cases where 2 columns selected
 
+
 # Now lets focus in on reasonable suspicion stop reasons and the sub-types---------------------------
 
 # grab only stop where the reason was reasonable suspicion
@@ -117,7 +118,6 @@ rs<-person_reason%>%
 # rs_re %>%
 #   distinct(contact_id,person_id)%>%
 #   nrow() #752 # duplicate rows
-
 # alternate code that also includes folks that didn't have a 1/0 selected
 rs_re_df<-rs%>%
   mutate(across(
@@ -199,10 +199,30 @@ nonjoin<-rs_re_codes_part2%>%
 nonjoin<-nonjoin%>%left_join(person_reason%>%select(contact_id, person_id, reason_for_contact_narrative), by=c("contact_id", "person_id"))%>%
   mutate(offense_code_of_the_reasonable_suspicion=reason_for_contact_narrative)
 
+# look at tabulation of the subtype of reasonable suspicions
+
+rs_table<-as.data.frame(table(rs_re$reasonable_suspicion_reason))
+
+# Left join the Fresno RIPA offense codes tables so we can get descriptions for the reasonable suspicion statutes
+
+rs_re_codes<-rs_re%>%
+  left_join(codes, by=c("offense_code_of_the_reasonable_suspicion"="offense_statute"))
+
+# see what did not join
+
+nonjoin<-rs_re_codes%>%
+  filter(is.na(statute_literal_25))  # none of these 27 people had a statute to go with their reasonable suspicion stop
+
+# bring back the reason_narrative column to see if any of those contain the offense codes
+
+nonjoin<-nonjoin%>%left_join(person_reason%>%select(contact_id, person_id, reason_for_contact_narrative), by=c("contact_id", "person_id"))%>%
+  mutate(offense_code_of_the_reasonable_suspicion=reason_for_contact_narrative)
+
 # we can see now more offense codes get filled in. Lets clean up the offense_code column a bit
 
 nonjoin<-nonjoin%>%
   select(1:3,offense_code_of_the_reasonable_suspicion,reason_for_contact_narrative)
+
 
 # going to manually recode the ones that seem obvious to me but leave the rest. I am not 100% sure what the best way to go about these are.
 
@@ -226,6 +246,8 @@ rs_re_codes_part3<-rs_re_df %>% select (-offense_code_of_the_reasonable_suspicio
                                                                            ifelse(grepl("11359", offense_code_of_the_reasonable_suspicion), "11359", 
                                                                                   ifelse(grepl("1357d h&S", offense_code_of_the_reasonable_suspicion), "11357(D)", 
                                                                            offense_code_of_the_reasonable_suspicion)))))))))))
+
+
 
 
 # join 
@@ -347,3 +369,4 @@ the reasonable suspicion reason. Universe or denominator is all people stopped f
  )
  
  add_table_comments(con_ctc, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
+ 
