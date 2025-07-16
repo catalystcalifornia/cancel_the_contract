@@ -62,7 +62,7 @@ av_stops_re<-av_stops%>%
 
  qa<-av_stops%>%
      filter(call_for_service %in% c("true", "Yes"))%>%
-     summarise(n)  # n = 6983
+     summarise(count=n())  # n = 6983
 sum(av_stops_re$call_for_service) # 6983 
 
 # QA age recoding
@@ -97,6 +97,9 @@ tot<-av_stops_re%>%
   slice(1)%>%
   select(universe, geography, reportingcategory_re, age_re, total, count, rate)
 
+# QA: I checked all the numerators in the count column against what I got in 'analysis_stops_reason_age_race' and they all check out
+
+
 # for AIAN/NHPI/SSWANA
 
 tot_flags <- av_stops_re %>%
@@ -130,6 +133,18 @@ tot_flags <- av_stops_re %>%
 tot<-tot%>%
   rbind(tot_flags)%>%
   arrange(-rate)
+
+# QA
+
+check<-av_stops_re%>%filter(age <= 17)%>%
+  filter(reportingcategory_re != 'NULL') %>%
+  filter( aian_flag==1 | sswana_flag==1 | nhpi_flag==1)%>%
+  select(age, aian_flag, sswana_flag, nhpi_flag)
+
+#these all match what I see in tot_flags
+sum(check$aian_flag)
+sum(check$nhpi_flag)
+sum(check$sswana_flag)
 
 ####################### Calculate rates for CFS ######################
 
@@ -182,6 +197,19 @@ tot_flags_cfs <- av_stops_re %>%
 tot_cfs<-tot_cfs%>%
   rbind(tot_flags_cfs)%>%
   arrange(-rate)
+
+# QA 
+
+check<-av_stops_re%>%filter(age <= 17)%>%
+  filter(reportingcategory_re != 'NULL') %>%
+  filter(call_for_service==1)%>%
+  filter( aian_flag==1 | sswana_flag==1 | nhpi_flag==1)%>%
+  select(age, aian_flag, sswana_flag, nhpi_flag)
+
+#these all match what I see in tot_flags_cfs
+sum(check$aian_flag)
+sum(check$nhpi_flag)
+sum(check$sswana_flag)
 
 
 ####################### Calculate rates for NON CFS ######################
@@ -288,6 +316,54 @@ just_age <- df %>% group_by(universe, age_re) %>%
             count = sum(count),
             rate = sum(count)/sum(total)*100)
 
+# QA
+
+check<-av_stops%>%
+  filter(age<=17)%>%
+  summarise(count=n()) ## this is 982 ---I also get this in analysis_stops_reason_age. but in just_age the total is 988
+
+# the reason is because the just_age code is just summing the count column from df. But that has the AIAN/NHPI/SSWANA AOIC
+# so there is some double counting happening.
+
+# You need to recalculate using av_stops not df
+
+just_age_revised_total<-av_stops_re%>%
+  mutate(universe="All stops",
+         total=n())%>%
+  group_by(age_re)%>%
+  mutate(geography="Antelope Valley",
+         count=n(),
+         rate=count/total*100)%>%
+  slice(1)%>%
+  select(universe, geography, age_re, total, count, rate) # now we see total for 0-17 is 982
+
+# run more checks
+
+check<-av_stops%>%
+  filter(age>=18 & age<= 24)%>%
+  summarise(count=n()) # matches just_age_revised_total. we can see all the values in just_age are just slightly inflated
+
+# pull in my analysis table to check things:
+
+jz<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_age")
+
+sum(jz$count[jz$age_re=="17 and under" & jz$denom=="Total people stopped"]) # 982
+
+# So now we have to repeat these steps for calls for service
+
+just_age_revised_cfs<-av_stops_re%>%
+  mutate(total=n())%>%
+  group_by(call_for_service, age_re)%>%
+  mutate(geography="Antelope Valley",
+         count=n(),
+         rate=count/total*100)%>%
+  slice(1)%>%
+  ungroup()%>%
+  mutate(universe=ifelse(call_for_service %in% 0, "Stops with no call for service", "Stops with call for service"))%>%
+  select(universe, geography, age_re, total, count, rate) 
+
+# combine both
+just_age<-rbind(just_age_revised_total, just_age_revised_cfs)
 
 ############### PUSH TABLE TO POSTGRES #####################
 
@@ -300,7 +376,7 @@ charvect <- replace(charvect, c(4,5,6), c("numeric"))
 
 names(charvect) <- colnames(just_age)
 
-table_name <- "analysis_stops_age"
+table_name <- "analysis_stops_age_new"
 schema <- "data"
 indicator <- "Analysis table of AVUSHD LASD stops by age"
 source <- "R script: W://Project//RJS//CTC//Github//CR//cancel_the_contract//Analysis//analysis_stops_age_by_race.R"
