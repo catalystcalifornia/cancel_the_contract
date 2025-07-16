@@ -145,6 +145,32 @@ reason_race<-av_stops_re%>%
   select(geography, denom, reason_for_contact, reportingcategory_re, age_re, total, count, rate)%>%
   arrange( reportingcategory_re, age_re, -rate)
 
+reason_race_flag<-av_stops_re %>%
+  ungroup() %>%
+  filter(reportingcategory_re != 'NULL') %>%
+  pivot_longer(cols = c(aian_flag, nhpi_flag, sswana_flag), 
+               names_to = "flag_type", 
+               values_to = "flag_value") %>%
+  filter(flag_value == 1) %>%
+  mutate(total=nrow(av_stops_re))%>%
+  group_by(flag_type,age_re) %>%
+  summarise(
+    total = first(total),
+    count = sum(flag_value),
+    rate = count / total * 100,
+    geography = "Antelope Valley",
+    .groups = "drop"
+  ) %>%
+  mutate(
+    denom="Total people stopped",
+    reportingcategory_re = case_when(
+      flag_type == "aian_flag" ~ "AIAN AOIC",
+      flag_type == "nhpi_flag" ~ "NHPI AOIC",
+      flag_type == "sswana_flag" ~ "SSWANA AOIC"
+    )
+  ) %>%
+  select( geography, denom, reportingcategory_re, age_re, total, count, rate)
+
 ######### ANALYSIS 2b: Explore stop reason by age AND race: denom == total stops within each age group ######
 
 reason_race1<-av_stops_re%>%
@@ -159,10 +185,37 @@ reason_race1<-av_stops_re%>%
   select(geography, denom, reason_for_contact, reportingcategory_re, age_re, total, count, rate)%>%
   arrange( reportingcategory_re, age_re, -rate)
 
+reason_race_flag1<-av_stops_re %>%
+  ungroup() %>%
+  filter(reportingcategory_re != 'NULL') %>%
+  pivot_longer(cols = c(aian_flag, nhpi_flag, sswana_flag), 
+               names_to = "flag_type", 
+               values_to = "flag_value") %>%
+  filter(flag_value == 1) %>%
+  group_by(flag_type)%>%
+  mutate(total=n())%>%
+  group_by(flag_type,age_re) %>%
+  summarise(
+    total = first(total),
+    count = sum(flag_value),
+    rate = count / total * 100,
+    geography = "Antelope Valley",
+    .groups = "drop"
+  ) %>%
+  mutate(
+    denom="Total people stopped in age group",
+    reportingcategory_re = case_when(
+      flag_type == "aian_flag" ~ "AIAN AOIC",
+      flag_type == "nhpi_flag" ~ "NHPI AOIC",
+      flag_type == "sswana_flag" ~ "SSWANA AOIC"
+    )
+  ) %>%
+  select( geography, denom, reportingcategory_re, age_re, total, count, rate)
+
 
 ### Combine Analysis 2a and 2b into one table ######
 
-df<-rbind(reason_race, reason_race1)
+df<-rbind(reason_race,reason_race_flag, reason_race1,reason_race_flag1)
 
 
 # Push table to postgres--------------------------------
@@ -182,9 +235,9 @@ column_names <- colnames(df) # Get column names
 column_comments <- c(
   "geography level",
   "denominator used in rate calculation. Total people stopped == everyone stopped in SPA 1. Total people stopped in age group == everyone stopped within each age bracket",
+  "reason for stop",
   "Perceived racial group",
   "Age group recoded",
-  "Stop reason",
   "Total (see denominator column for specific definition of total)",
   "Count of people stopped within each age bracket and stop reason",
   "Rate of people stopped within age bracket for each stop reason"
