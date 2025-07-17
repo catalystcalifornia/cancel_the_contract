@@ -78,8 +78,6 @@ reason_age<-av_stops_re%>%
 ######### ANALYSIS 1c: Just look at reason_for_contact by age group WITHIN each age group ######
 ## DENOM == out of TOTAL POP within each age group
 
-### THESE RATES are really low and I'm not sure if we need it as it doesn't really add any narrative value in my opinion.
-# so I am going to NOT include this in the postgres table export
 
 reason_age_pop<-av_stops_re%>%
   mutate(denom="Total age population")%>%
@@ -94,13 +92,13 @@ reason_age_pop<-av_stops_re%>%
 
 ### Combine Analysis 1a and 1b into one table ######
 
-df<-rbind(reason, reason_age)
+df<-rbind(reason, reason_age, reason_age_pop)
 
 # Push table to postgres--------------------------------
 
 table_name <- "analysis_stops_reason_age"
 schema <- "data"
-indicator <- "Rate of reason for contact at the person level within each age group out of all people stopped in SPA 1 AND out of all people stopped within each age group.
+indicator <- "Rate of reason for contact at the person level within each age group out of all people stopped in SPA 1 AND out of all people stopped within each age group AND out of total population within each age group.
 Denominator is specified in the denom column"
 source <- "R Script: W:\\Project\\RJS\\CTC\\Github\\JZ\\cancel_the_contract\\Analysis\\analysis_stops_reason_age.R"
 qa_filepath <- " W:\\Project\\RJS\\CTC\\Documentation\\QA_analysis_stops_reason_ages.docx" 
@@ -133,7 +131,6 @@ av_stops_re<-av_stops_re%>%
   left_join(race)%>%
   filter(!is.na(reportingcategory_re)) # need to filter out our NULL Race groups or where # of races was >= 6
 
-
 reason_race<-av_stops_re%>%
   mutate(denom="Total people stopped",
          total=n())%>%
@@ -143,7 +140,9 @@ reason_race<-av_stops_re%>%
          geography="Antelope Valley")%>%
   slice(1)%>%
   select(geography, denom, reason_for_contact, reportingcategory_re, age_re, total, count, rate)%>%
-  arrange( reportingcategory_re, age_re, -rate)
+  arrange( reportingcategory_re, age_re, -rate)%>%
+  filter(!is.na(reportingcategory_re)) # need to filter out our NULL Race groups or where # of races was >= 6
+  
 
 reason_race_flag<-av_stops_re %>%
   ungroup() %>%
@@ -152,8 +151,8 @@ reason_race_flag<-av_stops_re %>%
                names_to = "flag_type", 
                values_to = "flag_value") %>%
   filter(flag_value == 1) %>%
-  mutate(total=nrow(av_stops_re))%>%
-  group_by(flag_type,age_re) %>%
+  mutate(total=reason_race$total[1])%>%
+  group_by(flag_type,age_re, reason_for_contact) %>%
   summarise(
     total = first(total),
     count = sum(flag_value),
@@ -169,7 +168,7 @@ reason_race_flag<-av_stops_re %>%
       flag_type == "sswana_flag" ~ "SSWANA AOIC"
     )
   ) %>%
-  select( geography, denom, reportingcategory_re, age_re, total, count, rate)
+  select( geography, denom, reason_for_contact, reportingcategory_re, age_re, total, count, rate)
 
 ######### ANALYSIS 2b: Explore stop reason by age AND race: denom == total stops within each age group ######
 
@@ -194,7 +193,7 @@ reason_race_flag1<-av_stops_re %>%
   filter(flag_value == 1) %>%
   group_by(flag_type)%>%
   mutate(total=n())%>%
-  group_by(flag_type,age_re) %>%
+  group_by(flag_type,age_re, reason_for_contact) %>%
   summarise(
     total = first(total),
     count = sum(flag_value),
@@ -210,7 +209,7 @@ reason_race_flag1<-av_stops_re %>%
       flag_type == "sswana_flag" ~ "SSWANA AOIC"
     )
   ) %>%
-  select( geography, denom, reportingcategory_re, age_re, total, count, rate)
+  select( geography, denom, reason_for_contact, reportingcategory_re, age_re, total, count, rate)
 
 
 ### Combine Analysis 2a and 2b into one table ######
