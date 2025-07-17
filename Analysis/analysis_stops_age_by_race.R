@@ -45,6 +45,7 @@ av_stops<-av_stops%>%
 # select columns I want
 
 av_stops_re<-av_stops%>%
+  filter(!is.na(reportingcategory_re)) %>%
   select(contact_id, person_id, age, call_for_service, reportingcategory_re, aian_flag, nhpi_flag, sswana_flag, latinx)%>%
   mutate(call_for_service = case_when(
     call_for_service %in% c("Yes", "true")  ~ 1,
@@ -63,7 +64,7 @@ av_stops_re<-av_stops%>%
  qa<-av_stops%>%
      filter(call_for_service %in% c("true", "Yes"))%>%
      summarise(count=n())  # n = 6983
-sum(av_stops_re$call_for_service) # 6983 
+sum(av_stops_re$call_for_service) # 6974 - these no longer match b/c race NAs are gone
 
 # QA age recoding
 
@@ -72,7 +73,7 @@ qa17<-av_stops%>%
   mutate(count=n()) # this produces 982 obs
 
 check<-av_stops_re%>%
-  filter(age_re=="17 and under") # also 982
+  filter(age_re=="17 and under") # 980 - these no longer match b/c race NAs are gone
 
 qa55<-av_stops%>%
   filter(age>=55 & age <= 64)%>%
@@ -80,7 +81,7 @@ qa55<-av_stops%>%
 
 check<-av_stops_re%>%
   filter(age_re=="55-64")%>%
-  summarise(count=n()) # also 2359
+  summarise(count=n()) # also 2359 - these still match
 
 ####################### Calculate rates for CFS+Not CFS ######################
 
@@ -97,7 +98,7 @@ tot<-av_stops_re%>%
   slice(1)%>%
   select(universe, geography, reportingcategory_re, age_re, total, count, rate)
 
-# QA: I checked all the numerators in the count column against what I got in 'analysis_stops_reason_age_race' and they all check out
+# QA: formerly checked all the numerators in the count column against what I got in 'analysis_stops_reason_age_race'
 
 
 # for AIAN/NHPI/SSWANA
@@ -141,7 +142,7 @@ check<-av_stops_re%>%filter(age <= 17)%>%
   filter( aian_flag==1 | sswana_flag==1 | nhpi_flag==1)%>%
   select(age, aian_flag, sswana_flag, nhpi_flag)
 
-#these all match what I see in tot_flags
+#these still match what I see in tot_flags
 sum(check$aian_flag)
 sum(check$nhpi_flag)
 sum(check$sswana_flag)
@@ -206,7 +207,7 @@ check<-av_stops_re%>%filter(age <= 17)%>%
   filter( aian_flag==1 | sswana_flag==1 | nhpi_flag==1)%>%
   select(age, aian_flag, sswana_flag, nhpi_flag)
 
-#these all match what I see in tot_flags_cfs
+#these still match what I see in tot_flags_cfs
 sum(check$aian_flag)
 sum(check$nhpi_flag)
 sum(check$sswana_flag)
@@ -308,24 +309,93 @@ column_comments <- c(
 add_table_comments(con, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
 
 
-############## Just Age ######################
 
-just_age <- df %>% group_by(universe, age_re) %>%
+############## Just Race ######################
+
+# QA: I want to check if doing this my way produces the same results as just_race
+
+just_race_revised_total<-av_stops_re%>%
+  mutate(universe="All stops",
+         total=n())%>%
+  group_by(reportingcategory_re)%>%
+  mutate(geography="Antelope Valley",
+         count=n(),
+         rate=count/total*100)%>%
+  slice(1)%>%
+  select(universe, geography, age_re, total, count, rate) 
+
+race_check<-av_stops%>%left_join(race)%>%group_by(reportingcategory_re)%>%summarise(count=n()) # these match the just_race values where the universe is all stops
+
+
+race_cfs_check<-av_stops%>%left_join(race)%>%filter(call_for_service =="Yes")%>%
+  group_by(reportingcategory_re)%>%summarise(count=n()) # these match the just_race values where the universe is CFS
+
+# so I think the CR method is OK For the just_race table. No changes needed. 
+
+just_race <- df %>% group_by(universe, reportingcategory_re) %>%
   summarize(geography = first(geography),
             total = first(total),
             count = sum(count),
             rate = sum(count)/sum(total)*100)
 
-# QA
 
-check<-av_stops%>%
-  filter(age<=17)%>%
-  summarise(count=n()) ## this is 982 ---I also get this in analysis_stops_reason_age. but in just_age the total is 988
+############### PUSH TABLE TO POSTGRES #####################
 
-# the reason is because the just_age code is just summing the count column from df. But that has the AIAN/NHPI/SSWANA AOIC
-# so there is some double counting happening.
+# set column types
 
-# You need to recalculate using av_stops not df
+charvect = rep("varchar", ncol(just_race)) #create vector that is "varchar" for the number of columns in df
+charvect <- replace(charvect, c(4,5,6), c("numeric"))
+
+# add df colnames to the character vector
+
+names(charvect) <- colnames(just_race)
+
+table_name <- "analysis_stops_race"
+schema <- "data"
+indicator <- "Analysis table of AVUSHD LASD stops by race"
+source <- "R script: W://Project//RJS//CTC//Github//CR//cancel_the_contract//Analysis//analysis_stops_age_by_race.R"
+qa_filepath <- "W://Project//RJS//CTC//Documentation//QA_analysis_stops_age_by_race.docx"
+table_comment <- paste0(indicator, source)
+
+# push to postgres
+dbWriteTable(con, table_name, just_race,
+             overwrite = TRUE, row.names = FALSE,
+             field.types = charvect)
+
+# add meta data
+
+column_names <- colnames(just_race) # Get column names
+column_comments <- c(
+  "Universe: call for service, NOT call for service, or COMBINED CFS+Not CFs",
+  "geography level",
+  "Race category_recoded",
+  "Total LASD stops in Antelope Valley",
+  "Count of LASD stops by race",
+  "Percent of LASD stops by race"
+)
+
+add_table_comments(con, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
+
+
+
+############## Just Age ######################
+
+# Redoing av_stops_re commenting out the race filter
+av_stops_re<-av_stops%>%
+  #filter(!is.na(reportingcategory_re)) %>%
+  select(contact_id, person_id, age, call_for_service, reportingcategory_re, aian_flag, nhpi_flag, sswana_flag, latinx)%>%
+  mutate(call_for_service = case_when(
+    call_for_service %in% c("Yes", "true")  ~ 1,
+    call_for_service %in% c("No", "false")  ~ 0,
+    TRUE                                    ~ NA_real_
+  )) %>% mutate(age_re=case_when(age <= 17 ~ "17 and under",
+                                 age >= 18 & age <= 24 ~ "18-24",
+                                 age >= 25 & age <= 34 ~ "25-34",
+                                 age >= 35 & age <= 44 ~ "35-44",
+                                 age >= 45 & age <= 54 ~ "45-54",
+                                 age >= 55 & age <= 64 ~ "55-64",
+                                 age >= 65 ~ "65 and older"))
+
 
 just_age_revised_total<-av_stops_re%>%
   mutate(universe="All stops",
@@ -415,73 +485,6 @@ column_comments <- c(
   "Total LASD stops in Antelope Valley",
   "Count of LASD stops by age",
   "Percent of LASD stops by age"
-)
-
-add_table_comments(con, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
-
-
-############## Just Race ######################
-
-# QA: I want to check if doing this my way produces the same results as just_race
-
-just_race_revised_total<-av_stops_re%>%
-  mutate(universe="All stops",
-         total=n())%>%
-  group_by(reportingcategory_re)%>%
-  mutate(geography="Antelope Valley",
-         count=n(),
-         rate=count/total*100)%>%
-  slice(1)%>%
-  select(universe, geography, age_re, total, count, rate) 
-
-race_check<-av_stops%>%left_join(race)%>%group_by(reportingcategory_re)%>%summarise(count=n()) # these match the just_race values where the universe is all stops
-
-
-race_cfs_check<-av_stops%>%left_join(race)%>%filter(call_for_service =="Yes")%>%
-  group_by(reportingcategory_re)%>%summarise(count=n()) # these match the just_race values where the universe is CFS
-
-# so I think the CR method is OK For the just_race table. No changes needed. 
-
-just_race <- df %>% group_by(universe, reportingcategory_re) %>%
-  summarize(geography = first(geography),
-            total = first(total),
-            count = sum(count),
-            rate = sum(count)/sum(total)*100)
-
-
-############### PUSH TABLE TO POSTGRES #####################
-
-# set column types
-
-charvect = rep("varchar", ncol(just_race)) #create vector that is "varchar" for the number of columns in df
-charvect <- replace(charvect, c(4,5,6), c("numeric"))
-
-# add df colnames to the character vector
-
-names(charvect) <- colnames(just_race)
-
-table_name <- "analysis_stops_race"
-schema <- "data"
-indicator <- "Analysis table of AVUSHD LASD stops by race"
-source <- "R script: W://Project//RJS//CTC//Github//CR//cancel_the_contract//Analysis//analysis_stops_age_by_race.R"
-qa_filepath <- "W://Project//RJS//CTC//Documentation//QA_analysis_stops_age_by_race.docx"
-table_comment <- paste0(indicator, source)
-
-# push to postgres
-dbWriteTable(con, table_name, just_race,
-             overwrite = TRUE, row.names = FALSE,
-             field.types = charvect)
-
-# add meta data
-
-column_names <- colnames(just_race) # Get column names
-column_comments <- c(
-  "Universe: call for service, NOT call for service, or COMBINED CFS+Not CFs",
-  "geography level",
-  "Race category_recoded",
-  "Total LASD stops in Antelope Valley",
-  "Count of LASD stops by race",
-  "Percent of LASD stops by race"
 )
 
 add_table_comments(con, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
