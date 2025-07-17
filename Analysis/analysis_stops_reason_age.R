@@ -90,7 +90,7 @@ reason_age_pop<-av_stops_re%>%
   select(geography, denom, age_re, reason_for_contact, total, count, rate)
 
 
-### Combine Analysis 1a and 1b into one table ######
+### Combine Analysis 1a, 1b, and 1c into one table ######
 
 df<-rbind(reason, reason_age, reason_age_pop)
 
@@ -214,7 +214,7 @@ reason_race_flag1<-av_stops_re %>%
 
 ### Combine Analysis 2a and 2b into one table ######
 
-df<-rbind(reason_race,reason_race_flag, reason_race1,reason_race_flag1)
+df<-rbind(reason_race,reason_race_flag, reason_race1, reason_race_flag1)
 
 
 # Push table to postgres--------------------------------
