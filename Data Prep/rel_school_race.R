@@ -130,7 +130,7 @@ av_stops_long_re<-av_stops_long_re%>%
 
 av_stops_long_re<-av_stops_long_re%>%
   mutate(reportingcategory_re=ifelse(reportingcategory %in% "black_african_american" & latinx!=1, "nh_black",
-                                     ifelse(reportingcategory %in% "middle_eastern_south_asian" & latinx!=1, "sswana_aoic",
+                                     ifelse(reportingcategory %in% "middle_eastern_south_asian" & latinx!=1, "nh_sswana",
                                             ifelse(reportingcategory %in% "native_american" & latinx!=1, "nh_aian", 
                                                    ifelse(reportingcategory %in% "asian" & latinx!=1, "nh_asian", 
                                                           ifelse(reportingcategory %in% "hispanic_latino_latina", "latinx", 
@@ -141,7 +141,7 @@ av_stops_long_re<-av_stops_long_re%>%
                                                                                       "latinx"))))))))))%>%
   mutate(contact_id=as.character(contact_id),
          person_id=as.character(person_id),
-         reportingcategory_re = na_if(reportingcategory_re, "NULL")) 
+         reportingcategory_re = na_if(reportingcategory_re, "NULL"))
 
 table(av_stops_long_re$reportingcategory_re)
 
