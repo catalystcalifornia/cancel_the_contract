@@ -31,8 +31,12 @@ df<-result%>%
 
 ############### ANALYSIS 1: Counts/Rates of Stops WITHOUT race ########################
 
+# This takes the rate of results that are alone or in combination with other results.
+# SO the numerator is all results that were given alone or in combination with others but encompasses all results given
+# But the denominator is total unique people stopped.
+
 result<-df%>%
-  mutate(total=n())%>%
+  mutate(total=length(unique(result$person_id)))%>%
   group_by(stop_result)%>%
   mutate(count=n(),
          rate=count/total*100,
@@ -53,9 +57,9 @@ names(charvect) <- colnames(result)
 
 table_name <- "analysis_stops_result_avuhsd"
 schema <- "data"
-indicator <- "Total and rate of stop results for people in AVUHSD schools. Note this is person-level and
-some people are double counted because ~ 43% of people stopped in a AVUHSD school had more than 1 result. 
-This table counts each individual stop result even if it is the same person to get a sense of stop results over-all."
+indicator <- "Total and rate of stop results alone or in combination with other results for people in AVUHSD schools. 
+This table counts each individual stop result even if it is the same person to get a sense of stop results over-all.
+The denominator for the rate calcs (the total) is all unique pepole stopped"
 source <- "R script: W://Project//RJS//CTC//Github//CR//cancel_the_contract//Analysis//analysis_stops_result_avuhsd.R"
 qa_filepath <- "W://Project//RJS//CTC//Documentation//QA_stops_result_avuhsd.docx" 
 table_comment <- paste0(indicator, source)
@@ -127,7 +131,7 @@ table(df_target$stop_result_list)
 # first calculate NOT by race just total target stop results / total stop results
 
 df_total<-df_target%>%
-  mutate(total=n())%>%
+  mutate(total=n())%>% # this will give 904 for unique people stopped
   group_by(target_result)%>%
   mutate(count=n(),
          rate=count/total*100,
