@@ -36,7 +36,7 @@ df<-result%>%
 # SO the numerator is all results that were given alone or in combination with others but encompasses all results given
 # But the denominator is total unique people stopped.
 
-result<-df%>%
+result_df<-df%>%
   mutate(total=length(unique(result$person_id)))%>%
   group_by(stop_result)%>%
   mutate(count=n(),
@@ -50,11 +50,11 @@ result<-df%>%
 
 # set column types
 
-charvect = rep("varchar", ncol(result)) #create vector that is "varchar" for the number of columns in df
+charvect = rep("varchar", ncol(result_df)) #create vector that is "varchar" for the number of columns in df
 
 # add df colnames to the character vector
 
-names(charvect) <- colnames(result)
+names(charvect) <- colnames(result_df)
 
 table_name <- "analysis_stops_result_avuhsd"
 schema <- "data"
@@ -66,7 +66,7 @@ qa_filepath <- "W://Project//RJS//CTC//Documentation//QA_stops_result_avuhsd.doc
 table_comment <- paste0(indicator, source)
 
 # push to postgres
-dbWriteTable(con,  table_name, result,
+dbWriteTable(con,  table_name, result_df,
              overwrite = TRUE, row.names = FALSE,
              field.types = charvect)
 
@@ -313,3 +313,4 @@ column_comments <- c(
 )
 
 add_table_comments(con, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
+
