@@ -21,8 +21,9 @@ con<- connect_to_db("cancel_the_contract")
 ############### GET DATA ########################
 
 result <- dbGetQuery(con, "SELECT * FROM rel_school_result")
-race<-dbGetQuery(con, "SELECT * FROM rel_school_race_recode")%>% # as of 7/11  NOT QA-ED YET but with CR for QA
+race<-dbGetQuery(con, "SELECT * FROM rel_school_race_recode")%>% # QAed
   filter(reportingcategory_re != "NULL") # this is our person who was recoded as race == NULL because LASD indicated 6+ races for this person
+enrollment <- dbGetQuery(con_shared, "SELECT * FROM education.cde_multigeo_enrollment_census_day_2024_25")
 
 # Join result table with persons table to get race
 
@@ -83,7 +84,9 @@ column_comments <- c(
 
 add_table_comments(con, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
 
-############### ANALYSIS 2: Focus JUST on non-serious results BY RACE ########################
+############### ANALYSIS 2a: Focus JUST on non-serious results BY RACE ########################
+
+# DENOM == Total unique people stopped
 
 # Want to focus on results that are not-serious to illustrate that policing in schools is not necessary and we can see
 # based on the type of results these stops are getting
@@ -131,28 +134,30 @@ table(df_target$stop_result_list)
 # first calculate NOT by race just total target stop results / total stop results
 
 df_total<-df_target%>%
-  mutate(total=n())%>% # this will give 904 for unique people stopped
+  mutate(denom="Total people stopped",
+         total=n())%>% # this will give 904 for unique people stopped
   group_by(target_result)%>%
   mutate(count=n(),
          rate=count/total*100,
          geography="Antelope Valley Union High School District",
          reportingcategory_re="Total")%>%
   slice(1)%>%
-  select(geography, target_result, reportingcategory_re, total, count, rate)%>%
+  select(geography, denom, target_result, reportingcategory_re, total, count, rate)%>%
   arrange(-rate)
 
 # now calculate by race for our NH race groups
 
 df_race<-df_target%>%
   left_join(race)%>%
-  mutate(total=n())%>%
+  mutate(denom="Total people stopped",
+         total=n())%>%
   group_by(reportingcategory_re, target_result)%>%
   mutate(count=n(),
          rate=count/total*100,
          geography="Antelope Valley Union High School District")%>%
   slice(1)%>%
   filter(!is.na(reportingcategory_re))%>% # our person with NULL for race because they had too many races indicated by LASD
-  select(geography, target_result, reportingcategory_re, total, count, rate)%>%
+  select(geography, denom, target_result, reportingcategory_re, total, count, rate)%>%
   arrange(reportingcategory_re, -rate)
 
 # now calculate for AIAN/NHPI/SSWANA
@@ -161,7 +166,8 @@ df_race<-df_target%>%
 
 df_aoic <- df_target %>%
   left_join(race)%>%
-  mutate(total=n())%>%
+  mutate(
+         total=n())%>%
   filter(reportingcategory_re != 'NULL') %>%
   pivot_longer(cols = c(aian_flag, nhpi_flag, sswana_flag), 
                names_to = "flag_type", 
@@ -175,24 +181,99 @@ df_aoic <- df_target %>%
     geography = "Antelope Valley Union High School District",
     .groups = "drop"
   ) %>%
-  mutate(
+  mutate(denom="Total people stopped",
     reportingcategory_re = case_when(
       flag_type == "aian_flag" ~ "AIAN AOIC",
       flag_type == "nhpi_flag" ~ "NHPI AOIC",
       flag_type == "sswana_flag" ~ "SSWANA AOIC"
     )
   ) %>%
-  select(geography,target_result, reportingcategory_re, total, count, rate)
+  select(geography,denom, target_result, reportingcategory_re, total, count, rate)
 
 # combine everything
 
 df_final<-rbind(df_total, df_race, df_aoic)
+
+############### ANALYSIS 2b: Focus JUST on non-serious results BY RACE ########################
+
+# DENOM == ENROLLMENT IN HS DISTRICT BY RACE for each racial group to get more at 'population'
+
+# get Antelope Valley Union High School District enrollment
+av_enrollment <- enrollment %>% filter(districtname == "Antelope Valley Union High" & charter == "ALL")%>%
+  filter(grepl("RE_|TA", reportingcategory))
+
+# check I got all the racial reporting groups
+
+table(av_enrollment$reportingcategory)
+
+# recode racial categories
+
+av_enrollment<-av_enrollment%>%
+  mutate(reportingcategory_re=ifelse(reportingcategory %in% "TA", "total",
+                                ifelse(reportingcategory %in% "RE_B", "nh_black",
+                                     ifelse(reportingcategory %in% "RE_I", "nh_aian", 
+                                            ifelse(reportingcategory %in% "RE_A", "nh_asian", 
+                                                   ifelse(reportingcategory %in% "RE_F", "nh_filipino",  
+                                                          ifelse(reportingcategory %in% "RE_H", "latinx", 
+                                                                 ifelse(reportingcategory %in% "RE_D", "missing_race",
+                                                                        ifelse(reportingcategory %in% "RE_P", "nh_nhpi",  
+                                                                               ifelse(reportingcategory %in% "RE_T", "nh_twoormor",  
+                                                                                      ifelse(reportingcategory %in% "RE_W", "nh_white", 
+                                                                                             reportingcategory)))))))))))%>%
+  select(cdscode, districtname, reportingcategory_re, total_enr)
+
+# pull the total enrollment value
+total_enrollment<-av_enrollment%>%filter(reportingcategory_re=="total")%>%select(total_enr)%>%pull(total_enr)
+
+# Join this to the df_target table
+
+df_target<-df_target%>%
+  left_join(race)%>%
+  left_join(av_enrollment)
+
+# first calculate NOT by race just total target stop results / total stop results
+
+df_total_enr<-df_target%>%
+  mutate(denom="Total race enrollment",
+         total=total_enrollment)%>% 
+  group_by(target_result)%>%
+  mutate(count=n(),
+         rate=count/total*100,
+         geography="Antelope Valley Union High School District",
+         reportingcategory_re="Total")%>%
+  slice(1)%>%
+  select(geography, denom, target_result, reportingcategory_re, total, count, rate)%>%
+  arrange(-rate)
+
+# now calculate by race for our NH race groups
+
+df_race_enr<-df_target%>%
+  group_by(reportingcategory_re)%>%
+  mutate(denom="Total race enrollment",
+         total=total_enr)%>%
+  group_by(reportingcategory_re, target_result)%>%
+  mutate(count=n(),
+         rate=count/total*100,
+         geography="Antelope Valley Union High School District")%>%
+  slice(1)%>%
+  filter(!is.na(reportingcategory_re))%>% # our person with NULL for race because they had too many races indicated by LASD
+  select(geography, denom, target_result, reportingcategory_re, total, count, rate)%>%
+  arrange(reportingcategory_re, -rate)
+
+# NOTE there is no enrollment data for AIAN/NHPI/SSWANA AOIC and so we won't have these rate calcs with an enrollment denominator
+
+
+# combine everything
+
+df_final<-rbind(df_final, df_total_enr, df_race_enr)
+
 
 #### Push to postgres 
 
 # set column types
 
 charvect = rep("varchar", ncol(df_final)) #create vector that is "varchar" for the number of columns in df
+charvect <- replace(charvect, c(5,6,7), c("numeric"))
 
 # add df colnames to the character vector
 
@@ -204,8 +285,10 @@ indicator <- "Total and rate of target stop results by race out of total people 
 for people in AVUHSD schools. The target stop results currently are:
 citation for infraction, referral school staff,contacted legal guardian,
 no action,warning, referral to school administrator, in field cite and release.
-The universe is all people stopped in AVUHSD and the numerator is the count people stopped with one or more target stop results
-within each perceived racial group. Note this is person-level."
+The universe is all people stopped in AVUHSD OR total enrollment at AV school district for each racial group (which denominator is used is specific in the denom column),
+and the numerator is the count people stopped with one or more target stop results
+within each perceived racial group. Note this is person-level. NOTE for the enrollment denominator CDE does not have enrollment data for NHPI/SSWANA/AIAN AOIC so there are no 
+rate calcs for these groups for the enrollment denominator, ONLY for the total people stopped denominator."
 source <- "R script: W://Project//RJS//CTC//Github//CR//cancel_the_contract//Analysis//analysis_stops_result_avuhsd.R"
 qa_filepath <- "W://Project//RJS//CTC//Documentation//QA_stops_result_avuhsd.docx" 
 table_comment <- paste0(indicator, source)
@@ -221,6 +304,7 @@ dbWriteTable(con,  table_name, df_final,
 column_names <- colnames(df_final) # Get column names
 column_comments <- c(
   "geography",
+  "type of denominator for the rate calc. It is either out of all unique people stopped in AVUHSD OR out of total enrollment of each racial group",
   "flag for if result is one of our target results (1/0)",
   "Perceived race",
   "Total number of people stopped",
