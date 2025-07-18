@@ -1,0 +1,338 @@
+---
+title: "Stops of people in schools by stop reason"
+author: "Alicia Vo"
+date: "2025-06-04"
+output: html_document
+---
+
+# Get data
+```{r}
+library(RPostgreSQL)
+library(dplyr)
+library(stringr)
+library(tidytext)
+
+# Connect to postgres
+source("W:\\RDA Team\\R\\credentials_source.R")
+con_rda <- connect_to_db("rda_shared_data")
+con_ctc <- connect_to_db("cancel_the_contract")
+
+# Get LASD stop-level data for Antelope Valley high schools
+lasd_stops_incident_raw <- dbGetQuery(con_rda, "SELECT street_number, full_street, contact_id, k_12_school, school_name, civilians_contacted, call_for_service FROM crime_and_justice.lasd_stops_incident_2018_2023
+WHERE school_name
+IN (
+'Antelope Valley High',
+'Antelope Valley Union High',
+'Eastside High',
+'Highland High',
+'William J. (Pete) Knight High',
+'Lancaster High',
+'Littlerock High',
+'Palmdale High',
+'Quartz Hill High',
+'R. Rex Parris High',
+'Desert Winds Continuation High',
+'Phoenix High Community Day',
+'Phoenix Continuation')
+ORDER BY school_name") 
+
+# Get LASD person-level data
+lasd_stops_person_raw <- dbGetQuery(con_rda, "SELECT full_address, contact_id, person_id, k12_student, reason_for_contact, reason_for_contact_narrative FROM crime_and_justice.lasd_stops_person_2018_2023")
+
+# Get xwalk
+xwalk <- dbGetQuery(con_ctc, "SELECT cde_school, lasd_school FROM data.avuhsd_lasd_xwalk") 
+```
+
+# Prep data
+```{r}
+# Make a copy of the raw stop-level data to work with
+lasd_stops_incident <- lasd_stops_incident_raw
+
+# Join stop-level data with person-level data, such that each row represents one person. A RIGHT JOIN returns all records from the right table, along with the matching records from the left table
+person_lasd <- lasd_stops_person_raw %>% 
+  right_join(lasd_stops_incident, by="contact_id")
+
+qa<-lasd_stops_person_raw%>% 
+  left_join(lasd_stops_incident, by="contact_id")
+
+# JZ QA the right join----- 
+
+# see if there are any NAs in person_id after the join: 
+
+unmatched <- person_lasd %>% filter(is.na(person_id))
+nrow(unmatched)
+
+table(duplicated(lasd_stops_incident$contact_id))  # should be mostly FALSE
+table(duplicated(lasd_stops_person_raw$contact_id)) # should be TRUE because this is person level so if there are multiple peole in the same stop there will be duplicate  contact_id values
+
+table(duplicated(lasd_stops_person_raw$person_id)) # should be FALSE because every person should have a unique ID
+
+# pull out the rows where there is more than one contact_id after the join. then manually filter for these contact_id rows in lasd_stops_person_raw and in lasd_stops_incident to make sure it is what I expect to see. 
+
+dup<-person_lasd %>%
+  count(contact_id) %>%
+  filter(n > 1)
+
+# QA: look at k12_student and k12_school identifiers
+
+table(person_lasd$k12_student) # No: 34 Yes: 870 ---kind of interesting there are 34 non-students. Since the number is so low part of me is OK with keeping the 34 in especially since it still happened on school grounds and it is possible the 34 is just a data entry error. But will discuss with team if we should come back and exclude the 34.Leaving in for now. 
+table(person_lasd$k_12_school) #---true 789, yes 115 --assuming this just maens everything is a school so that checks out
+ 
+# End JZ QA code: looks good!
+
+# Replace the LASD school names with the CDE school names using the xwalk
+person <- person_lasd %>%
+  left_join(xwalk, by=c("school_name"="lasd_school")) %>%
+  select(-school_name) %>%
+  rename(school_name=cde_school)
+
+# QA Check 
+# unique(person$school_name)
+```
+
+
+# Examine word frequency and tag stops
+```{r}
+# Standardize for case, punctuation, etc.
+person_clean <- person %>%
+  mutate(reason_clean = str_to_lower(reason_for_contact_narrative),
+         # remove all characters but lowercase letters and whitespace, essentially removing punctuation
+         reason_clean = str_replace_all(reason_clean, "[^a-z0-9\\s]", ""), # JZ QA: revise this to keep numbers
+         reason_clean = str_squish(reason_clean)) # remove extra spaces
+
+# QA: look at result of cleaning of narrative column
+qa<-person_clean%>%select(contact_id, person_id, reason_for_contact_narrative, reason_clean)
+
+# Basic word count
+word_freq <- person_clean %>%
+  # Tokenize the 'reason_clean' text column into individual words.
+  # Each word gets its own row.
+  unnest_tokens(word, reason_clean) %>%
+  count(word, sort = TRUE) 
+
+person_tagged <- person_clean %>%
+  mutate(narrative = case_when(
+    str_detect(reason_clean, "marijuana|weed|11357|11357d|11357dhs|11357e|11359") ~ "Marijuana",    
+    str_detect(reason_clean, "fight|battery|assaulted|assault|battered|fighting|fought|assaulting|assault|assaulted|punching|2436|2436pc|242|242pc|2432a1|2432a1|2432a1pc|245|245a1pc|245a4") ~ "Assault and Battery",
+    TRUE ~ "Other"
+  ))
+
+# QA just look at overall counts after recategorizing
+
+table(person_tagged$narrative)
+
+# Only contains stops where a call for police service was made
+# unique(person_tagged$call_for_service) # "false" "true"  "No"    "Yes"  
+person_tagged_cfs <- person_tagged %>%
+  filter(call_for_service=='true' | call_for_service=="Yes")
+
+# Only contains stops where a call for police service was NOT made
+person_tagged_no_cfs <- person_tagged %>%
+  filter(call_for_service=='false' | call_for_service=="No")
+```
+
+# Function summarise_stops 
+```{r}
+# This function returns a dataframe with the district-level and school-level stop rates by reason (i.e. grouping_col) for either all stops, call-for-service stops, or not call-for-service stops (i.e. stop_type). Note that rates represent the number of STUDENTS stopped per reason, NOT the number of stops per reason.
+
+summarise_stops <- function(df, grouping_col, stop_type) {
+  # Transforms the string into a symbol
+  grouping_col <- rlang::sym(grouping_col)
+  
+  ## School-level analysis
+  # Total stops per school
+  total_stops <- df %>%
+    group_by(school_name) %>%
+    summarise(total = n(), .groups = "drop")
+  
+  # Stops per reason and school
+  reason <- df %>%
+    group_by(school_name, !!grouping_col) %>%
+    summarise(count = n(), .groups = "drop")
+  
+  # Join dataframes to calculate rates
+  stops_reason_schools <- reason %>%
+    left_join(total_stops, by = "school_name") %>%
+    mutate(rate = count/total*100)
+  
+  ## District-level analysis
+  stops_reason_district <- df %>%
+    group_by(!!grouping_col) %>%
+    summarise(count = n(), .groups = "drop") %>%
+    mutate(total = nrow(df),
+      rate = count/total*100,
+      school_name = "Antelope Valley Union High School District") %>%
+    select(school_name, everything())
+  
+  # Create a dataframe containing the rates for the district and the schools
+  stops_reason_all <- bind_rows(stops_reason_district, stops_reason_schools) %>%
+    mutate(universe=stop_type) %>%
+    select(universe, everything())
+  
+  return(stops_reason_all)
+}
+```
+
+# Function combine_stop_summaries 
+```{r}
+# This function returns a dataframe with the district-level and school-level stop rates by reason (i.e. grouping_col) for all stops, call-for-service stops, and not call-for-service stops).
+
+combine_stop_summaries <- function(grouping_col) {
+  stops_reason_all <- summarise_stops(person_tagged, grouping_col, "All stops")
+  stops_reason_cfs <- summarise_stops(person_tagged_cfs, grouping_col, "Stops with call for service")
+  stops_reason_no_cfs <- summarise_stops(person_tagged_no_cfs, grouping_col, "Stops with no call for service ")
+  
+  final_df <-bind_rows(stops_reason_all, stops_reason_cfs, stops_reason_no_cfs) %>% 
+  rename(geography = school_name)
+  
+  return(final_df)
+}
+```
+
+# Get rates of stops by reason
+```{r}
+# This dataframe contains rates of stops by reason
+summary_reason <- combine_stop_summaries("reason_for_contact") %>% 
+  rename(stops_reason_count = count, 
+    stops_geo_total = total,
+    stops_reason_rate = rate)
+```
+
+# Push reason table to postgres
+```{r}
+# Write table with metadata
+table_name <- "analysis_stops_reason_avuhsd"
+schema <- "data"
+indicator <- "A table showing the PERSON-LEVEL rates of LASD-labelled reasons (e.g. Reasonable suspicion that the person was engaged in criminal activity) for police stops in the Antelope Valley Union High School District (AVUHS) and the high schools within the district. The rates are calculated for all stops, only stops where a call for service was made, and only stops where a call for service was not made. This analysis primarily uses 2018-2023 data from the County of Los Angeles Sheriff Department (LASD)."
+source <- "Script: W:/Project/RJS/CTC/Github/AV/cancel_the_contract/Analysis/analysis_stops_reason.Rmd"
+qa_filepath <- "See QA doc for details: W:/Project/RJS/CTC/Documentation/QA_analysis_stops_reason.docx"
+table_comment <- paste0(indicator, source)
+ # dbWriteTable(con_ctc, Id(schema, table_name), summary_reason, overwrite = TRUE, row.names = FALSE)
+
+# Comment on table and columns
+column_names <- colnames(summary_reason) # Get column names
+column_comments <- c(
+  "Indicates whether the rates are for all stops, only stops where a call for service was made, or only stops where a call for service was not made",
+  "Name of school or district",
+  "Police officer reason for the stop of students. These are LASD-labelled.",
+  "Numerator: The number of students stopped for the specific reason",
+  "Denominator: The number of students stopped in the school or district for any reason",
+  "The rate represents the share of stops for the LASD-labelled reason among all stops that occurred within the school or district."
+)
+
+# add_table_comments(con_ctc, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
+```
+
+# Get rates of stops by narrative
+```{r}
+# This dataframe contains rates of stops by reason narrative 
+summary_narrative <- combine_stop_summaries("narrative") %>% 
+  rename(stops_narrative_count = count, 
+    stops_geo_total = total,
+    stops_narrative_rate = rate)
+```
+
+# Push narrative table to postgres
+```{r}
+# Write table with metadata
+table_name <- "analysis_stops_narrative_avuhsd"
+schema <- "data"
+indicator <- "A table showing the PERSON-LEVEL rates of RDA-labelled reasons (i.e. Marijuana, Battery, Other) for police stops in the Antelope Valley Union High School District (AVUHS) and the high schools within the district. The RDA label is created using the  more explanatory narrative of the stop, as written by the police officer. The rates are calculated for all stops, only stops where a call for service was made, and only stops where a call for service was not made. This analysis primarily uses 2018-2023 data from the County of Los Angeles Sheriff Department (LASD)."
+source <- "Script: W:/Project/RJS/CTC/Github/AV/cancel_the_contract/Analysis/analysis_stops_reason.Rmd"
+qa_filepath <- "See QA doc for details: W:/Project/RJS/CTC/Documentation/QA_analysis_stops_reason.docx"
+table_comment <- paste0(indicator, source)
+# dbWriteTable(con_ctc, Id(schema, table_name), summary_narrative, overwrite = TRUE, row.names = FALSE)
+
+# Comment on table and columns
+column_names <- colnames(summary_narrative) # Get column names
+column_comments <- c(
+  "Indicates whether the rates are for all stops, only stops where a call for service was made, or only stops where a call for service was not made",
+  "Name of school or district",
+  "Police officer more explanatory narrative reason for the stop of students. These are RDA-labelled.",
+  "Numerator: The number of students stopped for the specific reason",
+  "Denominator: The number of students stopped in the school or district for any reason",
+  "The rate represents the share of stops for the RDA-labelled reason among all stops that occurred within the school or district."
+)
+
+# add_table_comments(con_ctc, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
+```
+
+# Function summarise_nested_stops
+```{r}
+# This function returns a dataframe with the district-level and school-level stop rates by reason and narrative for either all stops, call-for-service stops, or not call-for-service stops (i.e. stop_type). Note that rates represent the number of STUDENTS stopped per reason, NOT the number of stops per reason.
+summarise_nested_stops <- function(df, stop_type) {
+  ## School-level analysis
+
+  # Stops per reason and narrative for each school
+  reason_and_narrative <- df %>%
+    group_by(school_name, reason_for_contact, narrative) %>%
+    rename(geography=school_name) %>%
+    summarise(stops_reason_and_narrative_count = n(), .groups = "drop") %>%
+    mutate(universe=stop_type) %>%
+    select(universe, everything())
+  
+  # Join dataframes to calculate rates of stops per reason and narrative as a proportion of stops per reason
+  stops_reason_and_narrative_schools <- reason_and_narrative %>%
+    left_join(summary_reason, by = c("universe","geography", "reason_for_contact")) %>%
+    select(-c(stops_geo_total, stops_reason_rate)) %>% # don't need these columns
+    rename(stops_reason_total=stops_reason_count) %>% # renaming the denominator
+    mutate(stops_reason_and_narrative_rate = 
+             stops_reason_and_narrative_count/stops_reason_total*100)
+  
+  ## District-level analysis
+  reason_and_narrative_district <- df %>%
+    group_by(reason_for_contact, narrative) %>%
+    summarise(stops_reason_and_narrative_count = n(), .groups = "drop") %>%
+    mutate(universe=stop_type,
+           geography = "Antelope Valley Union High School District") %>%
+    select(universe, geography, everything())
+  
+  stops_reason_and_narrative_district <- reason_and_narrative_district %>%
+    left_join(summary_reason, by = c("universe", "geography", "reason_for_contact")) %>%
+    select(-c(stops_geo_total, stops_reason_rate)) %>% # don't need these columns
+    rename(stops_reason_total = stops_reason_count) %>% # renaming the denominator
+    mutate(stops_reason_and_narrative_rate = 
+             stops_reason_and_narrative_count/stops_reason_total*100)
+  
+  # Create a dataframe containing the rates for the district and the schools
+  stops_reason_and_narrative_all <- bind_rows(stops_reason_and_narrative_district, stops_reason_and_narrative_schools) %>%
+  
+  return(stops_reason_and_narrative_all)
+}
+```
+
+```{r}
+# Get dataframes for the district-level and school-level stop rates by reason and narrative for all stops, call-for-service stops, and not call-for-service stops
+stops_reason_and_narrative_all <- summarise_nested_stops(person_tagged, "All stops")
+stops_reason_and_narrative_cfs <- summarise_nested_stops(person_tagged_cfs, "Stops with call for service")
+stops_reason_and_narrative_no_cfs <- summarise_nested_stops(person_tagged_no_cfs, "Stops with no call for service ")
+
+# Create a combined dataframe with the district-level and school-level stop rates by reason and narrative for all stops, call-for-service stops, and not call-for-service stops).  
+summary_reason_and_narrative <-bind_rows(stops_reason_and_narrative_all, stops_reason_and_narrative_cfs, stops_reason_and_narrative_no_cfs)
+```
+
+# Push reason and narrative table to postgres
+```{r}
+# Write table with metadata
+table_name <- "analysis_stops_reason_and_narrative_avuhsd"
+schema <- "data"
+indicator <- "A table showing the PERSON-LEVEL rates of combined LASD-labelled (e.g. Reasonable suspicion that the person was engaged in criminal activity) and RDA-labelled reasons (e.g. Marijuana) for police stops in the Antelope Valley Union High School District (AVUHS) and the high schools within the district, as a proportion of the number of stops per LASD-labelled reason. The RDA label is created using the more explanatory narrative of the stop, given by the police officer. The rates are calculated for all stops, only stops where a call for service was made, and only stops where a call for service was not made. This analysis primarily uses 2018-2023 data from the County of Los Angeles Sheriff Department (LASD)."
+source <- "Script: W:/Project/RJS/CTC/Github/AV/cancel_the_contract/Analysis/analysis_stops_reason.Rmd"
+qa_filepath <- "See QA doc for details: W:/Project/RJS/CTC/Documentation/QA_analysis_stops_reason.docx"
+table_comment <- paste0(indicator, source)
+# dbWriteTable(con_ctc, Id(schema, table_name), summary_reason_and_narrative, overwrite = TRUE, row.names = FALSE)
+
+# Comment on table and columns
+column_names <- colnames(summary_reason_and_narrative) # Get column names
+column_comments <- c(
+  "Indicates whether the rates are for all stops, only call for service stops, or only not call for service stops",
+  "Name of school or district",
+  "Police officer reason for the stop of students. These are LASD-labelled.",
+  "Police officer more explanatory narrative reason for the stop of students. These are RDA-labelled.",
+  "Numerator: The number of students stopped for the specific combination of LSAD-labelled and RDA-labelled reasons",
+  "Denominator: The number of students stopped in the school or district for the LSAD-labelled reason",
+  "The rate represents the share of stops for the combined RDA-labelled reason and LASD-labelled reason among all stops that occurred for the specified LSAD-labelled reason within the school or district."
+)
+
+# add_table_comments(con_ctc, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
+```
