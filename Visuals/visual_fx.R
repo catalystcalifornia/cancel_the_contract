@@ -155,82 +155,110 @@ static_table(df=df,
              footnote_text=footnote_text)
 
 
-# Spanish version: NOT USING FOR NOW------
-
-#load in data
-
-# susp_table_sp <- df %>% rename('Grupo de estudiantes' = "label", 
-#                                            'Matr?cula de estudiantes'="enrollment_total", 
-#                                            'Conteo no duplicado de estudiantes suspendidos'="suspension_count", 
-#                                            'Tasa de suspensi?n'="suspension_rate"
-# )
-# 
-# #rename to what we want to use in the visuals
-# susp_table_sp$`Grupo de estudiantes` <- gsub("Total", "TOTAL",susp_table_sp$`Grupo de estudiantes`)
-# susp_table_sp$`Grupo de estudiantes` <- gsub("African American", "Negrx (Negro)",susp_table_sp$`Grupo de estudiantes`)
-# susp_table_sp$`Grupo de estudiantes` <- gsub("Hispanic or Latino", "Latinx (Latino)",susp_table_sp$`Grupo de estudiantes`)
-# susp_table_sp$`Grupo de estudiantes` <- gsub("American Indian or Alaska Native", "AIAN",susp_table_sp$`Grupo de estudiantes`)
-# susp_table_sp$`Grupo de estudiantes` <- gsub("Foster", "Adoptivo",susp_table_sp$`Grupo de estudiantes`)
-# susp_table_sp$`Grupo de estudiantes` <- gsub("Students with Disabilities", "Estudiantes con discapacidades",susp_table_sp$`Grupo de estudiantes`)
-# susp_table_sp$`Grupo de estudiantes` <- gsub("Pacific Islander", "Isle?x del Pac?fico (Isle?o del Pac?fico)",susp_table_sp$`Grupo de estudiantes`)
-# susp_table_sp$`Grupo de estudiantes` <- gsub("Male", "Hombre",susp_table_sp$`Grupo de estudiantes`)
-# susp_table_sp$`Grupo de estudiantes` <- gsub("Socioeconomically Disadvantaged", "Desfavorecido socioecon?micamente",susp_table_sp$`Grupo de estudiantes`)
-# susp_table_sp$`Grupo de estudiantes` <- gsub("Two or More Races", "Dos o m?s razas",susp_table_sp$`Grupo de estudiantes`)
-# susp_table_sp$`Grupo de estudiantes` <- gsub("Homeless", "Sin Hogar",susp_table_sp$`Grupo de estudiantes`)
-# susp_table_sp$`Grupo de estudiantes` <- gsub("Migrant", "Migrante",susp_table_sp$`Grupo de estudiantes`)
-# susp_table_sp$`Grupo de estudiantes` <- gsub("English Learners", "Estudiantes de ingl?s",susp_table_sp$`Grupo de estudiantes`)
-# susp_table_sp$`Grupo de estudiantes` <- gsub("Female", "Mujer",susp_table_sp$`Grupo de estudiantes`)
-# susp_table_sp$`Grupo de estudiantes` <- gsub("White", "Blancx (Blanco)",susp_table_sp$`Grupo de estudiantes`)
-# susp_table_sp$`Grupo de estudiantes` <- gsub("Asian", "Asi?ticx (Asi?tico)",susp_table_sp$`Grupo de estudiantes`)
-# susp_table_sp$`Grupo de estudiantes` <- gsub("Filipino", "Filipinx (Filipino)",susp_table_sp$`Grupo de estudiantes`)
-# 
-# susp_table_sp <- subset(susp_table_sp, susp_table_sp$`Grupo de estudiantes` != "Non-Binary Gender" & susp_table_sp$`Grupo de estudiantes` != "Not Reported") 
-# # View(susp_table_sp)
-# 
-# suspensions_sp <- susp_table_sp %>%
-#   mutate(across(c(`Matr?cula de estudiantes`, `Conteo no duplicado de estudiantes suspendidos`), comma)) %>%
-#   gt() %>% opt_all_caps() %>% 
-#   tab_header(title = md("**Tasas de suspensi?n por grupo de estudiantes, distrito escolar de Antelope Valley Union High, 2023-24**")) %>% 
-#   tab_footnote (footnote = md("Fuente: C?lculos de Catalyst California de datos del Departamento de Educaci?n de California, 2023-24.<br>
-#                                 Nota: La categor?a de grupo de estudiantes para estudiantes g?nero neutral, no estaba disponible debido 
-#                               a la falta de datos. AIAN (por sus siglas en ingl?s) significa Indix Americanx y Nativx de Alaska (Indio Americano y 
-#                               Nativo de Alaska). "))%>% #, https://www.cde.ca.gov/ds/ 
-#   cols_align(
-#     align = c("left"),
-#     columns = everything()
-#   )%>%
-#   tab_style(style = cell_text(weight = "bold"),
-#             locations = cells_body(
-#               columns = `Grupo de estudiantes`,
-#               rows = `Grupo de estudiantes` == "TOTAL"))%>% 
-#   data_color(
-#     columns = c(`Tasa de suspensi?n`),
-#     colors = scales::col_numeric(
-#       palette = c("white", lightblue),
-#       domain = NULL,
-#       na.color = textgrey
-#     )
-#   ) %>%  
-#   tab_options(table.font.names = font_table_text,
-#               column_labels.background.color = "white",
-#               table.border.top.width = px(3),
-#               table.border.top.color = "transparent",
-#               table.border.bottom.color = "transparent",
-#               table.border.bottom.width = px(3),
-#               column_labels.border.top.width = px(3),
-#               column_labels.border.top.color = "transparent",
-#               column_labels.border.bottom.width = px(3),
-#               column_labels.border.bottom.color = black,
-#               data_row.padding = px(3),
-#               source_notes.font.size = 8,
-#               table.font.size = 16,
-#               heading.align = "left",
-#               container.width = 500
-#   ) %>% 
-#   opt_table_font(font = list(google_font(name = font_table_text), font_title, font_caption ,default_fonts()))
-# gtsave(suspensions, "suspensions_table_esp.png",path = "W:/Project/RJS/CTC/Github/CR/cancel_the_contract/Images/Spanish/", vwidth = 4000, vheight = 6000)
-
 # SINGLE BAR GRAPH FUNCTION -------------------------------------
+
+df<-dbGetQuery(con, "SELECT * FROM av_population_race")
+
+
+title_text<-"Antelope Valley Demographics by Race"
+caption_text<-"Source: ACS 5-year Estimates Table DP05, 2018-2023. 
+Note: Rates are out of 100 people. AIAN stands for American Indian and Alaskan Native."
+
+single_bar<-function(df, indicator, title_text, subtitle_text, caption_text){
+  
+  # rename 'rate' column for function and arrange by rate descending
+  df<-df%>%
+    rename_with(~ "rate", .cols = contains("rate"))
+  
+  # Define max value
+  max_y = 1.15 * max(df$rate)
+
+    # Graph
+  
+  final_visual <-  ggplot(df, aes(x= reorder(label, rate), y=rate)) +   
+    geom_bar(stat="identity", position = position_dodge(0.7), show.legend = FALSE) +
+    
+    # define the bars
+    
+    geom_col(fill = lightblue) +
+    
+    # bar labels
+    
+    geom_text(aes(label = paste0(round(rate, 1), "%")),
+              family = font_bar_label, 
+              position = position_dodge(width = 1), vjust = 0.25 , hjust= 1.15,
+              fontface = "bold",  
+              colour = "white") +  
+    
+    labs(title = str_wrap(title_text, width = 65),
+         subtitle = str_wrap(subtitle_text, width = 80),
+         caption=caption_text) + 
+    
+    scale_x_discrete(labels = function(label) str_wrap(label, width = 20)) +            # wrap long labels
+    xlab("") +
+    ylab("") +
+    expand_limits(y = c(0,100))+
+    coord_flip()+
+    theme_minimal()+
+    theme(legend.title = element_blank(), # no legend--modify if necessary
+          
+          # define style for axis text
+          axis.text.y = element_text(size = 10, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
+                                     colour = black, family= font_axis_label),
+          axis.text.x = element_blank(),
+          plot.caption = element_text(hjust = 0.0, size = 8, colour = black, family = font_caption),
+          plot.title =  element_text(hjust = 0.0, size = 15, colour = black, family = font_title), 
+          plot.subtitle = element_text(hjust = 0.0, size = 12, colour = black, family = font_axis_label),
+          axis.ticks = element_blank(),
+          # grid line style
+          panel.grid.minor = element_blank(),
+          panel.grid.major = element_line(size = 0.25),
+          panel.grid.major.y = element_blank())
+  
+  # Define base file path
+  base_path <- paste0("W:/Project/RJS/CTC/Visuals/",indicator, "_singlebar")
+  
+  showtext_opts(dpi=300)
+  
+  # Save in SVG
+  ggsave(plot = final_visual, filename = paste0(base_path, ".svg"),
+         device = "svg", width = 9, height = 6.5)
+  
+  # Save in PNG
+  ggsave(plot = final_visual, filename = paste0(base_path, ".png"),
+         device = "png", width = 9, height = 6.5)
+  
+  
+  return(final_visual)
+}
+
+# EX) SINGLE BAR GRAPH LINE------------------------------------
+
+
+df<-dbGetQuery(con, "SELECT * FROM av_population_race")
+
+indicator<-"race"
+title_text<-"Findings based title"
+subtitle_text<-"High School Graduation Rates by Student Subgroup in Antelope Valley Union High School District"
+caption_text<-"Source: California Department of Education, Adjusted Cohort Graduation Rate and Outcome Data,
+2023-2024. Note: Rates are out of 100 students. AIAN stands for American Indian and Alaskan Native."
+
+# Apply function
+
+# make sure you have a label column in your df. If you don't and for internal purposes only OK to just use
+# non frontward facing label column (i.e. races not all spelled out).
+# Or you can create one with everything spelled out. 
+
+df<-df%>%
+  mutate(label=race)
+
+single_bar(df=df, 
+               indicator=indicator, 
+               title_text=title_text,
+               subtitle_text=subtitle_text,
+               caption_text=caption_text)
+
+# SINGLE BAR GRAPH W/ TOTAL LINE FUNCTION -------------------------------------
 
 df<-dbGetQuery(con, "SELECT * FROM analysis_graduation")
 
@@ -238,7 +266,7 @@ title_text<-"High School Graduation Rates by Student Subgroup, <br>2023-24 Schoo
 caption_text<-"Source: California Department of Education, Adjusted Cohort Graduation Rate and Outcome Data,
 2023-2024. Note: Rates are out of 100 students. AIAN stands for American Indian and Alaskan Native."
 
-single_bar<-function(df, indicator, title_text, subtitle_text, caption_text){
+single_bar_tot<-function(df, indicator, title_text, subtitle_text, caption_text){
   
   # rename 'rate' column for function and arrange by rate descending
   df<-df%>%
@@ -308,7 +336,7 @@ single_bar<-function(df, indicator, title_text, subtitle_text, caption_text){
           panel.grid.major.y = element_blank())
   
   # Define base file path
-  base_path <- paste0("W:/Project/RJS/CTC/Visuals/",indicator, "_singlebar")
+  base_path <- paste0("W:/Project/RJS/CTC/Visuals/",indicator, "_singlebartot")
 
   showtext_opts(dpi=300)
   
@@ -324,7 +352,7 @@ single_bar<-function(df, indicator, title_text, subtitle_text, caption_text){
   return(final_visual)
 }
 
-# EX) SINGLE BAR GRAPH------------------------------------
+# EX) SINGLE BAR GRAPH W/ TOTAL LINE------------------------------------
 
 
 df<-dbGetQuery(con, "SELECT * FROM analysis_graduation")
@@ -337,7 +365,7 @@ caption_text<-"Source: California Department of Education, Adjusted Cohort Gradu
 
 # Apply function
 
-single_bar(df=df, 
+single_bar_tot(df=df, 
              indicator=indicator, 
              title_text=title_text,
            subtitle_text=subtitle_text,
