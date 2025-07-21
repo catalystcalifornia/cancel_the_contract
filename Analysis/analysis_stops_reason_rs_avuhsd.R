@@ -101,24 +101,6 @@ rs<-person_reason%>%
 
 # lets get a sense of rates for each reasonable suspicion column: start by recoding yes/true values to be 1 and all other values to be 0
 
-# code to delete that has duplicates
-# rs_re<-rs%>%
-#   mutate(across(
-#     starts_with("reasonable_suspicion_"),
-#     ~ ifelse(. %in% c("true", "Yes"), 1, 0)
-#   ))%>%
-#   select(-reason_for_contact_narrative)%>%
-#   pivot_longer(4:11, names_to = "reasonable_suspicion_reason", values_to = "value")%>%
-#   filter(value==1)%>%
-#   select(-value)
-# 
-# qa checks added
-# nrow(rs_re) # 826
-# 
-# rs_re %>%
-#   distinct(contact_id,person_id)%>%
-#   nrow() #752 # duplicate rows
-# alternate code that also includes folks that didn't have a 1/0 selected
 rs_re_df<-rs%>%
   mutate(across(
     starts_with("reasonable_suspicion_"),
@@ -193,25 +175,6 @@ rs_re_codes_part2<-nonjoin%>%
 # see what did not join
 nonjoin<-rs_re_codes_part2%>%
   filter(is.na(statute_literal_25))  # 29 people do not have offense code list
-
-# bring back the reason_narrative column to see if any of those contain the offense codes
-
-nonjoin<-nonjoin%>%left_join(person_reason%>%select(contact_id, person_id, reason_for_contact_narrative), by=c("contact_id", "person_id"))%>%
-  mutate(offense_code_of_the_reasonable_suspicion=reason_for_contact_narrative)
-
-# look at tabulation of the subtype of reasonable suspicions
-
-rs_table<-as.data.frame(table(rs_re$reasonable_suspicion_reason))
-
-# Left join the Fresno RIPA offense codes tables so we can get descriptions for the reasonable suspicion statutes
-
-rs_re_codes<-rs_re%>%
-  left_join(codes, by=c("offense_code_of_the_reasonable_suspicion"="offense_statute"))
-
-# see what did not join
-
-nonjoin<-rs_re_codes%>%
-  filter(is.na(statute_literal_25))  # none of these 27 people had a statute to go with their reasonable suspicion stop
 
 # bring back the reason_narrative column to see if any of those contain the offense codes
 
@@ -325,11 +288,12 @@ sum(df$count) # 811
 table_name <- "analysis_stops_reason_rs_avuhsd"
 schema <- "data"
 indicator<- "This table looks at all of the stops for a reasonable suspicion reason broken down by the specific sub-type of
-reasonable suspicion reason. Universe or denominator is all people stopped for a reasonable suspicion reason."
+reasonable suspicion reason. Universe or denominator is all people stopped for a reasonable suspicion reason. 
+Rates may add to over 100% as someone can be stopped for more than one sub-type."
 source <- "Script: W:/Project/RJS/CTC/Github/AV/cancel_the_contract/Analysis/analysis_stops_reason_rs_avuhsd.R"
 qa_filepath <- "See QA doc for details: W:/Project/RJS/CTC/Documentation/QA_analysis_stops_reason_rs_avuhsd.docx"
 table_comment <- paste0(indicator, source)
-dbWriteTable(con_ctc, Id(schema, table_name), rs_table_final, overwrite = TRUE, row.names = FALSE)
+dbWriteTable(con_ctc, Id(schema, table_name), rs_table_final, overwrite = FALSE, row.names = FALSE)
 
 # Comment on table and columns
 column_names <- colnames(rs_table_final) # Get column names
@@ -338,7 +302,7 @@ column_comments <- c(
   "Reasonable suspicion sub-reason type",
   "Denominator: The total number of students stopped in the school or district for  reasonable suspicion",
   "Numerator: The number of students stopped for the specificreasonable suspicion sub-reason",
-  "The rate represents the percentage of reasonable suspicion sub types out of all people stopped for reasonable suspicion"
+  "The rate represents the percentage of reasonable suspicion sub types out of all people stopped for reasonable suspicion - total rates may exceed 100%"
 )
 
  add_table_comments(con_ctc, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
@@ -353,16 +317,16 @@ the reasonable suspicion reason. Universe or denominator is all people stopped f
  source <- "Script: W:/Project/RJS/CTC/Github/AV/cancel_the_contract/Analysis/analysis_stops_reason_rs_avuhsd.R"
  qa_filepath <- "See QA doc for details: W:/Project/RJS/CTC/Documentation/QA_analysis_stops_reason_rs_avuhsd.docx"
  table_comment <- paste0(indicator, source)
- dbWriteTable(con_ctc, Id(schema, table_name), df, overwrite = TRUE, row.names = FALSE)
+ dbWriteTable(con_ctc, Id(schema, table_name), df, overwrite = FALSE, row.names = FALSE)
  
  # Comment on table and columns
  column_names <- colnames(df) # Get column names
  column_comments <- c(
    "Highest level of reason for contact (all reasonable suspicion)",
    "Reasonable suspicion offense code",
-   "Whether or not the offense code is deactivated (Yes/No)",
-   "Text description of reasonable suspicion offense code",
-   "Offense type (I= Infraction, F = Felony, M = Misdemeanor",
+   "Whether or not the offense code is deactivated (Yes/No) based on offense codes from 2023",
+   "Text description of reasonable suspicion offense code - may include multiple descriptions based on offense type",
+   "Offense type (I= Infraction, F = Felony, M = Misdemeanor) - may include multiple if an offense code could be charged at different levels",
    "Denominator: The total number of students stopped in the school or district for  reasonable suspicion",
    "Numerator: The number of students stopped for the specific reasonable suspicion offense code",
    "The rate represents the percentage of reasonable suspicion offense codes out of all people stopped for reasonable suspicion"
