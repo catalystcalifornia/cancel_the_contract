@@ -1,0 +1,98 @@
+---
+title: ""
+output:
+  html_document:
+    includes:
+      in_header: "../header.html"
+    mathjax: null
+---
+
+```{r, include=FALSE}
+# Check if document is being run as a child, if yes don't apply styling again
+is_child <- !is.null(knitr::opts_knit$get("parent.frame"))
+if (is_child) {
+  knitr::opts_chunk$set(include = FALSE)
+}
+```
+
+```{r, include=FALSE}
+
+# Set up (add any additional libraries you may need)-----------------------------
+
+library(RPostgres)
+library(devtools)
+library(stringr)
+library(dplyr)
+library(tidyr)
+library(flextable)
+library(ggplot2)
+
+#connect to postgres-----------------
+
+source("W:\\RDA Team\\R\\credentials_source.R")
+con <- connect_to_db("cancel_the_contract")
+con_shared <- connect_to_db("rda_shared_data")
+
+# Visualization tools (optional!)-------------------------
+
+#add function that better fits the tables to the page
+
+FitFlextableToPage <- function(ft, pgwidth = 6.5){
+
+  ft_out <- ft %>% autofit()
+
+  ft_out <- width(ft_out, width = dim(ft_out)$widths*pgwidth /(flextable_dim(ft_out)$widths))
+  return(ft_out)
+}
+
+# See "W:\Project\RJS\CTC\Github\JZ\cancel_the_contract\RDA Sense Making\sensemaking_jz.Rmd" for one ggplot and one flextable example
+# if you want to visualize tables quickly
+
+
+# Guiding questions-------------------------
+
+#1) What findings are you seeing that are interesting or surprising to you?
+#2) What findings are you seeing that supplement OR contradict our narrative? 
+#3) What additional questions do you have?
+#4) What visualization ideas (chart types, figures to highlight, etc.) do you have? 
+
+```
+
+## CR General notes
+
+## Stop reasons in AVUHSD
+
+* Type up notes here. Feel free to refer to guiding questions in the top code chunk if they are helpful!
+
+
+```{r}
+
+stops_reason_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_avuhsd")
+
+# Supplemental reason analysis using word count / narrative column method. But I think for more precision we should primarily rely on the tables above for the stop reason analysis.
+
+stops_reason_reason_narrative_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_and_narrative_avuhsd")
+stops_reason_narrative_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_narrative_avuhsd")
+
+```
+
+### Reasonable Suspicion stop reasons in AVUHSD
+
+```{r}
+stops_reason_rs_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_rs_avuhsd")
+stops_reason_rs_codes_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_rs_codes_avuhsd")
+
+```
+
+## Stop reasons in Antelope Valley (SPA 1)
+
+* Type up notes here. Feel free to refer to guiding questions in the top code chunk if they are helpful!
+
+```{r}
+
+stops_stops_reason_age<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_age")
+stops_stops_reason_age_race<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_age_race")
+
+```
+
+

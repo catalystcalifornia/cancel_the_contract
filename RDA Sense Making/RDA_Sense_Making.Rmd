@@ -1,0 +1,37 @@
+---
+title: "Cancel the Contract Preliminary Research Findings"
+subtitle: "RDA Data Sense Making Session [INTERNAL USE ONLY]"
+author: "By Catalyst California"
+output:
+  html_document:
+    css: "W:\\RDA Team\\R\\cc_brandguide.css"
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+---
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE)
+
+```
+
+# JZ Section
+
+```{r, child='sensemaking_jz.Rmd', echo=FALSE}
+
+```
+
+# CR Section
+
+```{r, child='sensemaking_cr.Rmd', echo=FALSE}
+
+```
+
+# AV Section
+
+```{r, child='sensemaking_av.Rmd', echo=FALSE}
+
+```
