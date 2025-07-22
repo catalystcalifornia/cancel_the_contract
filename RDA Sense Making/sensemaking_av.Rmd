@@ -64,6 +64,24 @@ FitFlextableToPage <- function(ft, pgwidth = 6.5){
 
 * Type up notes here. Feel free to refer to guiding questions in the top code chunk if they are helpful!
 
+### stops_age
+
+When comparing the stop rates across age ranges, there are very minor differences in stop rates with a call for service and without a call for service. However, the only age range where there is a large difference between CFS and not CFS is for those 17 and under. Can we say that stops of people 17 and under are more likely to be call for service stops BECAUSE of the police contract in the school district? This can point to the circular logic of policing - wherever you place police is where you're going to find "crime." It doesn't necessarily mean certain places are more crime-ridden, it just means more police are there. This makes me wonder, why was a police contract established in AV schools in the first place?
+
+Stops with call for service
+Antelope Valley
+17 and under
+8.191322%
+
+Stops with no call for service
+Antelope Valley
+17 and under
+1.649634%
+
+### stops_race
+Comparing stop rates by race (stops_race) to the overall racial demographics in AV (av_population), we see that 47.43541392% of all stops are of Latinx people while 53.557278377173866% of AV's population is Latinx. We see that 31.63618078% of all stops are of Black people, while 14.788894493772863% of AV's population is Black. Thus, Black people are being stopped at ~2x the rate that would be expected, based on population counts.
+
+### stops_age_race
 ```{r}
 
 # RIPA analysis tables: SPA 1
@@ -75,6 +93,15 @@ stops_age_race<-dbGetQuery(con, "SELECT * FROM analysis_stops_age_by_race")
 ```
 
 ## Stops of people in AVUHSD
+
+### stops_disability_avuhsd
+Not sure how this helps with our narrative. 
+Students with disabilities make up 2.5442477876106198% of all stops but their enrollment rate is 17.802167774842882%. 
+
+### stops_race_avuhsd
+Black students make up 53.2079646% of all stops but their enrollment rate is 16.6044266%. Black students are over-policed.
+Latinx students make up 38.1637168% of all stops but their enrollment rate is 67.1964660%. Latinx students are under-policed.
+White students make up 7.8539823% of all stops but their enrollment rate is 8.9352400%. White students are policed at the expected amount based on their enrollment rate.
 
 ```{r}
 
