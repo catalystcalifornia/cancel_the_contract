@@ -105,9 +105,6 @@ stops_reason_narrative_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_nar
 
 ## Antelope Valley general demographics
 
-* Notes
-* Ideas about visualizations
-
 ```{r}
 
 # AV Demographic tables
