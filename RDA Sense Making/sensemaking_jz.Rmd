@@ -57,7 +57,7 @@ FitFlextableToPage <- function(ft, pgwidth = 6.5){
 
 ## JZ General notes
 
-* General notes and observations outside of specific analyses
+* Not sure if this makes sense for any of my analysis tables but potential visualization idea for other analyses (esp the more complex ones with multiple cuts like stops data by CFS or Not CFS): grouped waffle charts https://r-graph-gallery.com/407-geom-waffle-multiple-groups.html 
 
 ```{r}
 
@@ -69,44 +69,9 @@ con_shared <- connect_to_db("rda_shared_data")
 # data dictionary
 dict<-dbGetQuery(con, "SELECT * FROM data_dictionary")
 
-
-# School analysis tables
-expulsions<-dbGetQuery(con, "SELECT * FROM analysis_expulsions") #JZ
-grad<-dbGetQuery(con, "SELECT * FROM analysis_graduation") # JZ
-suspension<-dbGetQuery(con, "SELECT * FROM analysis_suspensions") # JZ
-
-
-# RIPA analysis tables: SPA 1
-
-stops_age<-dbGetQuery(con, "SELECT * FROM analysis_stops_age") # AV
-stops_race<-dbGetQuery(con, "SELECT * FROM analysis_stops_race") # AV
-stops_age_race<-dbGetQuery(con, "SELECT * FROM analysis_stops_age_by_race") # AV
-
-stops_stops_reason_age<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_age") # CR
-stops_stops_reason_age_race<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_age_race") # CR
-
-
-# RIPA analysis tables: AVUHSD
-stops_disability_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_disability_avuhsd") # AV
-stops_race_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_race_avuhsd") # AV
-
-stops_reason_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_avuhsd")  # CR
-stops_reason_rs_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_rs_avuhsd") # CR
-stops_reason_rs_codes_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_rs_codes_avuhsd") # CR
-
-stops_result_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_result_avuhsd") # JZ
-
-
-stops_reason_reason_narrative_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_and_narrative_avuhsd") # CR
-stops_reason_narrative_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_narrative_avuhsd") # CR
-
-
 ```
 
 ## Antelope Valley general demographics
-
-* Notes
-* Ideas about visualizations
 
 ```{r}
 
@@ -119,6 +84,8 @@ av_age<-dbGetQuery(con, "SELECT * FROM av_population_age")
 ```
 
 ### Antelope Valley population by race
+
+* I think a straight bar graph of demographics by race will be nice to set the context for AV as a diverse place 
 
 ```{r}
 
@@ -159,6 +126,9 @@ panel.background = element_blank())+
 
 ### Antelope Valley population by age
 
+* The AV has a __large youth population__ that will be worth highlighting in the report. Not sure if it has to be visualized or just in the report text as context. 
+* We could probably even get some more AV youth context for the report from the Region 5 State of the Child report if needed. 
+
 ```{r}
 
 df<-av_age%>%
@@ -178,8 +148,10 @@ df<-av_age%>%
 
 ## AVUHSD general demographics
 
-* Notes
-* Ideas about visualizations
+* Interesting to see that there are more Black students than White students. So if we have RIPA AVUHSD indicators with enrollment denominators something to consider and what arguments of disproportionately we can make. 
+* Also given high Latinx/Black student enrollment need to be mindful of how we frame AVUHSD stops of these groups. 
+* In general though I think it is important to be considerate of __race comparisons when we get to data of AVUHSD stops__. Regardless of race I think the point is that policing of youth in schools is bad.
+* For visuals, maybe a table? Or it could even be a table with AVUHSD demographics AND AV SPA 1 demographics combined in a large table? Example from Pillars: https://github.com/catalystcalifornia/sdpillars/blob/main/report_embeds/report_calgangstats_table.Rmd 
 
 ```{r}
 
@@ -208,6 +180,15 @@ av_enrollment<-av_enrollment%>%
 
 ```
 
+## AVUHSD Education indicators (graduation, suspensions, expulsions)
+
+* Students with disabilities have a __lower graduation rate at 60.4%__ we should maybe use this with our __stop rates of students with disabilities__ emphasizing that these students should be having more time in classrooms and less time interacting with police. Noting students with disabilities was part of the original interest groups expressed by CTC. 
+* Latinx (79.4%) and Black students (72.7%) have __lower graduation rates__ relative to other racial groups and they are the majority of the student population. 
+* White students have a 5.1% suspension rate compared to 6.2% for Latinx students and 18.1% for Black students. Largest disparity for Black students. __Black students are being suspended at more than triple the rate of White students__ this supports our narrative about students of color losing time in the classroom. However we need to be intentional how we frame it so we aren't creating a narrative that "Black students are just bad kids" 
+* Students with disabilities also have a high suspension rate at 13.7%. I think we should talk about this in the report especially as it relates to how are we serving our students who have different needs if we're kicking them out of classrooms. 
+* Wondering if there is a way to visualize or state the suspension disparity as "time lost" in the classroom in a year. Or, something like "Out of 4 weeks of school, Black students lost X amount of time..." 
+* Similar trend for expulsions although rates in a vacuum are not high. Black students have highest expulsion rate (0.5%) compared to White students (0.1%). 
+
 ```{r}
 
 # School analysis tables
@@ -219,8 +200,20 @@ suspension<-dbGetQuery(con, "SELECT * FROM analysis_suspensions")
 
 ## Stop results in AVUHSD
 
+* Chauncee looked at an exported list of __'in field cite and release'__ result codes but wondering if we need to add another analysis table with actual codes and rates of the different codes. Maybe just of the top 10 codes? 
+* I think a __Waffle chart__ in ggplot or something similar where we color what we consider 'non-serious' stop results similarly would work well here. Example from Pillars: https://github.com/catalystcalifornia/sdpillars/blob/main/report_embeds/report_timespent_ficard_gang_stop_item.Rmd 
+
 ```{r}
-stops_result_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_result_avuhsd") # JZ
+
+
+stops_result_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_result_avuhsd") %>%
+  mutate(rate=round(as.numeric(rate), 1))
+
+  flextable(stops_result_avuhsd) %>%
+  set_caption('Results of Stops in AVUHSD Schools') %>%
+  theme_vanilla() %>%
+  width(width=2,unit="in")
+  
 
 
 ```
