@@ -46,12 +46,18 @@ FitFlextableToPage <- function(ft, pgwidth = 6.5){
 # See this script for examples of how to use the visual functions:
 ## W:\\Project\\RJS\CTC\\Github\\JZ\\cancel_the_contract\\Visuals\\visual_fx.R
 
-# Guiding questions-------------------------
+# Prompting questions-------------------------
 
 #1) What findings are you seeing that are interesting or surprising to you?
 #2) What findings are you seeing that supplement OR contradict our narrative? 
-#3) What additional questions do you have?
-#4) What visualization ideas (chart types, figures to highlight, etc.) do you have? 
+#3) Is there a particular denominator or cut within the analysis that is more compelling?
+#4) What additional questions do you have?
+#5) What visualization ideas (chart types, figures to highlight, etc.) do you have? 
+
+# Narrative outline: 
+# https://catalystcalifornia.sharepoint.com/:w:/s/Portal/EXd-ZVrmsfdKtVkYfZJlqOoBhMIkC9oLjgHHDoKvoct4aQ?e=ly1qcg
+
+
 
 ```
 
@@ -120,6 +126,10 @@ av_age<-dbGetQuery(con, "SELECT * FROM av_population_age")
 
 ### Antelope Valley population by race
 
+* The top 3 racial groups in the AV are Latinx, White and then Black. 
+* It would seem like the majority of Asians in the AV are not South Asian (comparing the NH Asian rate vs NH Asian WITHOUT South Asian rate) so there probably is not a very large South Asian population in the AV
+* I think we will probably want a basic bar graph of the general race population in the report for context as it relates to other indicators even non-RIPA indicators.
+
 ```{r}
 
 title_text<-"The majority of residents in the AV are Latinx, White and Black"
@@ -159,6 +169,10 @@ panel.background = element_blank())+
 
 ### Antelope Valley population by age
 
+* The AV has a pretty large youth population that will be worth highlighting in the report. 
+* We could probably even get some more AV youth context for the report from the Region 5 State of the Child report. 
+* I am not sure if this has to be a report visual it could just be context in the written part of the report.
+
 ```{r}
 
 df<-av_age%>%
@@ -178,8 +192,8 @@ df<-av_age%>%
 
 ## AVUHSD general demographics
 
-* Notes
-* Ideas about visualizations
+* Interesting to see that there are more Black students than White. So if we have RIPA AVUHSD indicators with enrollment denominators something to consider and what arguments of disproportionately we can make. 
+* Also given high Latinx/Black student enrollment need to be mindful of how we frame AVUHSD stops of these groups. 
 
 ```{r}
 
@@ -218,6 +232,8 @@ suspension<-dbGetQuery(con, "SELECT * FROM analysis_suspensions")
 ```
 
 ## Stop results in AVUHSD
+
+* Chauncee looked at an exported list of 'in field cite and release' result codes but wondering if we need to add another analysis table with actual codes and rates of the different codes. 
 
 ```{r}
 stops_result_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_result_avuhsd") # JZ

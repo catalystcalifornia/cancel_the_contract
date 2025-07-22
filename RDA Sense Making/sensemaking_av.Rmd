@@ -48,12 +48,17 @@ FitFlextableToPage <- function(ft, pgwidth = 6.5){
 # See "W:\Project\RJS\CTC\Github\JZ\cancel_the_contract\RDA Sense Making\sensemaking_jz.Rmd" for one ggplot and one flextable example
 # if you want to visualize tables quickly
 
-# Guiding questions-------------------------
+# Prompting questions-------------------------
 
 #1) What findings are you seeing that are interesting or surprising to you?
 #2) What findings are you seeing that supplement OR contradict our narrative? 
-#3) What additional questions do you have?
-#4) What visualization ideas (chart types, figures to highlight, etc.) do you have? 
+#3) Is there a particular denominator or cut within the analysis that is more compelling?
+#4) What additional questions do you have?
+#5) What visualization ideas (chart types, figures to highlight, etc.) do you have? 
+
+# Narrative outline: 
+# https://catalystcalifornia.sharepoint.com/:w:/s/Portal/EXd-ZVrmsfdKtVkYfZJlqOoBhMIkC9oLjgHHDoKvoct4aQ?e=ly1qcg
+
 
 
 ```
