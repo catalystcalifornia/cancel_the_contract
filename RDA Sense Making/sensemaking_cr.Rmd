@@ -60,10 +60,15 @@ FitFlextableToPage <- function(ft, pgwidth = 6.5){
 
 ## CR General notes
 
-## Stop reasons in AVUHSD
-
-* Type up notes here. Feel free to refer to guiding questions in the top code chunk if they are helpful!
-
+* Law enforcement stopped students in 904 stops between 2018 and 2023 (right?).
+* Law enforcement responded to a call for service in 317 of the 904 stops, or 35% of stops.
+* In other words, law enforcement chose to stop students in 65% of stops (587 of 904).
+* Nearly half of stops were for school fights and smoking marijuana, neither of which should require law enforcement.
+* Whether in response to a call or by officer choice, law enforcement said there was a reasonable suspicion that the person was engaged in criminal activity in roughly 90% of stops of students. The other 10% of stops were because of a consensual encounter and search, to determine if a student violated a school policy, to determine whether a student in truant, an outstanding arrest warrant, a possible Ed Code violation, or traffic violation.
+* Whether a student violated a school policy or Ed Code should be investigated by school staff NOT law enforcement. That was 4.2% of stops.
+* 15% of stops where the officer had a reasonable suspicion that the person was engaged in criminal activity were due to the student matching the a description. Stops where someone matches a description are fraught with error.
+* Law enforcement stopped students for a number unnecessary reasons including disrupting classwork, disruption of school activities, willfully disturbing a school zone, loud noise, litter, jaywalking, bothering other children, possessing unlawful paraphernalia.
+* Very different not school with traffic violation being number one.
 
 ```{r}
 
@@ -76,7 +81,6 @@ stops_reason_narrative_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_nar
 
 ```
 
-### Reasonable Suspicion stop reasons in AVUHSD
 
 ```{r}
 stops_reason_rs_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_rs_avuhsd")
@@ -84,9 +88,6 @@ stops_reason_rs_codes_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reas
 
 ```
 
-## Stop reasons in Antelope Valley (SPA 1)
-
-* Type up notes here. Feel free to refer to guiding questions in the top code chunk if they are helpful!
 
 ```{r}
 
