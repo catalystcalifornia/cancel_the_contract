@@ -60,34 +60,69 @@ FitFlextableToPage <- function(ft, pgwidth = 6.5){
 
 ## CR General notes
 
-* Law enforcement stopped students in 904 stops between 2018 and 2023 (right?).
-* Law enforcement responded to a call for service in 317 of the 904 stops, or 35% of stops.
-* In other words, law enforcement chose to stop students in 65% of stops (587 of 904).
-* Nearly half of stops were for school fights and smoking marijuana, neither of which should require law enforcement.
-* Whether in response to a call or by officer choice, law enforcement said there was a reasonable suspicion that the person was engaged in criminal activity in roughly 90% of stops of students. The other 10% of stops were because of a consensual encounter and search, to determine if a student violated a school policy, to determine whether a student in truant, an outstanding arrest warrant, a possible Ed Code violation, or traffic violation.
-* Whether a student violated a school policy or Ed Code should be investigated by school staff NOT law enforcement. That was 4.2% of stops.
-* 15% of stops where the officer had a reasonable suspicion that the person was engaged in criminal activity were due to the student matching the a description. Stops where someone matches a description are fraught with error.
-* Law enforcement stopped students for a number unnecessary reasons including disrupting classwork, disruption of school activities, willfully disturbing a school zone, loud noise, litter, jaywalking, bothering other children, possessing unlawful paraphernalia.
-* Very different not school with traffic violation being number one.
+Nearly half of stops were for school fights and smoking marijuana, neither of which should require law enforcement.
+
+Whether in response to a call or by officer choice, law enforcement said there was a reasonable suspicion that the person was engaged in criminal activity in roughly 90% of stops of students. The other 10% of stops were because of a consensual encounter and search, to determine if a student violated a school policy, to determine whether a student in truant, an outstanding arrest warrant, a possible Ed Code violation, or traffic violation.
+
+Whether a student violated a school policy or Ed Code should be investigated by school staff NOT law enforcement. That was 4.2% of the stop reasons for people stopped in AVUHSD.
+
+```{r}
+stops_reason_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_avuhsd WHERE geography = 'Antelope Valley Union High School District'")%>%filter(universe=='All stops')%>%arrange(-stops_reason_rate)
+
+  flextable(stops_reason_avuhsd) %>%
+  set_caption('Stops of students in AVUHSD by stop reason') %>%
+  theme_vanilla() %>%
+  width(width=2,unit="in")
+  
+ 
+```
+ 
+
+15% of stops where the officer had a reasonable suspicion that the person was engaged in criminal activity were due to the student matching the a description. Stops where someone matches a description are fraught with error.
+
+```{r}
+stops_reason_rs_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_rs_avuhsd")%>%
+  mutate(rate=round(rate*100, 1))%>%
+  arrange(-rate)
+
+ flextable(stops_reason_rs_avuhsd) %>%
+  set_caption('Stops of students for Reasonable Suspicion') %>%
+  theme_vanilla() %>%
+  width(width=2,unit="in")
+
+```
+
+Diving deeper into the specific reasonable suspicion stop reasons, law enforcement stopped students for a number unnecessary reasons including disrupting classwork, disruption of school activities, willfully disturbing a school zone, loud noise, litter, jaywalking, bothering other children, possessing unlawful paraphernalia.
+
+However, when  you look at the most  common reasonable suspicion reason offense codes, we can see that most stops of people for reasonable suspicion in AVUHSD were for posession of marijuana, fighting or some form of battery. 
+
+```{r}
+stops_reason_rs_codes_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_rs_codes_avuhsd")%>%
+  slice(1:9)%>%
+  select(-deactive)
+
+ flextable(stops_reason_rs_codes_avuhsd) %>%
+  set_caption('Stops of students for Reasonable Suspicion by Offense Code') %>%
+  theme_vanilla() %>%
+  width(width=2,unit="in")
+
+```
+
+Very different not school with traffic violation being number one.
 
 ```{r}
 
-stops_reason_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_avuhsd")
 
 # Supplemental reason analysis using word count / narrative column method. But I think for more precision we should primarily rely on the tables above for the stop reason analysis.
 
 stops_reason_reason_narrative_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_and_narrative_avuhsd")
 stops_reason_narrative_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_narrative_avuhsd")
 
-```
-
-
-```{r}
-stops_reason_rs_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_rs_avuhsd")
-stops_reason_rs_codes_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_rs_codes_avuhsd")
 
 ```
 
+
+Outside of AVUHSD and looking at the reason why people are stopped in the AV, the most common stop reason for anyone above the age of 17 is traffic violations. This is consistent with police stop behavior in LA county and other jurisdictions. 
 
 ```{r}
 

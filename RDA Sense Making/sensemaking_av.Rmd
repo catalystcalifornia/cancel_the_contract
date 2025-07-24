@@ -58,30 +58,31 @@ FitFlextableToPage <- function(ft, pgwidth = 6.5){
 
 ```
 
-## AV General notes
+# Stops of people in Antelope Valley
 
-## Stops of people in Antelope Valley (SPA 1)
+In 2023 LASD stopped 31,818 people in the AV, which for our project we geographically define as SPA 1. Of all people stopped, 6,974 were stopped for a call for service, or only 22% of all people stopped. Conversely, 24, 844 people were stopped in the AV in a stop that was not a call for service, or 78% of all people stopped. 
 
-* Type up notes here. Feel free to refer to guiding questions in the top code chunk if they are helpful!
+## Stops of people by age
 
-### stops_age
+When comparing the stop rates across age ranges, there are very minor differences in stop rates with a call for service and without a call for service. However, the only age range where there is a large difference between CFS and not CFS is for those 17 and under. 
 
-When comparing the stop rates across age ranges, there are very minor differences in stop rates with a call for service and without a call for service. However, the only age range where there is a large difference between CFS and not CFS is for those 17 and under. Can we say that stops of people 17 and under are more likely to be call for service stops BECAUSE of the police contract in the school district? This can point to the circular logic of policing - wherever you place police is where you're going to find "crime." It doesn't necessarily mean certain places are more crime-ridden, it just means more police are there. This makes me wonder, why was a police contract established in AV schools in the first place?
+Question for CTC: Can we say that stops of people 17 and under are more likely to be call for service stops BECAUSE of the police contract in the school district? This can point to the circular logic of policing - wherever you place police is where you're going to find "crime." It doesn't necessarily mean certain places are more crime-ridden, it just means more police are there. This begs teh question: why was a police contract established in AV schools in the first place?
 
-Stops with call for service
-Antelope Valley
-17 and under
-8.191322%
+Stops with call for service in AV: Age 17 and under
+8.2%
 
-Stops with no call for service
-Antelope Valley
-17 and under
-1.649634%
+Stops with no call for service in AV: Age 17 and under
+1.6%
 
-### stops_race
-Comparing stop rates by race (stops_race) to the overall racial demographics in AV (av_population), we see that 47.43541392% of all stops are of Latinx people while 53.557278377173866% of AV's population is Latinx. We see that 31.63618078% of all stops are of Black people, while 14.788894493772863% of AV's population is Black. Thus, Black people are being stopped at ~2x the rate that would be expected, based on population counts.
+## Stops of people by race
 
-### stops_age_race
+Black people in the AV are disproportionately stopped relative to their total population. We see that 31.6% of all stops in the AV  are of people perceived as Black , while only 14.8% of the AV's population is Black.This disproportionality is also reflected in stops of students perceived as Black relative to Black student enrollment in AVUHSD schools. 
+
+We also see a high rate of Latinx people being stopped in the AV, as they make up 47.4% of all stops in the AV. While 53.6% of AV's population is Latinx that is still a high burden of stops being experienced by the Latinx community.
+
+Conversely, 24% of the AV's general population is White yet people perceived as White only make up 18.5% of all AV stops, indicating that there is racial bias in who is being stopped by police in the AV. 
+
+
 ```{r}
 
 # RIPA analysis tables: SPA 1
@@ -92,16 +93,11 @@ stops_age_race<-dbGetQuery(con, "SELECT * FROM analysis_stops_age_by_race")
 
 ```
 
-## Stops of people in AVUHSD
+# Stops of people in AVUHSD
 
-### stops_disability_avuhsd
-Not sure how this helps with our narrative. 
-Students with disabilities make up 2.5442477876106198% of all stops but their enrollment rate is 17.802167774842882%. 
+Law enforcement stopped 904 people in AVUHSD between 2018-2023. 
 
-### stops_race_avuhsd
-Black students make up 53.2079646% of all stops but their enrollment rate is 16.6044266%. Black students are over-policed.
-Latinx students make up 38.1637168% of all stops but their enrollment rate is 67.1964660%. Latinx students are under-policed.
-White students make up 7.8539823% of all stops but their enrollment rate is 8.9352400%. White students are policed at the expected amount based on their enrollment rate.
+Law enforcement responded to a call for service for 317 of the 904 people stopped, or 35% of all people stopped. In other words, law enforcement chose to stop students in 65% of stops (587 of 904).
 
 ```{r}
 
@@ -109,3 +105,61 @@ stops_disability_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_disabilit
 stops_race_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_race_avuhsd")
 
 ```
+
+Students with disabilities make up 2.5% of all stops, or a total of 23 students with disabilities were stopped.Their  current enrollment rate is 17.8%. This might not be as important to include in our report. 
+
+```{r}
+
+### EXPLORE STOP REASONS for the students with disablities ###
+
+
+# incidents
+lasd_incidents <- dbGetQuery(con_shared, "SELECT * FROM crime_and_justice.lasd_stops_incident_2018_2023
+WHERE school_name
+IN (
+'Antelope Valley High',
+'Antelope Valley Union High',
+'Eastside High',
+'Highland High',
+'William J. (Pete) Knight High',
+'Lancaster High',
+'Littlerock High',
+'Palmdale High',
+'Quartz Hill High',
+'R. Rex Parris High',
+'Desert Winds Continuation High',
+'Phoenix High Community Day',
+'Phoenix Continuation'
+)
+ORDER BY school_name
+")
+
+# persons
+lasd_persons <- dbGetQuery(con_shared, "SELECT * FROM crime_and_justice.lasd_stops_person_2018_2023")
+
+
+############### Select columns of interest ########################
+
+av_stops <- lasd_incidents %>% left_join(lasd_persons, by = "contact_id")
+
+av_disabled <- av_stops %>% filter(no_disabilities %in% c("false", "No"))%>%
+  select(contact_id, person_id, call_for_service, reason_for_contact, reason_for_contact_narrative)
+
+# Make table:
+
+  flextable(av_disabled) %>%
+  set_caption('Stops of students with disabilities in AVUHSD from 2018-2023') %>%
+  theme_vanilla() %>%
+  width(width=2,unit="in")
+
+
+```
+
+Black students are over-policed in AVUHSD. People perceived as Black made up 53.2% of all stops in AVUHSD from 2018-2023 but their enrollment rate in 2024-2025 is only 16.6%. Stated another way, for every 1,000 Black students enrolled in AVUHSD 131.9 Black students are stopped by police. 
+
+Students perceived as Latinx made up 38.2% of all stops in AVUHSD, and the current enrollment rate of Latinx students is 67.2%. Latinx students have the second highest rate of stops out of all student groups.
+
+Students perceived as White made up 7.9% of all stops in AVUHSD but their current enrollment rate is 8.9%. 
+
+When looking at stops that are *calls for service* versus stops that are *not calls for service*, we see that students perceived as Black have a higher count of stops that were not a call for service (n=342) compared to a call for service (139). Out of all people stopped for a stop that was __not__ a call for service in AVUHSD, 58.2% of those people were perceived as Black. In other words, more than half of the people being stopped without a call for service in AVUHSD are perceived as Black. Conversely, only 5.1% of people perceived as White are stopped for a stop that is not a call for service. 
+

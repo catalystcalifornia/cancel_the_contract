@@ -12,26 +12,391 @@ date: "`r format(Sys.time(), '%d %B, %Y')`"
 ---
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-```{r setup, include=FALSE}
+```{r, include=FALSE}
 
-knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE)
+knitr::opts_chunk$set(message=FALSE, echo=FALSE)
+
+# Set up (add any additional libraries you may need)-----------------------------
+
+library(RPostgres)
+library(devtools)
+library(stringr)
+library(dplyr)
+library(tidyr)
+library(flextable)
+library(ggplot2)
+
+#connect to postgres-------------
+
+source("W:\\RDA Team\\R\\credentials_source.R")
+con <- connect_to_db("cancel_the_contract")
+con_shared <- connect_to_db("rda_shared_data")
+con_fresno<- connect_to_db("eci_fresno_ripa")
+
+# data dictionary
+dict<-dbGetQuery(con, "SELECT * FROM data_dictionary")
+
+# Visualization tools (optional!)-------------------------
+
+#add function that better fits the tables to the page
+
+FitFlextableToPage <- function(ft, pgwidth = 6.5){
+
+  ft_out <- ft %>% autofit()
+
+  ft_out <- width(ft_out, width = dim(ft_out)$widths*pgwidth /(flextable_dim(ft_out)$widths))
+  return(ft_out)
+}
+
 
 ```
 
-# JZ Section
+# Antelope Valley Demographics
 
-```{r, child='sensemaking_jz.Rmd', echo=FALSE}
+```{r}
+
+# AV Demographic tables
+
+av_race<-dbGetQuery(con, "SELECT * FROM av_population_race")
+av_age<-dbGetQuery(con, "SELECT * FROM av_population_age")
 
 ```
 
-# CR Section
+```{r}
 
-```{r, child='sensemaking_cr.Rmd', echo=FALSE}
+title_text<-"The majority of residents in the AV are Latinx, White and Black"
+subtitle_text<-"Population in Antelope Valley SPA 1"
+caption_text<-paste0("Source: ",dict$source[dict$indicator_short=="Race"])
+
+#graph
+
+ggplot(av_race, aes(x = reorder(race, rate), y = rate))+
+  geom_bar(stat = "identity", fill = "#362178") + #to create barplot
+  geom_text(aes(label = paste0(round(rate,1), "%")), #add percentage labels within the bars
+          vjust=.5, #center percentage within the bar
+          hjust=0,
+          size = 3,
+          color = "black")+ 
+  scale_x_discrete(labels = ~ str_wrap(as.character(.x), 5))+
+  labs(title = title_text, 
+       subtitle = subtitle_text,
+       caption = caption_text,
+       x = "", #labels to visual
+       y = "") +
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 0, hjust =0.5), #sets x-axis labels to be horizontal
+      legend.position ="none", #removes legend
+      plot.title = element_text(hjust=0.5),
+      plot.subtitle = element_text(hjust=0.5),
+       plot.caption = element_text(hjust = 0))+
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=0.5, size=12), #aesthetics of the barchart
+        strip.background = element_rect(fill = "#362178"),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+panel.background = element_blank())+
+  coord_flip()
+
 
 ```
 
-# AV Section
+The AV has a __large youth population__ that will be worth highlighting in the report. Not sure if it has to be visualized or just in the report text as context. 
 
-```{r, child='sensemaking_av.Rmd', echo=FALSE}
+```{r}
+
+df<-av_age%>%
+  mutate(rate=round(rate,1))%>%
+  select(age_re, total, count, rate)
+
+# ##Flextable for Age Group, Race##
+
+
+  flextable(df) %>%
+  set_caption('Antelope Valley SPA 1 Age Demographics') %>%
+  theme_vanilla() %>%
+  width(width=2,unit="in")
+  
+  
+```
+
+# Stops of people in Antelope Valley
+
+In 2023 LASD stopped 31,818 people in the AV, which for our project we geographically define as SPA 1. Of all people stopped, 6,974 were stopped for a call for service, or only 22% of all people stopped. Conversely, 24, 844 people were stopped in the AV in a stop that was not a call for service, or 78% of all people stopped. 
+
+## Stops of people by age
+
+When comparing the stop rates across age ranges, there are very minor differences in stop rates with a call for service and without a call for service. However, the only age range where there is a large difference between CFS and not CFS is for those 17 and under. 
+
+Question for CTC: Can we say that stops of people 17 and under are more likely to be call for service stops BECAUSE of the police contract in the school district? This can point to the circular logic of policing - wherever you place police is where you're going to find "crime." It doesn't necessarily mean certain places are more crime-ridden, it just means more police are there. This begs teh question: why was a police contract established in AV schools in the first place?
+
+Stops with call for service in AV: Age 17 and under
+8.2%
+
+Stops with no call for service in AV: Age 17 and under
+1.6%
+
+## Stops of people by race
+
+Black people in the AV are disproportionately stopped relative to their total population. We see that 31.6% of all stops in the AV  are of people perceived as Black , while only 14.8% of the AV's population is Black.This disproportionality is also reflected in stops of students perceived as Black relative to Black student enrollment in AVUHSD schools. 
+
+We also see a high rate of Latinx people being stopped in the AV, as they make up 47.4% of all stops in the AV. While 53.6% of AV's population is Latinx that is still a high burden of stops being experienced by the Latinx community.
+
+Conversely, 24% of the AV's general population is White yet people perceived as White only make up 18.5% of all AV stops, indicating that there is racial bias in who is being stopped by police in the AV. 
+
+
+```{r}
+
+# RIPA analysis tables: SPA 1
+
+stops_age<-dbGetQuery(con, "SELECT * FROM analysis_stops_age")
+stops_race<-dbGetQuery(con, "SELECT * FROM analysis_stops_race")
+stops_age_race<-dbGetQuery(con, "SELECT * FROM analysis_stops_age_by_race")
+
+```
+
+# AVUHSD general demographics
+
+Enrollment data for AVUHSD is for the 2024-2025 academic year. In AVUHSD there are more Black students than White students. In general though I think it is important to be considerate of __race comparisons when we get to data of AVUHSD stops__. Regardless of race I think the point is that policing of youth in schools is bad.
+
+
+```{r}
+
+# AVUHSD Enrollment Data
+
+enrollment <- dbGetQuery(con_shared, "SELECT * FROM education.cde_multigeo_enrollment_census_day_2024_25")
+
+# get Antelope Valley Union High School District enrollment
+av_enrollment <- enrollment %>% filter(districtname == "Antelope Valley Union High" & charter == "ALL")%>%
+  filter(grepl("RE_", reportingcategory))
+
+# recode racial categories
+
+av_enrollment<-av_enrollment%>%
+  mutate(reportingcategory_re=ifelse(reportingcategory %in% "RE_B", "nh_black",
+                                     ifelse(reportingcategory %in% "RE_I", "nh_aian", 
+                                            ifelse(reportingcategory %in% "RE_A", "nh_asian", 
+                                                   ifelse(reportingcategory %in% "RE_F", "nh_filipino",  
+                                                          ifelse(reportingcategory %in% "RE_H", "latinx", 
+                                                                 ifelse(reportingcategory %in% "RE_D", "missing_race",
+                                                                        ifelse(reportingcategory %in% "RE_P", "nh_nhpi",  
+                                                                               ifelse(reportingcategory %in% "RE_T", "nh_twoormor",  
+                                                                                      ifelse(reportingcategory %in% "RE_W", "nh_white", 
+                                                                                             reportingcategory))))))))))%>%
+  select(cdscode, districtname, reportingcategory_re, total_enr)%>%
+  arrange(-total_enr)
+
+  flextable(av_enrollment) %>%
+  set_caption('AVUHSD Student Demographics by Race') %>%
+  theme_vanilla() %>%
+  width(width=2,unit="in")
+  
+
+```
+
+
+# Stops of people in AVUHSD
+
+Law enforcement stopped 904 people in AVUHSD between 2018-2023. 
+
+Law enforcement responded to a call for service for 317 of the 904 people stopped, or 35% of all people stopped. In other words, law enforcement chose to stop students in 65% of stops (587 of 904).
+
+```{r}
+
+stops_disability_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_disability_avuhsd")
+stops_race_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_race_avuhsd")
+
+```
+
+## Stops of people with disablities
+
+Students with disabilities make up 2.5% of all stops, or a total of 23 students with disabilities were stopped.Their  current enrollment rate is 17.8%. This might not be as important to include in our report. 
+
+```{r}
+
+### EXPLORE STOP REASONS for the students with disablities ###
+
+
+# incidents
+lasd_incidents <- dbGetQuery(con_shared, "SELECT * FROM crime_and_justice.lasd_stops_incident_2018_2023
+WHERE school_name
+IN (
+'Antelope Valley High',
+'Antelope Valley Union High',
+'Eastside High',
+'Highland High',
+'William J. (Pete) Knight High',
+'Lancaster High',
+'Littlerock High',
+'Palmdale High',
+'Quartz Hill High',
+'R. Rex Parris High',
+'Desert Winds Continuation High',
+'Phoenix High Community Day',
+'Phoenix Continuation'
+)
+ORDER BY school_name
+")
+
+# persons
+lasd_persons <- dbGetQuery(con_shared, "SELECT * FROM crime_and_justice.lasd_stops_person_2018_2023")
+
+
+############### Select columns of interest ########################
+
+av_stops <- lasd_incidents %>% left_join(lasd_persons, by = "contact_id")
+
+av_disabled <- av_stops %>% filter(no_disabilities %in% c("false", "No"))%>%
+  select(contact_id, person_id, call_for_service, reason_for_contact, reason_for_contact_narrative)
+
+# Make table:
+
+  flextable(av_disabled) %>%
+  set_caption('Stops of students with disabilities in AVUHSD from 2018-2023') %>%
+  theme_vanilla() %>%
+  width(width=2,unit="in")
+
+
+```
+
+## Stops by race
+
+Black students are over-policed in AVUHSD. People perceived as Black made up 53.2% of all stops in AVUHSD from 2018-2023 but their enrollment rate in 2024-2025 is only 16.6%. Stated another way, for every 1,000 Black students enrolled in AVUHSD 131.9 Black students are stopped by police. 
+
+Students perceived as Latinx made up 38.2% of all stops in AVUHSD, and the current enrollment rate of Latinx students is 67.2%. Latinx students have the second highest rate of stops out of all student groups.
+
+Students perceived as White made up 7.9% of all stops in AVUHSD but their current enrollment rate is 8.9%. 
+
+When looking at stops that are *calls for service* versus stops that are *not calls for service*, we see that students perceived as Black have a higher count of stops that were not a call for service (n=342) compared to a call for service (139). Out of all people stopped for a stop that was __not__ a call for service in AVUHSD, 58.2% of those people were perceived as Black. In other words, more than half of the people being stopped without a call for service in AVUHSD are perceived as Black. Conversely, only 5.1% of people perceived as White are stopped for a stop that is not a call for service. 
+
+## Stops by stop reason
+
+Nearly half of stops were for school fights and smoking marijuana, neither of which should require law enforcement.
+
+Whether in response to a call or by officer choice, law enforcement said there was a reasonable suspicion that the person was engaged in criminal activity in roughly 90% of stops of students. The other 10% of stops were because of a consensual encounter and search, to determine if a student violated a school policy, to determine whether a student in truant, an outstanding arrest warrant, a possible Ed Code violation, or traffic violation.
+
+Whether a student violated a school policy or Ed Code should be investigated by school staff NOT law enforcement. That was 4.2% of the stop reasons for people stopped in AVUHSD.
+
+```{r}
+stops_reason_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_avuhsd WHERE geography = 'Antelope Valley Union High School District'")%>%filter(universe=='All stops')%>%arrange(-stops_reason_rate)
+
+  flextable(stops_reason_avuhsd) %>%
+  set_caption('Stops of students in AVUHSD by stop reason') %>%
+  theme_vanilla() %>%
+  width(width=2,unit="in")
+  
+ 
+```
+ 
+###  Stops for Reasonable Suspicion
+
+15% of stops where the officer had a reasonable suspicion that the person was engaged in criminal activity were due to the student matching the a description. Stops where someone matches a description are fraught with error.
+
+```{r}
+stops_reason_rs_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_rs_avuhsd")%>%
+  mutate(rate=round(rate*100, 1))%>%
+  arrange(-rate)
+
+ flextable(stops_reason_rs_avuhsd) %>%
+  set_caption('Stops of students for Reasonable Suspicion') %>%
+  theme_vanilla() %>%
+  width(width=2,unit="in")
+
+```
+
+Diving deeper into the specific reasonable suspicion stop reasons, law enforcement stopped students for a number unnecessary reasons including disrupting classwork, disruption of school activities, willfully disturbing a school zone, loud noise, litter, jaywalking, bothering other children, possessing unlawful paraphernalia.
+
+However, when  you look at the most  common reasonable suspicion reason offense codes, we can see that most stops of people for reasonable suspicion in AVUHSD were for posession of marijuana, fighting or some form of battery. 
+
+```{r}
+stops_reason_rs_codes_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_rs_codes_avuhsd")%>%
+  slice(1:9)%>%
+  select(-deactive)
+
+ flextable(stops_reason_rs_codes_avuhsd) %>%
+  set_caption('Stops of students for Reasonable Suspicion by Offense Code') %>%
+  theme_vanilla() %>%
+  width(width=2,unit="in")
+
+```
+
+Very different not school with traffic violation being number one.
+
+```{r}
+
+
+# Supplemental reason analysis using word count / narrative column method. But I think for more precision we should primarily rely on the tables above for the stop reason analysis.
+
+stops_reason_reason_narrative_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_and_narrative_avuhsd")
+stops_reason_narrative_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_narrative_avuhsd")
+
+
+```
+
+
+Outside of AVUHSD and looking at the reason why people are stopped in the AV, the most common stop reason for anyone above the age of 17 is traffic violations. This is consistent with police stop behavior in LA county and other jurisdictions. 
+
+```{r}
+
+stops_stops_reason_age<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_age")
+stops_stops_reason_age_race<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_age_race")
+
+```
+
+
+
+
+
+## Stops by stop result
+
+```{r}
+
+
+stops_result_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_result_avuhsd") %>%
+  mutate(rate=round(as.numeric(rate), 1))
+
+  flextable(stops_result_avuhsd) %>%
+  set_caption('Results of Stops in AVUHSD Schools') %>%
+  theme_vanilla() %>%
+  width(width=2,unit="in")
+  
+
+
+```
+
+## In field cite and release stop results
+
+```{r}
+
+infield<-av_stops%>%select(contact_id, person_id, result_of_contact_in_field_cite_and_release, result_of_contact_in_field_cite_and_release_offense_codes)%>%
+  group_by(result_of_contact_in_field_cite_and_release_offense_codes)%>%
+  summarise(count=n())%>%
+  arrange(-count)
+
+# Grab offense codes from the Fresno RIPA db
+
+codes<-dbGetQuery(con_fresno, "SELECT * FROM cadoj_ripa_offense_codes_2023")
+
+codes_unique_active <- codes %>%
+    # filter(is.na(offense_repealed)) %>% # remove repealed offenses
+  # filter(!changes %in% c("REMOVED","REPEALED"))%>%
+  group_by(offense_statute) %>%
+  summarise(offense_type_of_charge=paste(offense_type_of_charge, collapse="; "),
+            statute_literal_25=paste(statute_literal_25,collapse="; "))
+
+# focus just on top counts 
+
+infield_top<-infield%>%
+  slice(1:13)%>%
+  left_join(codes_unique_active, by=c("result_of_contact_in_field_cite_and_release_offense_codes"="offense_statute"))%>%
+  select(-offense_type_of_charge)%>%
+  rename("offense code"="result_of_contact_in_field_cite_and_release_offense_codes")
+
+  flextable(infield_top) %>%
+  set_caption('Top in field cite and release codes') %>%
+  theme_vanilla() %>%
+  width(width=2,unit="in")%>%
+  width(j = "statute_literal_25", width =5)%>%
+    width(j = "offense code", width =.5)%>%
+     width(j = "count", width =2)
+  
 
 ```
