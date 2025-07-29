@@ -4,16 +4,28 @@ author: "Alicia Vo"
 date: "2025-07-10"
 output: html_document
 ---
-
+# Load packages, connect to postgres, get spatial data
 ```{r}
-library(data.table)
+# Install packages if not already installed
+packages <- c("data.table", "readxl", "stringr", "dplyr", "RPostgres", "dbplyr", "srvyr", "tidycensus", "rpostgis",  "tidyr", "here", "sf", "usethis") 
+
+install_packages <- packages[!(packages %in% installed.packages()[,"Package"])]
+if(length(install_packages) > 0) {
+  install.packages(install_packages)
+} else {
+  print("All required packages are already installed.")
+}
+
+for(pkg in packages){
+  library(pkg, character.only = TRUE)
+}
+
+options(scipen = 100) # disable scientific notation
 
 # Connect to postgres 
 source("W:\\RDA Team\\R\\credentials_source.R")
 con_shared<-connect_to_db("rda_shared_data")
-```
 
-```{r}
 # Grab SPA-tract xwalk so that we can get all tracts within SPA 1 which we are using as our AV geography. Census tracts are 2023.
 spa <- dbGetQuery(con_shared, "SELECT * FROM crosswalks.lacounty_health_district_spa_tract_2022")%>%
   filter(spa_num==1)
@@ -21,7 +33,7 @@ spa <- dbGetQuery(con_shared, "SELECT * FROM crosswalks.lacounty_health_district
 # Pull out the tracts for spa 1
 ct_av <- spa$ct_geoid
 
-# Get puma to census tract crosswalk
+# Get crosswalk of tracts to PUMAs using 2020 PUMA data and 2020 tract data for CA
 xwalk <- dbGetQuery(con_shared, "SELECT *FROM crosswalks.puma_tract_xwalk_2020")
 
 # Filter crosswalk for AV tracts only
@@ -30,33 +42,131 @@ xwalk_puma_ct <- xwalk %>%
 
 # Create list of PUMA ids in AV (only 3 PUMAs in AV)
 puma_av <- unique(xwalk_puma_ct$puma_geoid)
+puma_av <- paste0("06",puma_av)
+
+# define variables used throughout - update each year
+curr_yr <- 2023 
+start_yr <- curr_yr - 4  # autogenerate start yr of 5yr estimates
 ```
 
 # Get PUMS Data -----------------------------------------------------------
 ```{r}
 # Data Dictionary: https://www2.census.gov/programs-surveys/acs/tech_docs/pums/data_dict/PUMS_Data_Dictionary_2023.pdf
 # path where my data lives (not pulling pums data from the postgres db, takes too long to run calcs that way) 
-root <- paste0("W:/Data/Demographics/PUMS/CA_2019_2023/")
-
+root <- paste0("W:/Data/Demographics/PUMS/CA_", start_yr, "_", curr_yr, "/")
 # Load ONLY the PUMS columns needed for this indicator
 cols <- colnames(fread(paste0(root, "psam_p06.csv"), nrows=0)) # get all PUMS cols 
-cols_ <- grep("^PWGTP*", cols, value = TRUE)     # filter for PUMS weight colnames
-ppl <- fread(paste0(root, "psam_p06.csv"), header = TRUE, data.table = FALSE, select = c(cols_, "AGEP", "ESR", "SCH", "SOCP", "PUMA", "ANC1P", "ANC2P", "HISP", "RAC1P", "RAC2P", "RAC3P", "RACAIAN", "RACPI", "RACNH"),
-             colClasses = list(character = c("ESR", "SCH", "SOCP", "PUMA", "ANC1P", "ANC2P", "HISP", "RAC1P", "RAC2P", "RAC3P", "RACAIAN", "RACPI", "RACNH")))
+cols_wts <- grep("^PWGTP*", cols, value = TRUE)                # filter for PUMS weight colnames
 
-# Add state_geoid to ppl, add state_geoid to PUMA id
+ppl <- fread(paste0(root, "psam_p06.csv"), header = TRUE, data.table = FALSE, 
+             select = c(cols_wts, "AGEP", "ESR", "SCH", "SOCP", "PUMA", "ANC1P", "ANC2P", "HISP", "RAC1P","RACAIAN", "RACPI", "RACNH"),
+             colClasses = list(character = c("ESR", "SCH", "SOCP", "PUMA", "ANC1P", "ANC2P", "HISP", "RAC1P", "RACAIAN", "RACPI", "RACNH")))
+
+# Add state_geoid to ppl, add state_geoid to PUMA id, so it aligns with crosswalks.puma_county_2020
 ppl$state_geoid <- "06"
 ppl$puma_id <- paste0(ppl$state_geoid, ppl$PUMA)
 
-# Create list of replicate weights
+
+# create list of replicate weights
 repwlist = rep(paste0("PWGTP", 1:80))
 
-# Save copy of original data
+# save copy of original data
 orig_data <- ppl
+
+# redo analysis
+ppl <- orig_data
+
+# Filter for AV PUMAS ----------------------------------------------------
+ppl <- ppl %>%
+  filter(puma_id %in% puma_av)
 ```
 
+##### Reclassify Race/Ethnicity ########
 ```{r}
-# Filter PUMA data for only PUMAs in AV
-ppl <- ppl[ppl$PUMA %in% puma_av, ]
+source("W:/RDA Team/R/Github/RDA Functions/main/RDA-Functions/PUMS_Functions_new.R")    
+
+
+# latino includes all races. AIAN is AIAN alone/combo latino/non-latino, NHPI is alone/combo latino/non-latino, SWANA includes all races and latino/non-latino
+ppl <- race_reclass(ppl, start_yr, curr_yr)
+
+# I need latino and race in one column
+# copied from https://github.com/catalystcalifornia/fresnoripa/blob/main/Prep/population_estimates_sex_race.R
+## nh_race groups
+ppl$nh_race = as.factor(ifelse(ppl$RAC1P == 1 & ppl$latino =="not latino", "nh_white",
+                                ifelse(ppl$RAC1P == 1 & ppl$latino =="latino", "latino",
+                                       ifelse(ppl$RAC1P == 2 & ppl$latino =="not latino", "nh_black",
+                                              ifelse(ppl$RAC1P == 2 & ppl$latino =="latino", "latino",
+                                                     ifelse(ppl$RAC1P == 6 & ppl$latino =="not latino", "nh_asian",
+                                                            ifelse(ppl$RAC1P == 6 & ppl$latino =="latino", "latino",
+                                                                   ifelse(ppl$RAC1P == 8 & ppl$latino =="not latino", "nh_other", 
+                                                                          ifelse(ppl$RAC1P == 8 & ppl$latino =="latino", "latino",
+                                                                                 ifelse(ppl$RAC1P == 9 & ppl$latino =="not latino", "nh_twoormor",
+                                                                                        ifelse(ppl$RAC1P == 9 & ppl$latino =="latino", "latino",
+                                                                                               ifelse(ppl$RAC1P %in% c(3,4,5) & ppl$latino =="latino", "latino",
+                                                                                                      ifelse(ppl$RAC1P %in% c(3,4,5) & ppl$latino =="not latino", "nh_aian",
+                                                                                                             ifelse(ppl$RAC1P==7 & ppl$latino =="latino", "latino",
+                                                                                                                    ifelse(ppl$RAC1P==7 & ppl$latino =="not latino", "nh_pacisl", NA)))))))))))))))
+
+# review
+check <- ppl %>%
+  group_by(race,latino,nh_race) %>%
+  summarise(count=n())
 ```
+
+##### Classify SSWANA ########
+```{r}
+# need "nh_asian_wo_sa" and "sswana". check ANC1P with PUMS data dictionary
+
+sswana_list <- read.excel("W:/Project/RJS/CTC/Data/SWANA_SoAsian_Ancestry.xlsx")
+
+d1 <- read.csv("W:/Project/RJS/CTC/Data/PUMS_Data_Dictionary_2019-2023.csv", skip=1969)
+
+d2 <- d1 %>%
+```
+
+
+
+##### Define Officials and Managers ###########
+```{r}
+# For this project we only wanted data for people in labor market - ages between 18 and 64
+ppl <- ppl[ppl$AGEP >= 18 & ppl$AGEP <= 64 , ]
+
+## Tag people who are officials or managers: SOCP value starts with "11" 
+###### See p110 in W:\Data\Demographics\PUMS\CA_2019_2023\PUMS_Data_Dictionary_2023.pdf
+ppl$offmgr <- 
+  case_when(
+    grepl('^11', ppl$SOCP) ~ as.integer(1),
+    TRUE ~ as.integer(0))
+
+# review
+summary(ppl$offmgr)
+
+## Code for labor force status: ESR on p56 of PUMS_Data_Dictionary_2023.pdf
+table(ppl$ESR, useNA = "always")
+
+# NOTE: 'This includes 4-Armed forces, at work' and '5-Armed forces, with a job but not at work'. It excludes '6-Not in labor force'.
+ppl$emply <- as.factor(ifelse(ppl$ESR %in% c(1, 2, 3, 4, 5), "in labor force", "not in labor force")) 
+ppl <- filter(ppl, emply=='in labor force')
+
+## Factor for Officials & Managers
+ppl$officials <- ifelse(ppl$offmgr == 1, "officials", "not official")
+ppl$officials <- as.factor(ppl$officials)
+ppl$indicator <- as.factor(ppl$officials)
+
+## check race and officials results
+table(ppl$nh_race, useNA ="always")
+table(ppl$indicator, useNA = "always")
+```
+
+
+############### CALC PUMA ESTIMATES/CVS ETC. ############### 
+```{r}
+ppl_puma <- left_join(ppl, xwalk_puma_ct, by=c("puma_id" = "puma_geoid")) %>%
+  rename(geoid = ct_geoid) %>%
+  mutate(geoname="NA") %>%
+  filter(puma_id %in% puma_av)
+managers <- calc_pums(d = ppl_puma, indicator, indicator_val, weight)
+```
+
+
 
