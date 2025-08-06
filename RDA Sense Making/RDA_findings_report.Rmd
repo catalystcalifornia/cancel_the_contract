@@ -1,6 +1,6 @@
 ---
 title: "Cancel the Contract Preliminary Research Findings"
-subtitle: "Draft: Internal use only"
+subtitle: "Rough Draft"
 author: "By Catalyst California"
 output:
   html_document:
@@ -25,6 +25,8 @@ library(dplyr)
 library(tidyr)
 library(flextable)
 library(ggplot2)
+library(tidycensus)
+
 
 #connect to postgres-------------
 
@@ -53,7 +55,19 @@ FitFlextableToPage <- function(ft, pgwidth = 6.5){
 
 # I.	Executive Summary/Main Narrative
 
-All people in the AV deserve to live in safety.  This includes freedom from police violence, as well as conditions that create well-being and opportunities to thrive.  For people of color, especially Black and Latinx youth, safety is often undermined by LA Sheriff’s Department and High School District practices that push youth of color out of schools and into the criminal legal system (such as disproportionate suspensions, expulsions, and arrests).  More broadly, for Black and Latinx AV residents, a sense safety is undermined by inequities in other sectors, such as housing and economic insecurity.   Add qualitative here from community engagements where community members define what safety means to them 
+All people in the AV deserve to live in safety.  This includes freedom from police violence, as well as conditions that create well-being and opportunities to thrive.  For people of color, especially Black and Latinx youth, safety is often undermined by LA Sheriff’s Department (LASD) and high school district practices that push youth of color out of schools and into the criminal legal system (such as disproportionate suspensions, expulsions, and arrests).  More broadly, for Black and Latinx AV residents, a sense safety is undermined by inequities in other sectors, such as housing and economic insecurity. 
+
+Education data shows that __students of color are being funneled out of the classroom through expulsions and suspensions__. Black students experience the highest rate of suspensions relative to all other student groups. Students with disabilities are also being suspended out of AVUHSD schools at high rates. The disparities in suspension and expulsion rates demonstrate the need for more investments into better school supports and counseling as opposed to removing students from the classrooms. 
+
+Police activity is analyzed using the LASD RIPA data set. RIPA data contains information that police officers are legally required to input for each police stop they make. Because RIPA data is only input by officers, it is important to note that the data is only based on officer perceptions and therefore can contain errors and under reporting. The RIPA data cannot capture the experiences of those being stopped by officers. 
+
+Preliminary research findings show that __Black and Latinx youth are disproportionately being stopped by police in Antelope Valley Union High School District (AVUHSD) schools__. Black students in particular are being disproportionately impacted by police relative to their over-all enrollment in AVUHSD. Stops of students with disabilities are severely under-reported in the RIPA data. 
+
+The majority of people stopped in AVUHSD schools are __stopped for reasons related to school fighting or possession of marijuana__. Additional stop reasons include non-serious offenses including jaywalking or violating education codes.
+
+The results of people being stopped in AVUHSD schools further corroborates that police activity is not being used towards serious crime. __Most stops in AVUHSD schools result in an in field cite and release__, or some form of __referral to a parent, guardian or school administrator__. 
+
+The racial disparities in police stops extend beyond AVUHSD schools to the greater Antelope Valley region. Police disproportionately stop people they perceive as Black relative to the general Black population in the Antelope Valley. __People perceived as Latinx by police make up nearly half of all the stops police make in the Antelope Valley__. 
 
 # II. Background / Context of AV
 
@@ -63,46 +77,70 @@ All people in the AV deserve to live in safety.  This includes freedom from poli
 
 # AV Demographic tables
 
-av_race<-dbGetQuery(con, "SELECT * FROM av_population_race")
+av_race<-dbGetQuery(con, "SELECT * FROM av_population_race")%>%
+  filter(!grepl("nh_asian_wo_sa|nh_aian|nh_nhpi", race))%>%
+  mutate(race_label=ifelse(race %in% 'aian', 'AIAN',
+                          ifelse(race %in% 'latino', 'Latinx',
+                                        ifelse(race %in% 'nh_asian', 'Asian',
+                                               ifelse(race %in% 'nh_black', 'Black',
+                                               ifelse(race %in% 'nh_other', 'Other',
+                                                      ifelse(race %in% 'nh_twoormor', 'Multiracial',
+                                                             ifelse(race %in% 'nh_white', 'White',
+                                                                    ifelse(race %in% 'nhpi', 'NHPI',
+                                                                           ifelse(race %in% 'sswana', 'SSWANA', "NULL"))))))))))
+
+
+                       
 av_age<-dbGetQuery(con, "SELECT * FROM av_population_age")
 
 ```
 
-We define the Antelope Valley (AV) geographic region as SPA 1. The AV has a __large youth population__ over-all. 
+We define the Antelope Valley (AV) geographic region as SPA 1. The AV has a __large youth population__ over-all, at __27.5% of the total population__. By comparison, 20.9% of LA county's population is age 0-17. The AV is also racially diverse, with Latinx people making up more than half of the total population. 
 
 ```{r}
 
 df<-av_age%>%
   mutate(rate=round(rate,1))%>%
-  select(age_re, total, count, rate)
+  select(age_re, total, count, rate)%>%
+  rename("Age"="age_re")%>%
+    rename_with(~ str_replace_all(.x, "_", " ") %>%
+                str_to_lower() %>%
+                str_replace("^\\w", ~ toupper(.x)))
 
-# ##Flextable for Age Group, Race##
+
+
+  # Pull in county age data for comparison
+  
+  age_data <- dbGetQuery(con_shared, "SELECT * FROM demographics.acs_5yr_s0101_multigeo_2023 WHERE geoid = '06037' AND geolevel ='county' ")%>%
+select(s0101_c01_001e	, s0101_c01_022e)%>%
+    mutate(rate=s0101_c01_022e/s0101_c01_001e*100)
+  
+  # ##Flextable for Age Group##
 
 
   flextable(df) %>%
-  set_caption('Antelope Valley SPA 1 Age Demographics') %>%
+  set_caption('Antelope Valley Age Demographics') %>%
   theme_vanilla() %>%
   width(width=2,unit="in")
-  
   
 ```
 
 ```{r}
 
 title_text<-"The majority of residents in the AV are Latinx, White and Black"
-subtitle_text<-"Population in Antelope Valley SPA 1"
-caption_text<-paste0("Source: ",dict$source[dict$indicator_short=="Race"])
+subtitle_text<-"Race Demographics in Antelope Valley"
+caption_text<-paste0("All racial groups are non-inclusive of Latinx except for AIAN, NHPI and SSWANA. AIAN=American Indian/Alaskan Native; NHPI=Native Hawaiian/Pacific Islander;SSWANA=South Asian, Southwest Asian and North Africa. \nData Source: ",dict$source[dict$indicator_short=="Race"])
 
 #graph
 
-ggplot(av_race, aes(x = reorder(race, rate), y = rate))+
+ggplot(av_race, aes(x = reorder(race_label, rate), y = rate))+
   geom_bar(stat = "identity", fill = "#362178") + #to create barplot
   geom_text(aes(label = paste0(round(rate,1), "%")), #add percentage labels within the bars
           vjust=.5, #center percentage within the bar
           hjust=0,
-          size = 3,
+          size = 4,
           color = "black")+ 
-  scale_x_discrete(labels = ~ str_wrap(as.character(.x), 5))+
+  scale_x_discrete(labels = ~ str_wrap(as.character(.x), 7))+
   labs(title = title_text, 
        subtitle = subtitle_text,
        caption = caption_text,
@@ -114,17 +152,19 @@ ggplot(av_race, aes(x = reorder(race, rate), y = rate))+
       plot.title = element_text(hjust=0.5),
       plot.subtitle = element_text(hjust=0.5),
        plot.caption = element_text(hjust = 0))+
-  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=0.5, size=12), #aesthetics of the barchart
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=0.5, size=12), 
         strip.background = element_rect(fill = "#362178"),
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
 panel.background = element_blank())+
-  coord_flip()
+  coord_flip()+
+     ylim(0, max(av_race$rate) * 1.1)
+
 
 
 ```
 
-Our education analysis for the AV focuses on the Antelope Valley Union High School District (AVUHSD). Enrollment data for AVUHSD is for the 2024-2025 academic year. In AVUHSD there are more Black and Latinx students than White students. Students with disabilities have a 17.8% enrollment rate in AVUHSD.
+Our education analysis for the AV focuses on the Antelope Valley Union High School District (AVUHSD). Enrollment data for AVUHSD is for the 2024-2025 academic year. In AVUHSD there are more Black and Latinx students than White students. __Students with disabilities have a 17.8% enrollment rate__ in AVUHSD.
 
 ```{r}
 
@@ -134,7 +174,10 @@ enrollment <- dbGetQuery(con_shared, "SELECT * FROM education.cde_multigeo_enrol
 
 # get Antelope Valley Union High School District enrollment
 av_enrollment <- enrollment %>% filter(districtname == "Antelope Valley Union High" & charter == "ALL")%>%
-  filter(grepl("RE_", reportingcategory))
+  filter(grepl("RE_|TA", reportingcategory))%>%
+  mutate(total = total_enr[reportingcategory == "TA"])%>%
+  filter(!grepl("TA", reportingcategory))
+
 
 # recode racial categories
 
@@ -149,14 +192,58 @@ av_enrollment<-av_enrollment%>%
                                                                                ifelse(reportingcategory %in% "RE_T", "nh_twoormor",  
                                                                                       ifelse(reportingcategory %in% "RE_W", "nh_white", 
                                                                                              reportingcategory))))))))))%>%
-  select(cdscode, districtname, reportingcategory_re, total_enr)%>%
-  arrange(-total_enr)
-
-  flextable(av_enrollment) %>%
-  set_caption('AVUHSD Student Demographics by Race') %>%
-  theme_vanilla() %>%
-  width(width=2,unit="in")
+    mutate(race_label=ifelse(reportingcategory %in% "RE_B", "Black",
+                                     ifelse(reportingcategory %in% "RE_I", "AIAN", 
+                                            ifelse(reportingcategory %in% "RE_A", "Asian", 
+                                                   ifelse(reportingcategory %in% "RE_F", "Filipinx",  
+                                                          ifelse(reportingcategory %in% "RE_H", "Latinx", 
+                                                                 ifelse(reportingcategory %in% "RE_D", "Missing race",
+                                                                        ifelse(reportingcategory %in% "RE_P", "NHPI",  
+                                                                               ifelse(reportingcategory %in% "RE_T", "Multiracial",  
+                                                                                      ifelse(reportingcategory %in% "RE_W", "White", 
+                                                                                             reportingcategory))))))))))%>%
   
+  select(districtname, race_label, total_enr, total)%>%
+  mutate(rate=total_enr/total*100)%>%
+  arrange(-rate)
+
+# Graph-------------------------
+
+title_text<-"The majority of students enrolled in AVUHSD are Latinx and Black"
+subtitle_text<-"Race Demographics in AVUHSD"
+caption_text<-paste0("All racial groups are non-inclusive of Latinx. AIAN=American Indian/Alaskan Native; NHPI=Native Hawaiian/Pacific Islander. \nData Source: ",dict$source[dict$indicator_short=="Student Race"])
+
+#graph
+
+ggplot(av_enrollment, aes(x = reorder(race_label, rate), y = rate))+
+  geom_bar(stat = "identity", fill = "#362178") + #to create barplot
+  geom_text(aes(label = paste0(round(rate,1), "%")), #add percentage labels within the bars
+          vjust=.5, #center percentage within the bar
+          hjust=0,
+          size = 4,
+          color = "black")+ 
+  scale_x_discrete(labels = ~ str_wrap(as.character(.x), 5))+
+  labs(title = title_text, 
+       subtitle = subtitle_text,
+       caption = caption_text,
+       x = "", #labels to visual
+       y = "") +
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 0, hjust =0.5, size=5), #sets x-axis labels to be horizontal
+      legend.position ="none", #removes legend
+      plot.title = element_text(hjust=0.5),
+      plot.subtitle = element_text(hjust=0.5),
+       plot.caption = element_text(hjust = 0))+
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=0.5, size=12), 
+        strip.background = element_rect(fill = "#362178"),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+panel.background = element_blank())+
+  coord_flip()+
+      ylim(0, max(av_enrollment$rate) * 1.1)
+
+
+
 
 ```
 
@@ -167,12 +254,9 @@ av_enrollment<-av_enrollment%>%
 Students with disabilities have a __lower graduation rate at 60.4%__, demonstrating that these students should be having more time in classrooms and less time interacting with police. 
 Latinx (79.4%) and Black students (72.7%) have __lower graduation rates__ relative to other racial groups and they are the majority of the student population. 
 
-White students have a 5.1% suspension rate compared to 6.2% for Latinx students and 18.1% for Black students. 
-Largest disparity in rates is for for Black students. __Black students are being suspended at more than triple the rate of White students__ this supports our narrative about students of color losing time in the classroom. 
+White students have a 5.1% suspension rate compared to 6.2% for Latinx students and 18.1% for Black students. __Black students are being suspended at more than triple the rate of White students__, showing how students of color are disproportionately losing time in the classroom. __Students with disabilities also have a high suspension rate at 13.7%__. 
 
-Students with disabilities also have a high suspension rate at 13.7%. This will be important to highlight in the report especially as it relates to how are we serving our students who have different needs if we're kicking them out of classrooms. 
-
-Expulsion rates show similar trends although rates in a vacuum are not high. Black students have the highest expulsion rate (0.5%) compared to White students (0.1%). 
+Expulsion rates show similar trends although rates in a vacuum are not high. Black students have the highest expulsion rate out of all student groups, while White students have the lowest.
 
 ```{r}
 
@@ -185,19 +269,19 @@ suspension<-dbGetQuery(con, "SELECT * FROM analysis_suspensions")
 
 ## B.	Rather than getting more time in classrooms, these students are being forced to interact more with law enforcement and funneled into the school-to-prison-pipeline 
 
-
 Law enforcement stopped 904 people in AVUHSD between 2018-2023. Law enforcement responded to a call for service for 317 of the 904 people stopped, or 35% of all people stopped. In other words, law enforcement chose to stop students in 65% of stops (587 of 904).
 
-Black students are over-policed in AVUHSD. People perceived as Black made up 53.2% of all stops in AVUHSD from 2018-2023 but their enrollment rate in 2024-2025 is only 16.6%. Stated another way, for every 1,000 Black students enrolled in AVUHSD 131.9 Black students are stopped by police. 
+Black students are over-policed in AVUHSD. __People perceived as Black made up 53.2% of all stops in AVUHSD__ but their __enrollment rate in 2024-2025 is only 16.6%__. Stated another way, __for every 1,000 Black students enrolled in AVUHSD 131.9 Black students are stopped by police__. 
 
-Students perceived as Latinx made up 38.2% of all stops in AVUHSD, and the current enrollment rate of Latinx students is 67.2%. Latinx students have the second highest rate of stops out of all student groups.
+Students perceived as Latinx made up 38.2% of all stops in AVUHSD, and the current enrollment rate of Latinx students is 67.2%. __Latinx students have the second highest rate of stops out of all student groups__.
 
 Students perceived as White made up 7.9% of all stops in AVUHSD but their current enrollment rate is 8.9%. 
 
 When looking at stops that are calls for service versus stops that are not calls for service, we see that students perceived as Black have a higher count of stops that were not a call for service compared to a call for service. Out of all people stopped for a stop that was not a call for service in AVUHSD, 58.2% of those people were perceived as Black. In other words, __more than half of the people being stopped without a call for service in AVUHSD are perceived as Black.__ Conversely, only 5.1% of people perceived as White are stopped for a stop that is not a call for service. 
 
-Students with disabilities make up 2.5% of all stops in AVUHSD, or a total of 23 students with disabilities were stopped. The table below shows the stop reasons for the 23 people with disabilities who were stopped.
+Students with disabilities make up 2.5% of all stops in AVUHSD, or a total of __23 students with disabilities were stopped__ according to police officer's own data between 2018-2023. It is important to note that police stops of students with disabilities is severely under-counted, as reported by several external sources.
 
+The table below shows the stop reasons for the 23 people with disabilities who were stopped and recorded in the RIPA dataset.
 
 ```{r}
 
@@ -241,26 +325,40 @@ lasd_persons <- dbGetQuery(con_shared, "SELECT * FROM crime_and_justice.lasd_sto
 av_stops <- lasd_incidents %>% left_join(lasd_persons, by = "contact_id")
 
 av_disabled <- av_stops %>% filter(no_disabilities %in% c("false", "No"))%>%
-  select(call_for_service, reason_for_contact, reason_for_contact_narrative)
+  select(reason_for_contact, reason_for_contact_narrative)%>%
+  rename("Reason for contact detail"="reason_for_contact_narrative")%>%
+    rename_with(~ str_replace_all(.x, "_", " ") %>%
+                str_to_lower() %>%
+                str_replace("^\\w", ~ toupper(.x)))
 
 # Make table:
 
   flextable(av_disabled) %>%
-  set_caption('Stops of students with disabilities in AVUHSD from 2018-2023') %>%
+  set_caption('Stops of students with disabilities in AVUHSD by Stop Reason') %>%
   theme_vanilla() %>%
-  width(width=2,unit="in")
+  width(width=3.5,unit="in")
 
 
 ```
 
-Examining the __stop reasons for people stopped in AVUHSD__, nearly half of stops were for school fights and smoking marijuana, neither of which should require law enforcement.
+Examining the __stop reasons for people stopped in AVUHSD__, nearly half of stops were for __school fights__ and __smoking marijuana__, neither of which should require law enforcement.
 
-Whether in response to a call or by officer choice, law enforcement said there was a reasonable suspicion that the person was engaged in criminal activity in roughly 90% of stops of students. The other 10% of stops were because of a consensual encounter and search, to determine if a student violated a school policy, to determine whether a student in truant, an outstanding arrest warrant, a possible Ed Code violation, or traffic violation.
+Whether in response to a call or by officer choice, law enforcement said there was a __reasonable suspicion__ that the person was engaged in criminal activity in roughly __90% of stops of students__. The other 10% of stops were because of a consensual encounter and search, to determine if a student violated a school policy, to determine whether a student in truant, an outstanding arrest warrant, a possible Ed Code violation, or traffic violation.
 
 Whether a student violated a school policy or Ed Code should be investigated by school staff NOT law enforcement. That was 4.2% of the stop reasons for people stopped in AVUHSD.
 
 ```{r}
-stops_reason_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_avuhsd WHERE geography = 'Antelope Valley Union High School District'")%>%filter(universe=='All stops')%>%arrange(-stops_reason_rate)
+stops_reason_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_avuhsd WHERE geography = 'Antelope Valley Union High School District'")%>%
+  filter(universe=='All stops')%>%
+  arrange(-stops_reason_rate)%>%
+  select(geography, reason_for_contact, stops_reason_count, stops_reason_rate)%>%
+  mutate(stops_reason_rate=round(stops_reason_rate,1))%>%
+  rename("Count"="stops_reason_count",
+         "Rate"="stops_reason_rate")%>%
+      rename_with(~ str_replace_all(.x, "_", " ") %>%
+                str_to_lower() %>%
+                str_replace("^\\w", ~ toupper(.x)))
+
 
   flextable(stops_reason_avuhsd) %>%
   set_caption('Stops of students in AVUHSD by stop reason') %>%
@@ -270,7 +368,10 @@ stops_reason_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_avuhsd
  
 ```
  
-Out of all people stopped in AVUHSD, 13% were stopped because the officer had a reasonable suspicion that the person was engaged in criminal activity were due to the student matching the a description. Stops where someone matches a description are fraught with error.
+Out of all people stopped in AVUHSD, __13% were stopped because the officer had a reasonable suspicion that the person was engaged in criminal activity__ were due to the __student matching the a description__. Stops where someone matches a description are fraught with error.
+
+Law enforcement also stopped students for __a number unnecessary reasons__ including disrupting classwork, disruption of school activities, willfully disturbing a school zone, loud noise, litter, jaywalking, bothering other children, possessing unlawful paraphernalia. Out of all people stopped in AVUHSD, __15.2% were stopped for fighting in a public place__ and __12.3% were stopped for possession of marijuana on school grounds__. 
+
 
 ```{r}
 
@@ -278,20 +379,23 @@ stops_reason_rs_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_rs_
  
   # change denominator to be out of all people stopped: 904 
 df<-  stops_reason_rs_avuhsd%>%
+  rename("Reasonable suspicion detail"="reasonable_suspicion_reason")%>%
   mutate(total=904,
          rate=round(count/904*100, 1))%>%
-  arrange(-rate)
+  arrange(-rate)%>%
+  rename_with(~ str_replace_all(.x, "_", " ") %>%
+                str_to_lower() %>%
+                str_replace("^\\w", ~ toupper(.x)))
 
  flextable(df) %>%
-  set_caption('Stops of students for Reasonable Suspicion') %>%
+  set_caption('Stops of people in AVUHSD for Reasonable Suspicion by Reason Detail') %>%
   theme_vanilla() %>%
   width(width=2,unit="in")
 
 ```
 
-Diving deeper into the specific reasonable suspicion stop reasons, law enforcement stopped students for a number unnecessary reasons including disrupting classwork, disruption of school activities, willfully disturbing a school zone, loud noise, litter, jaywalking, bothering other children, possessing unlawful paraphernalia. Out of all people stopped in AVUHSD, 15.2% were stopped for fighting in a public place and 12.3% were stopped for possession of marijuana on school grounds. 
 
-```{r}
+```{r, include=FALSE}
 stops_reason_rs_codes_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_rs_codes_avuhsd")%>%
   slice(1:9)%>%
   select(-deactive)%>%
@@ -305,24 +409,28 @@ stops_reason_rs_codes_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reas
 
 ```
 
-When examining what the __stop results are for people stopped in AVUHSD__, the most common stop result is an in field cite and release, followed by some form of contacting a guardian or school administrator. Police action is not necessary for student behaviors that require guardian or school administrator referrals.  
+When examining what the __stop results are for people stopped in AVUHSD__, the most common stop result is __in field cite and release__, followed by some form of __contacting a guardian or school administrator__. Police action is not necessary for student behaviors that require guardian or school administrator referrals.  
 
 ```{r}
 
 
 stops_result_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_result_avuhsd") %>%
-  mutate(rate=round(as.numeric(rate), 1))
+  mutate(rate=round(as.numeric(rate), 1))%>%
+    mutate(stop_result = str_replace(stop_result, "^\\s*\\w", ~ toupper(.x)))%>%
+    rename_with(~ str_replace_all(.x, "_", " ") %>%
+                str_to_lower() %>%
+                str_replace("^\\w", ~ toupper(.x)))
 
   flextable(stops_result_avuhsd) %>%
-  set_caption('Results of Stops in AVUHSD Schools') %>%
+  set_caption('Results of Stops of People in AVUHSD Schools') %>%
   theme_vanilla() %>%
   width(width=2,unit="in")
   
 ```
 
-Diving deeper into the stops that resulted in an in field cite and release, the table below shows the most common in field cite and release codes given as a result of a stop. 
+Officers can provide an offense code to accompany a stop that resulted in an in field cite and release which gives more detail about the in field citation. __Officers did not provide an offense code for nearly half of the people they stopped__ and gave an in field cite and release. Out of all people officers gave an in field cite and release, __41% were for fighting or possession of marijuana__.  
 
-```{r}
+```{r, include=FALSE}
 
 infield<-av_stops%>%select(contact_id, person_id, result_of_contact_in_field_cite_and_release, result_of_contact_in_field_cite_and_release_offense_codes)%>%
   group_by(result_of_contact_in_field_cite_and_release_offense_codes)%>%
@@ -361,15 +469,13 @@ infield_top<-infield%>%
 
 ## C.	LASD’s racially discriminatory practices apply to AV youth outside the classroom as well
 
-In 2023 LASD stopped 31,818 people in the AV. Of all people stopped, 6,974 people were stopped for a call for service, or only 22% of all people stopped. Conversely, 24,844 people were stopped in an officer-initiated stop, or 78% of all people stopped. 
+In 2023 LASD stopped 31,818 people in the AV. Of all people stopped, 6,974 people were stopped for a call for service, or only 22% of all people stopped. Conversely, __24,844 people were stopped in an officer-initiated stop__, or __78% of all people stopped__. 
 
-When comparing the stop rates across age ranges, there are very minor differences in stop rates with a call for service and without a call for service. However, the only age range where there is a large difference between a call for service and not call for service is for those age 17 and under. Stops with call for service for youth age 17 and under is 8.2% while the stop rate for stops that were not a call for service is 1.6% for youth age 17 and under. 
+Black people in the AV are disproportionately stopped relative to their total population. We see that __31.6% of all stops in the AV are of people perceived as Black__, while __only 14.8% of the AV's population is Black__. This disproportionality is also reflected in stops of students perceived as Black relative to Black student enrollment in AVUHSD schools. 
 
-Black people in the AV are disproportionately stopped relative to their total population. We see that 31.6% of all stops in the AV  are of people perceived as Black , while only 14.8% of the AV's population is Black. This disproportionality is also reflected in stops of students perceived as Black relative to Black student enrollment in AVUHSD schools. 
+We also see a high rate of Latinx people being stopped by police in the AV, as they make up 47.4% of all stops in the AV. While 53.6% of AV's population is Latinx that is still a high burden of stops being experienced by the Latinx community.
 
-We also see a high rate of Latinx people being stopped in the AV, as they make up 47.4% of all stops in the AV. While 53.6% of AV's population is Latinx that is still a high burden of stops being experienced by the Latinx community.
-
-Conversely, 24% of the AV's general population is White yet people perceived as White only make up 18.5% of all AV stops, indicating that there is racial bias in who is being stopped by police in the AV. 
+Conversely, __24% of the AV's general population is White__ yet __people perceived as White only make up 18.5% of all AV stops__, indicating that there is racial bias in who is being stopped by police in the AV. 
 
 
 ```{r}
@@ -382,7 +488,7 @@ stops_age_race<-dbGetQuery(con, "SELECT * FROM analysis_stops_age_by_race")
 
 ```
 
-Examining stop reasons for people stopped in the AV, the most common stop reason for anyone above the age of 17 is traffic violations. This is consistent with police stop behavior in LA county and other jurisdictions. 
+Examining stop reasons for people stopped in the AV, the most common stop reason for anyone above the age of 17 is traffic violations. This is consistent with police stop behavior in county-wide and other jurisdictions. 
 
 ```{r}
 
