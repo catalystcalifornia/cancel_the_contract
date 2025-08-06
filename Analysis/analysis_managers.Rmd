@@ -33,7 +33,7 @@ spa <- dbGetQuery(con_shared, "SELECT * FROM crosswalks.lacounty_health_district
 # Pull out the tracts for spa 1
 ct_av <- spa$ct_geoid
 
-# Get crosswalk of tracts to PUMAs using 2020 PUMA data and 2020 tract data for CA
+# Get crosswalk of tracts to PUMAs (uses 2020 PUMA data and 2020 tract data for CA)
 xwalk <- dbGetQuery(con_shared, "SELECT *FROM crosswalks.puma_tract_xwalk_2020")
 
 # Filter crosswalk for AV tracts only
@@ -47,6 +47,11 @@ puma_av <- paste0("06",puma_av)
 # define variables used throughout - update each year
 curr_yr <- 2023 
 start_yr <- curr_yr - 4  # autogenerate start yr of 5yr estimates
+
+### define common inputs for calc_pums{} and pums_screen{}
+indicator = 'officials'         # name of column that contains indicator data, eg: 'living_wage' which contains values 'livable' and 'not livable'
+indicator_val = 'officials'     # desired indicator value, eg: 'livable' (not 'not livable')        
+weight = 'PWGTP'                # PWGTP for person-level (psam_p06.csv) or WGTP for housing unit-level (psam_h06.csv) analysis
 ```
 
 # Get PUMS Data -----------------------------------------------------------
@@ -85,43 +90,54 @@ ppl <- ppl %>%
 ```{r}
 source("W:/RDA Team/R/Github/RDA Functions/main/RDA-Functions/PUMS_Functions_new.R")    
 
-
 # latino includes all races. AIAN is AIAN alone/combo latino/non-latino, NHPI is alone/combo latino/non-latino, SWANA includes all races and latino/non-latino
 ppl <- race_reclass(ppl, start_yr, curr_yr)
 
-# I need latino and race in one column
-# copied from https://github.com/catalystcalifornia/fresnoripa/blob/main/Prep/population_estimates_sex_race.R
-## nh_race groups
-ppl$nh_race = as.factor(ifelse(ppl$RAC1P == 1 & ppl$latino =="not latino", "nh_white",
-                                ifelse(ppl$RAC1P == 1 & ppl$latino =="latino", "latino",
-                                       ifelse(ppl$RAC1P == 2 & ppl$latino =="not latino", "nh_black",
-                                              ifelse(ppl$RAC1P == 2 & ppl$latino =="latino", "latino",
-                                                     ifelse(ppl$RAC1P == 6 & ppl$latino =="not latino", "nh_asian",
-                                                            ifelse(ppl$RAC1P == 6 & ppl$latino =="latino", "latino",
-                                                                   ifelse(ppl$RAC1P == 8 & ppl$latino =="not latino", "nh_other", 
-                                                                          ifelse(ppl$RAC1P == 8 & ppl$latino =="latino", "latino",
-                                                                                 ifelse(ppl$RAC1P == 9 & ppl$latino =="not latino", "nh_twoormor",
-                                                                                        ifelse(ppl$RAC1P == 9 & ppl$latino =="latino", "latino",
-                                                                                               ifelse(ppl$RAC1P %in% c(3,4,5) & ppl$latino =="latino", "latino",
-                                                                                                      ifelse(ppl$RAC1P %in% c(3,4,5) & ppl$latino =="not latino", "nh_aian",
-                                                                                                             ifelse(ppl$RAC1P==7 & ppl$latino =="latino", "latino",
-                                                                                                                    ifelse(ppl$RAC1P==7 & ppl$latino =="not latino", "nh_pacisl", NA)))))))))))))))
+table(ppl$race)
+table(ppl$aian)
+table(ppl$latino)
+table(ppl$swana)
+table(ppl$pacisl)
 
-# review
-check <- ppl %>%
-  group_by(race,latino,nh_race) %>%
-  summarise(count=n())
+# create columns nh_aian, nh_nhpi
+ppl_nh <- ppl %>%
+  mutate(nh_aian = ifelse(aian=="aian" & latino=="not latino", "nh_aian", "not nh_aian"),
+         nh_nhpi = ifelse(pacisl=="pacisl" & latino=="not latino", "nh_nhpi", "not nh_nhpi"))
+
 ```
 
 ##### Classify SSWANA ########
 ```{r}
-# need "nh_asian_wo_sa" and "sswana". check ANC1P with PUMS data dictionary
+# I need columns nh_asian_wo_sa and sswana, which I can make once I create a south_asian column. 
 
-sswana_list <- read.excel("W:/Project/RJS/CTC/Data/SWANA_SoAsian_Ancestry.xlsx")
+# reference from av_race_pop.R
+soasian_list<-list("Asian Indian", "Bangladeshi", "Bhutanese","Maldivian","Nepalese","Pakistani","Sikh","Sindhi","Sri Lankan","Other South Asian")
 
-d1 <- read.csv("W:/Project/RJS/CTC/Data/PUMS_Data_Dictionary_2019-2023.csv", skip=1969)
+# read in PUMS data dictionary at the row where ANC1P starts and filter for south asian ancestries
+pums_dict <- read.csv("W:/Project/RJS/CTC/Data/PUMS_Data_Dictionary_2019-2023.csv", skip=1808)%>%
+  rename(ancestry = Austrian, code = X003) %>%
+  select(ancestry, code) %>% 
+  filter(ancestry %in% soasian_list)
 
-d2 <- d1 %>%
+# create south asian column
+ppl_soasian <- ppl_nh %>%
+  mutate(soasian = ifelse(ANC1P %in% pums_dict$code | ANC2P %in% pums_dict$code, "south asian", "not south asian"))
+
+# qa check
+qa <- ppl_soasian %>%
+  select(ANC1P, ANC2P, soasian) %>%
+  filter(soasian == "south asian") %>%
+  left_join(pums_dict, by = c("ANC1P"="code")) %>%
+  left_join(pums_dict, by = c("ANC2P"="code"))
+table(qa$ancestry.x)
+table(qa$ancestry.y)
+
+# create columns nh_asian_wo_sa and sswana
+ppl_sswana <- ppl_soasian %>%
+  mutate(nh_asian_wo_sa = ifelse(race=="nh_asian" & soasian=="not south asian", "nh_asian_wo_sa", "not nh_asian_wo_sa"),
+        sswana = ifelse(swana=="swana" & soasian=="south asian", "sswana", "not sswana"))
+
+ppl <- ppl_sswana
 ```
 
 
@@ -140,8 +156,10 @@ ppl$offmgr <-
 
 # review
 summary(ppl$offmgr)
+sum(ppl$offmgr)
 
-## Code for labor force status: ESR on p56 of PUMS_Data_Dictionary_2023.pdf
+
+## Code for labor force status: ESR on p56 of PUMS_Data_Dictionary_2023.pdf https://www2.census.gov/programs-surveys/acs/tech_docs/pums/data_dict/PUMS_Data_Dictionary_2023.pdf
 table(ppl$ESR, useNA = "always")
 
 # NOTE: 'This includes 4-Armed forces, at work' and '5-Armed forces, with a job but not at work'. It excludes '6-Not in labor force'.
@@ -161,11 +179,9 @@ table(ppl$indicator, useNA = "always")
 
 ############### CALC PUMA ESTIMATES/CVS ETC. ############### 
 ```{r}
-ppl_puma <- left_join(ppl, xwalk_puma_ct, by=c("puma_id" = "puma_geoid")) %>%
-  rename(geoid = ct_geoid) %>%
-  mutate(geoname="NA") %>%
-  filter(puma_id %in% puma_av)
-managers <- calc_pums(d = ppl_puma, indicator, indicator_val, weight)
+ppl_calc <- ppl %>% mutate(geoid = "", geoname = "Antelope Valley")
+
+managers <- calc_pums(d = ppl_calc, indicator, indicator_val, weight)
 ```
 
 
