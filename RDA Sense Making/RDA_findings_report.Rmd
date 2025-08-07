@@ -1,6 +1,6 @@
 ---
-title: "Cancel the Contract Preliminary Research Findings"
-subtitle: "Rough Draft"
+title: "Preliminary Research Findings"
+subtitle: "Cancel the Contract Project"
 author: "By Catalyst California"
 output:
   html_document:
@@ -34,6 +34,7 @@ source("W:\\RDA Team\\R\\credentials_source.R")
 con <- connect_to_db("cancel_the_contract")
 con_shared <- connect_to_db("rda_shared_data")
 con_fresno<- connect_to_db("eci_fresno_ripa")
+con_rc<-connect_to_db("racecounts")
 
 # data dictionary
 dict<-dbGetQuery(con, "SELECT * FROM data_dictionary")
@@ -57,15 +58,19 @@ FitFlextableToPage <- function(ft, pgwidth = 6.5){
 
 All people in the AV deserve to live in safety.  This includes freedom from police violence, as well as conditions that create well-being and opportunities to thrive.  For people of color, especially Black and Latinx youth, safety is often undermined by LA Sheriff’s Department (LASD) and high school district practices that push youth of color out of schools and into the criminal legal system (such as disproportionate suspensions, expulsions, and arrests).  More broadly, for Black and Latinx AV residents, a sense safety is undermined by inequities in other sectors, such as housing and economic insecurity. 
 
-Education data shows that __students of color are being funneled out of the classroom through expulsions and suspensions__. Black students experience the highest rate of suspensions relative to all other student groups. Students with disabilities are also being suspended out of AVUHSD schools at high rates. The disparities in suspension and expulsion rates demonstrate the need for more investments into better school supports and counseling as opposed to removing students from the classrooms. 
+## A. Summary of research findings
 
-Police activity is analyzed using the LASD RIPA data set. RIPA data contains information that police officers are legally required to input for each police stop they make. Because RIPA data is only input by officers, it is important to note that the data is only based on officer perceptions and therefore can contain errors and under reporting. The RIPA data cannot capture the experiences of those being stopped by officers. 
+Below is a summary of our preliminary research findings. All of the data can be explored more in-depth throughout the page: 
+
+Education data shows that __students of color are being funneled out of the classroom through expulsions and suspensions__. Black students experience the highest rate of suspensions relative to all other student groups. Students with disabilities are also being suspended out of AVUHSD schools at high rates. Conversely, these student groups also have __lower graduation rates compared to White students__. These disparities demonstrate the systemic biases that are harming students of color, and the urgent need for more investments in better school supports and counseling. 
+
+Police activity is analyzed using the [LASD RIPA data set](https://data.lacounty.gov/datasets/lacounty::sheriff-officer-contacts-person-details-/about). RIPA data contains information that police officers are legally required to input for each police stop they make. Because RIPA data is only input by police officers, it is important to note that the data is only based on officer perceptions and therefore can contain errors and under reporting. The RIPA data cannot capture the experiences of those being stopped by officers. 
 
 Preliminary research findings show that __Black and Latinx youth are disproportionately being stopped by police in Antelope Valley Union High School District (AVUHSD) schools__. Black students in particular are being disproportionately impacted by police relative to their over-all enrollment in AVUHSD. Stops of students with disabilities are severely under-reported in the RIPA data. 
 
-The majority of people stopped in AVUHSD schools are __stopped for reasons related to school fighting or possession of marijuana__. Additional stop reasons include non-serious offenses including jaywalking or violating education codes.
+The majority of people stopped in AVUHSD schools are __stopped for reasons related to school fighting or possession of marijuana__. Additional stop reasons include non-serious offenses such as jaywalking or violating education codes.
 
-The results of people being stopped in AVUHSD schools further corroborates that police activity is not being used towards serious crime. __Most stops in AVUHSD schools result in an in field cite and release__, or some form of __referral to a parent, guardian or school administrator__. 
+The results of people being stopped in AVUHSD schools further corroborates that police activity is not being used to prevent serious crime. __Most stops in AVUHSD schools result in an in field cite and release__, or some form of __referral to a parent, guardian or school administrator__. 
 
 The racial disparities in police stops extend beyond AVUHSD schools to the greater Antelope Valley region. Police disproportionately stop people they perceive as Black relative to the general Black population in the Antelope Valley. __People perceived as Latinx by police make up nearly half of all the stops police make in the Antelope Valley__. 
 
@@ -166,13 +171,47 @@ panel.background = element_blank())+
 
 Our education analysis for the AV focuses on the Antelope Valley Union High School District (AVUHSD). Enrollment data for AVUHSD is for the 2024-2025 academic year. In AVUHSD there are more Black and Latinx students than White students. __Students with disabilities have a 17.8% enrollment rate__ in AVUHSD.
 
+Comparatively, LA county student enrollment also has a high proportion of Latinx students at 65.2% compared to 67.2% in AVUHSD. However, the __Black student enrollment rate for LA county is only 6.7%, compared to 16.6% in AVUHSD.__ Additionally, __students with disabilities make up 14.8% of total student enrollment in LA county.__ 
+
 ```{r}
 
 # AVUHSD Enrollment Data
 
 enrollment <- dbGetQuery(con_shared, "SELECT * FROM education.cde_multigeo_enrollment_census_day_2024_25")
 
-# get Antelope Valley Union High School District enrollment
+# get LAC enrollment
+lac_enr<-enrollment%>%
+  filter(aggregatelevel=="C" & countycode=="19" & charter == "ALL" )%>%
+    filter(grepl("RE_|TA|SG_DS", reportingcategory))%>%
+   mutate(total = total_enr[reportingcategory == "TA"])%>%
+  filter(!grepl("TA", reportingcategory))%>%
+   mutate(reportingcategory_re=ifelse(reportingcategory %in% "RE_B", "nh_black",
+                                     ifelse(reportingcategory %in% "RE_I", "nh_aian", 
+                                            ifelse(reportingcategory %in% "RE_A", "nh_asian", 
+                                                   ifelse(reportingcategory %in% "RE_F", "nh_filipino",  
+                                                          ifelse(reportingcategory %in% "RE_H", "latinx", 
+                                                                 ifelse(reportingcategory %in% "RE_D", "missing_race",
+                                                                        ifelse(reportingcategory %in% "RE_P", "nh_nhpi",  
+                                                                               ifelse(reportingcategory %in% "RE_T", "nh_twoormor",  
+                                                                                      ifelse(reportingcategory %in% "RE_W", "nh_white", 
+                                                                                             reportingcategory))))))))))%>%
+    mutate(race_label=ifelse(reportingcategory %in% "RE_B", "Black",
+                                     ifelse(reportingcategory %in% "RE_I", "AIAN", 
+                                            ifelse(reportingcategory %in% "RE_A", "Asian", 
+                                                   ifelse(reportingcategory %in% "RE_F", "Filipinx",  
+                                                          ifelse(reportingcategory %in% "RE_H", "Latinx", 
+                                                                 ifelse(reportingcategory %in% "RE_D", "Missing race",
+                                                                        ifelse(reportingcategory %in% "RE_P", "NHPI",  
+                                                                               ifelse(reportingcategory %in% "RE_T", "Multiracial",  
+                                                                                      ifelse(reportingcategory %in% "RE_W", "White", 
+                                                                                             reportingcategory))))))))))%>%
+  
+  select(race_label, total_enr, total)%>%
+  mutate(rate=total_enr/total*100)%>%
+  arrange(-rate)
+
+
+# get Antelope Valley Union High School District enrollment------------------
 av_enrollment <- enrollment %>% filter(districtname == "Antelope Valley Union High" & charter == "ALL")%>%
   filter(grepl("RE_|TA", reportingcategory))%>%
   mutate(total = total_enr[reportingcategory == "TA"])%>%
@@ -254,12 +293,24 @@ panel.background = element_blank())+
 Students with disabilities have a __lower graduation rate at 60.4%__, demonstrating that these students should be having more time in classrooms and less time interacting with police. 
 Latinx (79.4%) and Black students (72.7%) have __lower graduation rates__ relative to other racial groups and they are the majority of the student population. 
 
-White students have a 5.1% suspension rate compared to 6.2% for Latinx students and 18.1% for Black students. __Black students are being suspended at more than triple the rate of White students__, showing how students of color are disproportionately losing time in the classroom. __Students with disabilities also have a high suspension rate at 13.7%__. 
+White students have a 5.1% suspension rate compared to 6.2% for Latinx students and 18.1% for Black students. __Black students are being suspended at more than triple the rate of White students in AVUHSD__, showing how students of color are disproportionately losing time in the classroom. __Students with disabilities also have a high suspension rate at 13.7%__. 
 
-Expulsion rates show similar trends although rates in a vacuum are not high. Black students have the highest expulsion rate out of all student groups, while White students have the lowest.
+In LA county, Black students also have the highest suspension rates of all student groups at 5.6%, while Latinx students have a 1.9% suspension rate.
+
+Expulsion rates in AVUHSD show similar trends although rates in a vacuum are not high. Black students have the highest expulsion rate out of all student groups, while White students have the lowest.
+
+In AVUHSD, __only 60.4% of students with disabilities are graduating__, while 80.4% of White students are graduating. __Graduation rates for Latinx students in AVUHSD are lower compared to county-wide rates.__ The graduation rate for Latinx students in AVUHSD is 79.4%, while the Latinx student graduation rate in LA county is 85.6%. AVUHSD should be investing more of its resources in supporting its students academic success as opposed to removing them from classrooms. 
 
 ```{r}
+#la county tables
+susp_lac<-dbGetQuery( con_rc, "SELECT * FROM v7.arei_educ_suspension_county_2025 WHERE county_id = '06037'")%>%
+   select(contains("_rate"))%>%
+  pivot_longer(cols = 1:9, names_to = "var", values_to="value")
 
+grad_lac<-dbGetQuery( con_rc, "SELECT * FROM v7.arei_educ_hs_grad_county_2025 WHERE county_id = '06037'")%>%
+   select(contains("_rate"))%>%
+  pivot_longer(cols = 1:9, names_to = "var", values_to="value")
+  
 # School analysis tables
 expulsions<-dbGetQuery(con, "SELECT * FROM analysis_expulsions")
 grad<-dbGetQuery(con, "SELECT * FROM analysis_graduation")
@@ -281,7 +332,7 @@ When looking at stops that are calls for service versus stops that are not calls
 
 Students with disabilities make up 2.5% of all stops in AVUHSD, or a total of __23 students with disabilities were stopped__ according to police officer's own data between 2018-2023. It is important to note that police stops of students with disabilities is severely under-counted, as reported by several external sources.
 
-The table below shows the stop reasons for the 23 people with disabilities who were stopped and recorded in the RIPA dataset.
+The table below shows the stop reasons for the 23 people with disabilities who were stopped and recorded in the RIPA data set.
 
 ```{r}
 
@@ -345,7 +396,7 @@ Examining the __stop reasons for people stopped in AVUHSD__, nearly half of stop
 
 Whether in response to a call or by officer choice, law enforcement said there was a __reasonable suspicion__ that the person was engaged in criminal activity in roughly __90% of stops of students__. The other 10% of stops were because of a consensual encounter and search, to determine if a student violated a school policy, to determine whether a student in truant, an outstanding arrest warrant, a possible Ed Code violation, or traffic violation.
 
-Whether a student violated a school policy or Ed Code should be investigated by school staff NOT law enforcement. That was 4.2% of the stop reasons for people stopped in AVUHSD.
+Whether a student __violated a school policy or Ed Code__ should be investigated by school staff NOT law enforcement. That was __4.2% of the stop reasons for people stopped in AVUHSD.__
 
 ```{r}
 stops_reason_avuhsd<-dbGetQuery(con, "SELECT * FROM analysis_stops_reason_avuhsd WHERE geography = 'Antelope Valley Union High School District'")%>%
@@ -473,7 +524,7 @@ In 2023 LASD stopped 31,818 people in the AV. Of all people stopped, 6,974 peopl
 
 Black people in the AV are disproportionately stopped relative to their total population. We see that __31.6% of all stops in the AV are of people perceived as Black__, while __only 14.8% of the AV's population is Black__. This disproportionality is also reflected in stops of students perceived as Black relative to Black student enrollment in AVUHSD schools. 
 
-We also see a high rate of Latinx people being stopped by police in the AV, as they make up 47.4% of all stops in the AV. While 53.6% of AV's population is Latinx that is still a high burden of stops being experienced by the Latinx community.
+We also see a __high rate of Latinx people being stopped by police in the AV__, as they make up 47.4% of all stops in the AV. While 53.6% of AV's population is Latinx that is still a high burden of stops being experienced by the Latinx community.
 
 Conversely, __24% of the AV's general population is White__ yet __people perceived as White only make up 18.5% of all AV stops__, indicating that there is racial bias in who is being stopped by police in the AV. 
 
