@@ -1,6 +1,4 @@
-#Households with children under 5 paying 50% or more of their income on rent
-# get LA County households under 5 paying 50%+ for rent as a percentage of all
-# LA County households under 5
+# SPA 1 households paying 30% or more of their income on rent
 # Data Dictionary: https://www2.census.gov/programs-surveys/acs/tech_docs/pums/data_dict/PUMS_Data_Dictionary_2018-2022.pdf
 
 library(tidyverse)
@@ -13,10 +11,11 @@ library(stringr)
 #SOURCE from the script that has: styling, packages, dbconnection, colors
 source("W:\\RDA Team\\R\\credentials_source.R")
 
-
+con <- connect_to_db("f5la_v2")
+con_ctc <- connect_to_db("cancel_the_contract")
 
 # Function to output cost burden data for year I enter
-cost_burden_race_function <- function(year) {
+cost_burden_race_function <- function(year, xwalk) {
   
   
   
@@ -60,16 +59,30 @@ cost_burden_race_function <- function(year) {
                                                by = c("SERIALNO", "PUMA")) %>%
     
     #remove records with no weights
-    filter(!is.na(WGTP)) %>%
+    filter(!is.na(WGTP)) #%>%
     
     #filter for age 0-5 and select distinct households
-    filter(AGEP < 5) %>% distinct(SERIALNO, .keep_all = TRUE)
+    #filter(AGEP < 5) %>% distinct(SERIALNO, .keep_all = TRUE)
   
   
-  #### Step 4: Set up surveys and calculate percentages by race/ethnicity
+  #### Step 4: get PUMA SPA xwalk and join ####
+  
+  #get puma-spa xwalk
+  conn <- connect_to_db("f5la_v2")
+  puma_spa_xwalk <- st_read(conn, query = xwalk)
+  dbDisconnect(conn)
+  
+  # join
+  hh <- eligible_hhs %>% left_join(puma_spa_xwalk, by = "PUMA", relationship = "many-to-many") %>%
+    
+    # and filter for SPA 1
+    filter(SPA == '1')
+  
+  
+  #### Step 5: Set up surveys and calculate percentages by race/ethnicity
   
   # set threshold
-  threshold = 50
+  threshold = 30
   
   # survey design code
   
@@ -80,7 +93,6 @@ cost_burden_race_function <- function(year) {
   repwlist = rep(paste0("WGTP", 1:80))
   
   # prep data and add in burdened indicator
-  hh <- eligible_hhs
   hh$geoid <- "037"
   
   hh<-hh%>%
@@ -221,28 +233,77 @@ cost_burden_race_function <- function(year) {
              subgroup != "Latinx placeholder")
   
   d_long <- as.data.frame(d_long)
-  d_long$geoid <- "06037"
+  d_long$geoid <- "SPA 1"
   d_long$year <- year
-  d_long$universe <- "Owner households with 0-5"
+  d_long$universe <- "Renter households"
   d_long <- d_long %>% select(year, universe, geoid, everything())
   
-  # #write to one bigger csv with all data years
-  write.csv(d_long, file = paste0("W:/Project/RDA Team/First5LA/Ad-hoc Research/Laura ask housing update/Rent Burden/", indicator_name,"_",data_type,"_all",".csv"))
+  # write to one bigger csv with all data years
+  # write.csv(d_long, file = paste0("./cost_burden.csv"))
   
   # for copy/pasting in template
-  final_wide <- data.frame()
-  final_wide <- d_long %>% select(subgroup, rate) %>% pivot_wider(names_from = subgroup, values_from = rate) %>%
-    select('AIAN Alone or in Combination', 'Asian NL', 'Black NL', 'Latinx', 'NHPI Alone or in Combination', 'White NL', 'SWANA', 'Other NL', 'Two or More NL')
+  # final_wide <- data.frame()
+  # final_wide <- d_long %>% select(subgroup, rate) %>% pivot_wider(names_from = subgroup, values_from = rate) %>%
+  #  select('AIAN Alone or in Combination', 'Asian NL', 'Black NL', 'Latinx', 'NHPI Alone or in Combination', 'White NL', 'SWANA', 'Other NL', 'Two or More NL')
   
-  return(final_wide)
+  return(d_long)
 }
 
 
 # run for 2014-2018 5-year estimates
-df_2014_2018 <- cost_burden_race_function("2014_2018")
+# df_2014_2018 <- cost_burden_race_function("2014_2018", "SELECT * FROM puma_spa_xwalk_2019")
 
 # run for 2019-2023 5-year estimates
-df_2019_2023 <- cost_burden_race_function("2019_2023")
+df_2019_2023 <- cost_burden_race_function("2019_2023", "SELECT * FROM puma_spa_xwalk_2022")
 
 
+############### PUSH TABLE TO POSTGRES #####################
+
+# set column types
+
+charvect = rep("varchar", ncol(df_2019_2023)) #create vector that is "varchar" for the number of columns in df
+charvect <- replace(charvect, c(6:15), c("numeric"))
+
+# add df colnames to the character vector
+ 
+names(charvect) <- colnames(df_2019_2023)
+
+table_name <- "analysis_rent_burden"
+schema <- "data"
+indicator <- "Rent Burden by Race, SPA 1 2019-2023"
+source <- "R script: W://Project//RJS//CTC//Github//CR//cancel_the_contract//Analysis//analysis_rent_burden.R"
+qa_filepath <- "W://Project//RJS//CTC//Documentation//QA_analysis_rent_burden.docx"
+table_comment <- paste0(indicator, source)
+ 
+# push to postgres
+dbWriteTable(con_ctc, table_name, df_2019_2023,
+              overwrite = TRUE, row.names = FALSE,
+              field.types = charvect)
+ 
+# add meta data
+ 
+column_names <- colnames(df_2019_2023) # Get column names
+ column_comments <- c(
+   "ACS PUMS vintage",
+   "Universe",
+   "Geography",
+   "Total or Racial-ethnic group",
+   "indicator",
+   "Number (numerator)",
+   "Number standard error",
+   "Rate",
+   "Rate standard error",
+   "Population (denominator)",
+   "Population standard error",
+   "Rate margin of error",
+   "Rate coefficient of variation",
+   "Number margin of error",
+   "Number coefficient of variation"
+)
+ 
+add_table_comments(con_ctc, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
+
+
+dbDisconnect(con_ctc)
+dbDisconnect(con)
 
