@@ -7,7 +7,7 @@ output: html_document
 # Load packages, connect to postgres, get spatial data
 ```{r}
 # Install packages if not already installed
-packages <- c("data.table", "readxl", "stringr", "dplyr", "RPostgres", "dbplyr", "srvyr", "tidycensus", "rpostgis",  "tidyr", "here", "sf", "usethis") 
+packages <- c("data.table", "readxl", "stringr", "dplyr", "RPostgres", "dbplyr", "srvyr", "tidycensus", "rpostgis",  "tidyr", "here", "sf", "usethis","purrr") 
 
 install_packages <- packages[!(packages %in% installed.packages()[,"Package"])]
 if(length(install_packages) > 0) {
@@ -25,6 +25,7 @@ options(scipen = 100) # disable scientific notation
 # Connect to postgres 
 source("W:\\RDA Team\\R\\credentials_source.R")
 con_shared<-connect_to_db("rda_shared_data")
+con<-connect_to_db("cancel_the_contract")
 
 # Grab SPA-tract xwalk so that we can get all tracts within SPA 1 which we are using as our AV geography. Census tracts are 2023.
 spa <- dbGetQuery(con_shared, "SELECT * FROM crosswalks.lacounty_health_district_spa_tract_2022")%>%
@@ -47,14 +48,9 @@ puma_av <- paste0("06",puma_av)
 # define variables used throughout - update each year
 curr_yr <- 2023 
 start_yr <- curr_yr - 4  # autogenerate start yr of 5yr estimates
-
-### define common inputs for calc_pums{} and pums_screen{}
-indicator = 'officials'         # name of column that contains indicator data, eg: 'living_wage' which contains values 'livable' and 'not livable'
-indicator_val = 'officials'     # desired indicator value, eg: 'livable' (not 'not livable')        
-weight = 'PWGTP'                # PWGTP for person-level (psam_p06.csv) or WGTP for housing unit-level (psam_h06.csv) analysis
 ```
 
-# Get PUMS Data -----------------------------------------------------------
+# Get PUMS Data 
 ```{r}
 # Data Dictionary: https://www2.census.gov/programs-surveys/acs/tech_docs/pums/data_dict/PUMS_Data_Dictionary_2023.pdf
 # path where my data lives (not pulling pums data from the postgres db, takes too long to run calcs that way) 
@@ -81,12 +77,12 @@ orig_data <- ppl
 # redo analysis
 ppl <- orig_data
 
-# Filter for AV PUMAS ----------------------------------------------------
+# Filter for AV PUMAS
 ppl <- ppl %>%
   filter(puma_id %in% puma_av)
 ```
 
-##### Reclassify Race/Ethnicity ########
+# Reclassify Race/Ethnicity
 ```{r}
 source("W:/RDA Team/R/Github/RDA Functions/main/RDA-Functions/PUMS_Functions_new.R")    
 
@@ -106,7 +102,7 @@ ppl_nh <- ppl %>%
 
 ```
 
-##### Classify SSWANA ########
+## Classify SSWANA
 ```{r}
 # I need columns nh_asian_wo_sa and sswana, which I can make once I create a south_asian column. 
 
@@ -135,14 +131,12 @@ table(qa$ancestry.y)
 # create columns nh_asian_wo_sa and sswana
 ppl_sswana <- ppl_soasian %>%
   mutate(nh_asian_wo_sa = ifelse(race=="nh_asian" & soasian=="not south asian", "nh_asian_wo_sa", "not nh_asian_wo_sa"),
-        sswana = ifelse(swana=="swana" & soasian=="south asian", "sswana", "not sswana"))
+        sswana = ifelse(swana=="swana" | soasian=="south asian", "sswana", "not sswana"))
 
 ppl <- ppl_sswana
 ```
 
-
-
-##### Define Officials and Managers ###########
+# Define Officials and Managers
 ```{r}
 # For this project we only wanted data for people in labor market - ages between 18 and 64
 ppl <- ppl[ppl$AGEP >= 18 & ppl$AGEP <= 64 , ]
@@ -154,35 +148,124 @@ ppl$offmgr <-
     grepl('^11', ppl$SOCP) ~ as.integer(1),
     TRUE ~ as.integer(0))
 
-# review
-summary(ppl$offmgr)
-sum(ppl$offmgr)
+# rate of managers 64.8 per 1000 people, common sense check on https://www.racecounts.org/issue/economic/
+sum(ppl$offmgr) / nrow(ppl) * 1000
+```
 
+## Filter for managers who are currently in the labor force 
+Code for labor force status: ESR on p56 of PUMS_Data_Dictionary_2023.pdf https://www2.census.gov/programs-surveys/acs/tech_docs/pums/data_dict/PUMS_Data_Dictionary_2023.pdf
 
-## Code for labor force status: ESR on p56 of PUMS_Data_Dictionary_2023.pdf https://www2.census.gov/programs-surveys/acs/tech_docs/pums/data_dict/PUMS_Data_Dictionary_2023.pdf
+ESR Character 1
+Employment status recode
+b .N/A (less than 16 years old)
+1 .Civilian employed, at work
+2 .Civilian employed, with a job but not at work
+3 .Unemployed
+4 .Armed forces, at work
+5 .Armed forces, with a job but not at work
+6 .Not in labor force
+```{r}
 table(ppl$ESR, useNA = "always")
 
 # NOTE: 'This includes 4-Armed forces, at work' and '5-Armed forces, with a job but not at work'. It excludes '6-Not in labor force'.
 ppl$emply <- as.factor(ifelse(ppl$ESR %in% c(1, 2, 3, 4, 5), "in labor force", "not in labor force")) 
+# 8526 people in labor force
+sum(ppl$emply=="in labor force")
+
 ppl <- filter(ppl, emply=='in labor force')
 
 ## Factor for Officials & Managers
 ppl$officials <- ifelse(ppl$offmgr == 1, "officials", "not official")
 ppl$officials <- as.factor(ppl$officials)
-ppl$indicator <- as.factor(ppl$officials)
 
-## check race and officials results
-table(ppl$nh_race, useNA ="always")
-table(ppl$indicator, useNA = "always")
+# rate of managers is now 89.3 per 1000 people
+sum(ppl$officials == "officials") / nrow(ppl) * 1000
 ```
-
-
-############### CALC PUMA ESTIMATES/CVS ETC. ############### 
+# CALC PUMA ESTIMATES/CVS ETC, code adapted from RC function calc_pums()
 ```{r}
-ppl_calc <- ppl %>% mutate(geoid = "", geoname = "Antelope Valley")
+# Create survey design object
+ppl_calc <- ppl %>%               
+  as_survey_rep(
+    variables = c(race, aian, latino, swana, pacisl, nh_aian, nh_nhpi, nh_asian_wo_sa, sswana, officials),   # select grouping variables
+    weights = 'PWGTP',                      # PWGTP for person-level (psam_p06.csv) script
+    repweights = repwlist,                  # list of replicate weights
+    combined_weights = TRUE,                # tells the function that replicate weights are included in the data
+    mse =TRUE,                              # tells the function to calc mse
+    type="other",                           # statistical method
+    scale=4/80,                             # scaling set by ACS
+    rscale=rep(1,80))                        # setting specific to ACS-scaling
 
-managers <- calc_pums(d = ppl_calc, indicator, indicator_val, weight)
+
+# Calculate manager rate of AV total
+row_total <- ppl_calc %>% 
+  group_by(officials) %>%
+  summarise(
+    race = "total",
+    count = survey_total(na.rm = TRUE),     # Survey weighted total, numerator  
+    rate = survey_mean() * 100            # Survey weighted rate per 1k
+  ) %>%
+  filter(officials=="officials") %>%
+  select(race, count, rate)
+
+# function to calculate rates by racial groups
+calc_manager_rate <- function(data, group_var) {
+  # Capture the grouping variable as a symbol
+  group_var_sym <- rlang::ensym(group_var)
+
+  data %>%
+    # Group by the specified variable and the "officials" column
+    group_by(!!group_var_sym, officials) %>%
+    
+    # Calculate the weighted count and rate (per 100 people)
+    summarise(
+      count = survey_total(na.rm = TRUE),  # Weighted total
+      rate = survey_mean() * 100,          # Weighted rate per 100
+      .groups = "drop"
+    ) %>%
+    
+    # Keep only rows where role is "officials" and group value is not NA
+    filter(officials == "officials", !is.na(!!group_var_sym)) %>%
+    
+    # Rename the grouping variable to "race"
+    rename(race = !!group_var_sym) %>%
+    
+    # Drop rows where the "race" value includes "not" (e.g., "not specified")
+    filter(!grepl("not", race, ignore.case = TRUE)) %>%
+    select(race, count, rate)
+}
+
+# list of all the racial groups
+variables = c("race", "aian", "latino", "swana", "pacisl", "nh_aian", "nh_nhpi", "nh_asian_wo_sa", "sswana")  
+# call calc_manager_rate() on all the racial groups we want to create the final table
+manager_table <- variables %>%
+  map(~ calc_manager_rate(ppl_calc, !!sym(.x))) %>%
+  bind_rows(row_total) %>%
+  arrange(rate) %>%
+  mutate(geography = "Antelope Valley") %>%
+  select(geography, everything())
 ```
 
+# Send table to postgres
+```{r}
+# Write table with metadata
+table_name <- "av_managers_by_race"
+schema <- "data"
+indicator <- "A table with the rates of managers by racial group in the Antelope Valley. Note that only people between the ages of 18-64 who are currently in the labor force are counted."
+source <- "Script: W:/Project/RJS/CTC/Github/AV/cancel_the_contract/Analysis/analysis_managers.Rmd "
+qa_filepath <- "See QA doc for details: W:/Project/RJS/CTC/Documentation/QA_av_managers_by_race "
+table_comment <- paste0(indicator, source)
+dbWriteTable(con, Id(schema, table_name), manager_table, overwrite = TRUE, row.names = FALSE)
+
+# Comment on table and columns
+column_names <- colnames(manager_table) # Get column names
+column_comments <- c(
+  "Geography is the Antelope Valley",
+  "The racial group",
+  "The weighted count of managers of the indicated racial group",
+  "The weighted rate of managers of the indicated racial group"
+)
+
+add_table_comments(con, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
+```
 
 
