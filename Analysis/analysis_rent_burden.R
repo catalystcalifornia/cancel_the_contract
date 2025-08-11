@@ -15,10 +15,9 @@ con <- connect_to_db("f5la_v2")
 con_ctc <- connect_to_db("cancel_the_contract")
 
 # Function to output cost burden data for year I enter
-cost_burden_race_function <- function(year, xwalk) {
+ cost_burden_race_function <- function(year, xwalk) {
   
-  
-  
+
   #### Step 1 load the data ####
   
   # PUMS Data
@@ -26,6 +25,10 @@ cost_burden_race_function <- function(year, xwalk) {
   indicator_name <- "rent_burden"
   data_type <- "race" #change the applicable one: race, spa, county
   
+  # QA: add year argument so I can individually run the components of the function
+  year<- "2019_2023"
+  
+
   # Load the people PUMS data
   people <- fread(paste0(root, "CA_", year, "/psam_p06.csv"), header = TRUE, data.table = FALSE,
                   colClasses = list(character = c("PUMA", "ANC1P", "ANC2P", "HISP", "RAC1P", "RAC2P", "RAC3P", "RACAIAN", "RACPI", "RACNH")))
@@ -39,11 +42,19 @@ cost_burden_race_function <- function(year, xwalk) {
   #### Step 2 filter for LA & Recode racial-ethnic groups ####
   
   people <- people %>% filter(grepl('037', PUMA)) 
+  
+  # QA: check sum of people matches what we'd expect in LA County:
+  # sum(people$PWGTP) ---9846959 ~ 9 million is right
+  
   housing <- housing %>% filter(grepl('037', PUMA))
   
   #SOURCE recode function
   source("W:\\Project\\RDA Team\\First5LA\\Ad-hoc Research\\Laura ask housing update\\ask_functions.R")
   people_recoded <- race_recode(people)
+  
+  # QA: Quickly spot check some of the recoded values against original pums race variable values. Looks good
+  
+  # qa_recode<-people_recoded%>%select(RAC1P, HISP, RACAIAN, RACNH, latino, aian, nhpi, swana, race)
   
   
   ####  Step 3: filter LA County households eligible for rent-burden calculation  #### 
@@ -61,15 +72,20 @@ cost_burden_race_function <- function(year, xwalk) {
     #remove records with no weights
     filter(!is.na(WGTP)) #%>%
     
-    #filter for age 0-5 and select distinct households
-    #filter(AGEP < 5) %>% distinct(SERIALNO, .keep_all = TRUE)
-  
+# QA: check filters worked
+  # sum(is.na(eligible_hhs$GRPIP)) # 0 -- good
+  #  sum(is.na(eligible_hhs$WGTP)) # 0 --good
   
   #### Step 4: get PUMA SPA xwalk and join ####
   
   #get puma-spa xwalk
   conn <- connect_to_db("f5la_v2")
   puma_spa_xwalk <- st_read(conn, query = xwalk)
+  
+  # QA: read in xwalk so I can continue running the function manually
+  
+  # puma_spa_xwalk <- st_read(conn, query =" SELECT * FROM puma_spa_xwalk_2022") 
+  
   dbDisconnect(conn)
   
   # join
