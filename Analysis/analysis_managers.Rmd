@@ -195,17 +195,20 @@ ppl_calc <- ppl %>%
     scale=4/80,                             # scaling set by ACS
     rscale=rep(1,80))                        # setting specific to ACS-scaling
 
-
 # Calculate manager rate of AV total
 row_total <- ppl_calc %>% 
   group_by(officials) %>%
   summarise(
     race = "total",
-    count = survey_total(na.rm = TRUE),     # Survey weighted total, numerator  
-    rate = survey_mean() * 100            # Survey weighted rate per 1k
+    count = survey_total(na.rm = TRUE),    # Survey weighted total, numerator  
+    rate = survey_mean() * 100,            # Survey weighted rate per 100
   ) %>%
-  filter(officials=="officials") %>%
-  select(race, count, rate)
+  mutate(rate_moe  = rate_se * 1.645,
+          rate_cv   = (rate_se / rate) * 100,
+          count_moe = count_se * 1.645,
+          count_cv  = (count_se / count) * 100) %>%
+  filter(officials=="officials")  %>%
+  select(-officials)
 
 # function to calculate rates by racial groups
 calc_manager_rate <- function(data, group_var) {
@@ -222,7 +225,10 @@ calc_manager_rate <- function(data, group_var) {
       rate = survey_mean() * 100,          # Weighted rate per 100
       .groups = "drop"
     ) %>%
-    
+    mutate(rate_moe  = rate_se * 1.645,
+          rate_cv   = (rate_se / rate) * 100,
+          count_moe = count_se * 1.645,
+          count_cv  = (count_se / count) * 100) %>%
     # Keep only rows where role is "officials" and group value is not NA
     filter(officials == "officials", !is.na(!!group_var_sym)) %>%
     
@@ -231,7 +237,7 @@ calc_manager_rate <- function(data, group_var) {
     
     # Drop rows where the "race" value includes "not" (e.g., "not specified")
     filter(!grepl("not", race, ignore.case = TRUE)) %>%
-    select(race, count, rate)
+    select(-officials)
 }
 
 # list of all the racial groups
@@ -242,7 +248,7 @@ manager_table <- variables %>%
   bind_rows(row_total) %>%
   arrange(rate) %>%
   mutate(geography = "Antelope Valley") %>%
-  select(geography, everything())
+  select(geography, race, count, count_se, count_moe, count_cv, everything())
 ```
 
 # Send table to postgres
@@ -262,7 +268,13 @@ column_comments <- c(
   "Geography is the Antelope Valley",
   "The racial group",
   "The weighted count of managers of the indicated racial group",
-  "The weighted rate of managers of the indicated racial group"
+  "Standard error for count",
+  "Margin of error for count",
+  "CV for count",
+  "The weighted rate of managers of the indicated racial group",
+  "Standard error for rate",
+  "Margin of error for rate",
+  "CV for rate"
 )
 
 add_table_comments(con, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
