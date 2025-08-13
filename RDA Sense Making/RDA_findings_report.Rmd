@@ -516,7 +516,7 @@ infield_top<-infield%>%
 
 ```
 
-Instead of contributing to student safety, police are actively harming students in AVUHSD. __Police handcuffed 19.7 people out of everyone they stopped__. This extreme police action is excessive and traumatizing to students, especially in a school setting. Police's own data show that their actions are not contributing to safety. Police searched 19.6 people in AVUHSD out of everyone they stopped. However, __out of everyone police searched, 72.9% yielded no contraband.__ In other words, the overwhelming majority of students police are searching on school grounds are not harboring illegal contraband. Yet the students have to live with the experience of being searched by police at school.
+Instead of contributing to student safety, police are actively harming  students in AVUHSD. __Police handcuffed 19.7 people out of everyone they stopped__. Of everyone 178 students that police handcuffed in AVUHSD, 106 of those students were perceived as Black. In other words, __59.6% of people handcuffed by police in AVUHSD were people police perceived as Black.__ This extreme police action is excessive and traumatizing to students, especially in a school setting. Police's own data show that their actions are not contributing to safety. Police searched 19.6 people in AVUHSD out of everyone they stopped. However, __out of everyone police searched, 72.9% yielded no contraband.__ In other words, the overwhelming majority of students police are searching on school grounds are not harboring illegal contraband. Yet the students have to live with the experience of being searched by police at school.
 
 ## C.	LASD’s racially discriminatory practices apply to AV youth outside the classroom as well
 
@@ -552,46 +552,16 @@ stops_stops_reason_age_race<-dbGetQuery(con, "SELECT * FROM analysis_stops_reaso
 
 ## A. [PLACEHOLDER]: Short Story / Anecdote from community – can incorporate the framing of what “real safety” means to Antelope Valley community members
 
-Add literature review and framing around how housing and economic security are connected to safety outcomes and provide data on those inequities.
-
-Analysis: Percent of income spent on housing by race
-
-Analysis: Percent of homeowners / renters by race
-
-Analysis: Employment by manager rates by race
-
 ## B. Redlining and other racist policies made by white supremacist institutions result in poorer health outcomes for BIPOC people in the AV 
 
-Analysis: CalEnviroScreen map of LA county by tract with AV boundary overlay
-
-Analysis: Infant mortality rates
-
-Analysis: Map of youth mental health hospitalizations in California with AV overlay
-
 ## C. The above inequities stem from both historical and present-day government decision-making . . . 
-
-Literature review with framing and examples of discriminatory / inequitable policies and programs across relevant domains 
 
 # V. Waste of public dollars on policing and school pushout versus smart investments that create true safety and wellbeing for all AV community members 
 ## A.	School funds are limited, and District leadership must prioritize what type of staff to hire
 
-Analysis: # of additional teachers, counselors, and psychologists needed to achieve ideal class sizes or ratios
-
-Analysis: $ cost to hire teachers, counselors, and psychologists to achieve ideal ratios, compared to Sheriff costs
-
 ## B. Outside of school, in the wider community, the cities of Lancaster and Palmdale make similar decisions and prioritize even more funding towards law enforcement at the expense of true safety.
 
-Analysis: General Fund budget for sheriffs and police vs housing and youth development [or other issues depending on what Antelope Valley community members say]
-
 # VI. Policy solutions / recommendations:
-
-## A.	Justice Reinvestment 
-
-## B. Police Reform 
-
-## C. Education
-
-## D.	Decriminalization 
 
 # Conclusion
 
