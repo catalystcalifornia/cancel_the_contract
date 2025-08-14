@@ -554,7 +554,49 @@ stops_stops_reason_age_race<-dbGetQuery(con, "SELECT * FROM analysis_stops_reaso
 
 ## A. [PLACEHOLDER]: Short Story / Anecdote from community – can incorporate the framing of what “real safety” means to Antelope Valley community members
 
+Antelope Valley children, like all children deserved to be cared for. There are special circumstances in the region that demand even more care. According to the UCLA Pritzker Center, the __Antelope Valley is home to the largest number of foster care placements in LA County__. The California Department of Education recognizes the importance of funding children in foster care, providing funding through its Local Control Funding Formula. Antelope Valley Union High School District should do the same and redirect investments in school police to investments in foster students and other youth deserving heightened care.
+
+Relatedly, the Los Angeles County Department of Child and Family Services (DCFS) reports higher rates of substantiated referrals – or reports of child abuse or neglect where authorities identify reasonable cause to believe maltreatment occurred – in the Antelope Valley than in other parts of the county. At the same time, the Antelope Valley has lower rates of services supporting children and families in the child welfare system. According to the County of Los Angeles, the region has half as many domestic violence services per capita than the rest of the county.
+
 ## B. Redlining and other racist policies made by white supremacist institutions result in poorer health outcomes for BIPOC people in the AV 
+
+Employment is an issue with many residents commuting over the hill to cities outside of the Antelope Valley for work. The type of work is unevenly distributed as __Antelope Valley Black workers are employed as an official or manager at one third the rate of White workers__. This type of salaried employment is critical for healthy and stable households.
+
+Compared to the rest of Los Angeles County, Antelope Valley Families are more likely to earn incomes below the real cost of living. United Ways of California estimates that 41% of LA County households earn less than the real cost of living, while 51% and 52% of families in Lancaster and Palmdale, respectively, earn less than the real cost of living. In other words, __more than half of Lancaster and Palmdale households don't earn enough to cover basic costs such as food, housing, transportation, and childcare__.
+
+The cost of housing in a once affordable area of LA County has become a problem for families. __Six in ten Antelope Valley renters now spend 30% or more of their income on housing__. This issue is particularly burdensome for AIAN families, 82% of which are rent burdened.
+
+```{r}
+
+# AV rent burden table
+                       
+av_rent_burden<-dbGetQuery(con, "SELECT subgroup, num, pop, rate FROM analysis_rent_burden")
+
+
+df<-av_rent_burden%>%
+  mutate(rate=round(rate,1))%>%
+  rename("Burdened"="num")%>%
+  rename("Percent"="rate")%>%
+    rename_with(~ str_replace_all(.x, "_", " ") %>%
+                str_to_lower() %>%
+                str_replace("^\\w", ~ toupper(.x)))
+  
+  # ##Flextable rent burden##
+
+
+  flextable(df) %>%
+  set_caption('Antelope Valley Rent Burden') %>%
+  theme_vanilla() %>%
+  width(width=2,unit="in")
+
+
+```
+
+A lack of resources, especially health resources has been well documented for the Antelope Valley. __The entire Valley is a health professional shortage area for mental professionals__. Many have to wait hours for care or travel hours to cities with more accessible care. For families and children who may have mental health needs, an investment in mental health care would be vastly preferable to investments in school resource officers. Law enforcement personnel in schools lack the training to work with children with mental health issues that trained health care professionals possess.
+
+The lack of health care resources have immediate effects on health. __The Antelope Valley has among the highest rates of infant mortality in the County__, and Black infants experience a disproportionately higher infant mortality rate compared to other racial and ethnic groups countywide.
+
+Lack of employment, high costs, and a lack of resources have compounding effects on health, for example life expectancy. __Life expectancy in the Antelope Valley is nearly five years less than the county average__. According to the County of Los Angeles Department of Public Health the life expectancy in SPA 1 is 75.9 years, and the life expectancy in LA County as a whole is 80.4 years.
 
 ## C. The above inequities stem from both historical and present-day government decision-making . . . 
 
