@@ -80,6 +80,10 @@ ppl <- orig_data
 # Filter for AV PUMAS
 ppl <- ppl %>%
   filter(puma_id %in% puma_av)
+
+# QA check the pumas remaining in the ppl table--looks good
+table(ppl$puma_id)
+
 ```
 
 # Reclassify Race/Ethnicity
@@ -100,6 +104,9 @@ ppl_nh <- ppl %>%
   mutate(nh_aian = ifelse(aian=="aian" & latino=="not latino", "nh_aian", "not nh_aian"),
          nh_nhpi = ifelse(pacisl=="pacisl" & latino=="not latino", "nh_nhpi", "not nh_nhpi"))
 
+# QA just check the recoding looks the way it should --- looks good
+nh_qa<-ppl_nh%>%select(race, aian, nh_aian, pacisl, nh_nhpi, latino)
+
 ```
 
 ## Classify SSWANA
@@ -119,6 +126,13 @@ pums_dict <- read.csv("W:/Project/RJS/CTC/Data/PUMS_Data_Dictionary_2019-2023.cs
 ppl_soasian <- ppl_nh %>%
   mutate(soasian = ifelse(ANC1P %in% pums_dict$code | ANC2P %in% pums_dict$code, "south asian", "not south asian"))
 
+# QA just examine results to make sure it worked correctly
+
+soasian_qa<-ppl_soasian%>%select(ANC1P, ANC2P, race, latino, soasian)
+
+check<-ppl_soasian%>%filter((ANC1P %in% pums_dict$code | ANC2P %in% pums_dict$code) & soasian=="not south asian")%>%
+  select(ANC1P, ANC2P, soasian) # 0 observations this is good
+
 # qa check
 qa <- ppl_soasian %>%
   select(ANC1P, ANC2P, soasian) %>%
@@ -132,6 +146,20 @@ table(qa$ancestry.y)
 ppl_sswana <- ppl_soasian %>%
   mutate(nh_asian_wo_sa = ifelse(race=="nh_asian" & soasian=="not south asian", "nh_asian_wo_sa", "not nh_asian_wo_sa"),
         sswana = ifelse(swana=="swana" | soasian=="south asian", "sswana", "not sswana"))
+
+# QA examine the recoding results
+
+sum(is.na(ppl_sswana$nh_asian_wo_sa)) # there are 364 NAs
+
+# examine NAs
+
+sswana_na<-ppl_sswana%>%filter(is.na(nh_asian_wo_sa))%>%
+  select(race, latino, soasian, nh_asian_wo_sa, swana, sswana) # makes sense because all of these have NA for the race column
+
+# now QA the rest
+
+sswana_qa<-ppl_sswana%>%
+  select(race, latino, soasian, nh_asian_wo_sa, swana, sswana)
 
 ppl <- ppl_sswana
 ```
