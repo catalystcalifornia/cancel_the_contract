@@ -105,7 +105,8 @@ ppl_nh <- ppl %>%
          nh_nhpi = ifelse(pacisl=="pacisl" & latino=="not latino", "nh_nhpi", "not nh_nhpi"))
 
 # QA just check the recoding looks the way it should --- looks good
-nh_qa<-ppl_nh%>%select(race, aian, nh_aian, pacisl, nh_nhpi, latino)
+nh_qa<-ppl_nh%>%select(race, aian, nh_aian, pacisl, nh_nhpi, latino)%>%
+  filter(nh_aian=="nh_aian")
 
 ```
 
@@ -145,7 +146,7 @@ table(qa$ancestry.y)
 # create columns nh_asian_wo_sa and sswana
 ppl_sswana <- ppl_soasian %>%
   mutate(nh_asian_wo_sa = ifelse(race=="nh_asian" & soasian=="not south asian", "nh_asian_wo_sa", "not nh_asian_wo_sa"),
-        sswana = ifelse(swana=="swana" | soasian=="south asian", "sswana", "not sswana"))
+        sswana = ifelse(swana=="swana" & soasian=="south asian", "sswana", "not sswana")) # QA: I think the statement needs to be an 'and' statement: if a person is swana AND south asian, they should be labeled as SSWANA, otherwise they are NOT sswana. Originally you had an OR statement so that it was: if a person is swana OR south asian, then they are sswana. Using an OR statement produces 335 where someone who is swana but not south asian got recoded as SSWANA. 
 
 # QA examine the recoding results
 
@@ -159,7 +160,10 @@ sswana_na<-ppl_sswana%>%filter(is.na(nh_asian_wo_sa))%>%
 # now QA the rest
 
 sswana_qa<-ppl_sswana%>%
-  select(race, latino, soasian, nh_asian_wo_sa, swana, sswana)
+  select(race, latino, soasian, nh_asian_wo_sa, swana, sswana)%>%
+  filter(soasian=="south asian") # it looks like everyone who is Southasian is also not Swana so they are not labeled as SSWANA which seems right to me. 
+
+table(sswana_qa$sswana)
 
 ppl <- ppl_sswana
 ```
@@ -169,6 +173,9 @@ ppl <- ppl_sswana
 # For this project we only wanted data for people in labor market - ages between 18 and 64
 ppl <- ppl[ppl$AGEP >= 18 & ppl$AGEP <= 64 , ]
 
+# QA
+table(ppl$AGEP) # looks good
+
 ## Tag people who are officials or managers: SOCP value starts with "11" 
 ###### See p110 in W:\Data\Demographics\PUMS\CA_2019_2023\PUMS_Data_Dictionary_2023.pdf
 ppl$offmgr <- 
@@ -176,8 +183,13 @@ ppl$offmgr <-
     grepl('^11', ppl$SOCP) ~ as.integer(1),
     TRUE ~ as.integer(0))
 
+# review
+summary(ppl$offmgr)
+
 # rate of managers 64.8 per 1000 people, common sense check on https://www.racecounts.org/issue/economic/
-sum(ppl$offmgr) / nrow(ppl) * 1000
+sum(ppl$offmgr) / nrow(ppl) * 1000 
+
+# 64.8% closely matches the total rate for Palmdale and Lancaster when looking at the city results on race counts https://www.racecounts.org/city/Palmdale/ and https://www.racecounts.org/city/lancaster/
 ```
 
 ## Filter for managers who are currently in the labor force 
@@ -196,25 +208,28 @@ b .N/A (less than 16 years old)
 table(ppl$ESR, useNA = "always")
 
 # NOTE: 'This includes 4-Armed forces, at work' and '5-Armed forces, with a job but not at work'. It excludes '6-Not in labor force'.
-ppl$emply <- as.factor(ifelse(ppl$ESR %in% c(1, 2, 3, 4, 5), "in labor force", "not in labor force")) 
+ppl$emply <- as.factor(ifelse(ppl$ESR %in% c(1, 2, 3, 4, 5), "in labor force", "not in labor force"))
 # 8526 people in labor force
 sum(ppl$emply=="in labor force")
 
 ppl <- filter(ppl, emply=='in labor force')
+
+
+# QA: I do not think we need to filter the universe to only be people in the labor force. I think the universe should just be everyone who lives in our AV PUMAs. I think the rate is more interesting if it's "out of everyone living in the AV, what percent are managers by race" as opposed to "out of all people within the labor force" if that makes sense. I also thiknk that's the way it is in RC as well. 
 
 ## Factor for Officials & Managers
 ppl$officials <- ifelse(ppl$offmgr == 1, "officials", "not official")
 ppl$officials <- as.factor(ppl$officials)
 
 # rate of managers is now 89.3 per 1000 people
-sum(ppl$officials == "officials") / nrow(ppl) * 1000
+sum(ppl$officials == "officials") / nrow(ppl) * 1000 
 ```
 # CALC PUMA ESTIMATES/CVS ETC, code adapted from RC function calc_pums()
 ```{r}
 # Create survey design object
 ppl_calc <- ppl %>%               
   as_survey_rep(
-    variables = c(race, aian, latino, swana, pacisl, nh_aian, nh_nhpi, nh_asian_wo_sa, sswana, officials),   # select grouping variables
+    variables = c(race, aian, latino, swana, pacisl, officials),   # select grouping variables
     weights = 'PWGTP',                      # PWGTP for person-level (psam_p06.csv) script
     repweights = repwlist,                  # list of replicate weights
     combined_weights = TRUE,                # tells the function that replicate weights are included in the data
@@ -269,7 +284,7 @@ calc_manager_rate <- function(data, group_var) {
 }
 
 # list of all the racial groups
-variables = c("race", "aian", "latino", "swana", "pacisl", "nh_aian", "nh_nhpi", "nh_asian_wo_sa", "sswana")  
+variables = c("race", "aian", "latino", "swana", "pacisl")  
 # call calc_manager_rate() on all the racial groups we want to create the final table
 manager_table <- variables %>%
   map(~ calc_manager_rate(ppl_calc, !!sym(.x))) %>%
