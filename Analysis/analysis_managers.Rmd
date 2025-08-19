@@ -212,10 +212,11 @@ ppl$emply <- as.factor(ifelse(ppl$ESR %in% c(1, 2, 3, 4, 5), "in labor force", "
 # 8526 people in labor force
 sum(ppl$emply=="in labor force")
 
+# QA
+table(ppl$emply) # in labor force: 8526 not in labor force: 4371
+                              
+
 ppl <- filter(ppl, emply=='in labor force')
-
-
-# QA: I do not think we need to filter the universe to only be people in the labor force. I think the universe should just be everyone who lives in our AV PUMAs. I think the rate is more interesting if it's "out of everyone living in the AV, what percent are managers by race" as opposed to "out of all people within the labor force" if that makes sense. I also thiknk that's the way it is in RC as well. 
 
 ## Factor for Officials & Managers
 ppl$officials <- ifelse(ppl$offmgr == 1, "officials", "not official")
@@ -283,6 +284,25 @@ calc_manager_rate <- function(data, group_var) {
     select(-officials)
 }
 
+# QA --- use the actual function code to run and see if results match what is produced in av_managers_by_race
+
+  # calculate by latino 
+  indicator_latino <- ppl_calc %>%
+    group_by(latino, officials) %>%
+    summarise(
+      count = survey_total(na.rm=T),         							  # get the (survey weighted) count for the numerator
+      rate = survey_mean()) %>%            								  # get the (survey weighted) proportion for the numerator
+    
+    left_join(ppl_calc %>%                                        				  # left join in the denominators 
+                group_by(latino) %>%                       
+                summarise(pop = survey_total(na.rm=T))) %>%               # get the (survey weighted) universe aka denominator
+    mutate(rate = rate * 100,                                             # get the rate as a %
+           rate_moe = rate_se * 1.645 * 100,                              # calculate the derived margin of error for the rate
+           rate_cv = ((rate_moe/1.645)/rate) * 100,                       # calculate the coefficient of variation for the rate
+           count_moe = count_se*1.645,                                    # calculate moe for numerator count based on se provided by the output  
+           count_cv = ((count_moe/1.645)/count) * 100)                  
+
+
 # list of all the racial groups
 variables = c("race", "aian", "latino", "swana", "pacisl")  
 # call calc_manager_rate() on all the racial groups we want to create the final table
@@ -292,6 +312,10 @@ manager_table <- variables %>%
   arrange(rate) %>%
   mutate(geography = "Antelope Valley") %>%
   select(geography, race, count, count_se, count_moe, count_cv, everything())
+
+
+
+
 ```
 
 # Send table to postgres
