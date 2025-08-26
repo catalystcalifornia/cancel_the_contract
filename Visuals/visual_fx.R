@@ -21,6 +21,9 @@ library(forcats)
 source("W:\\RDA Team\\R\\credentials_source.R")
 con<- connect_to_db("cancel_the_contract")
 
+# read in data dictionary
+dict<-dbGetQuery(con, "SELECT * FROM data_dictionary")
+
 
 #### Set up style guide: SUBSTITUTE WITH CTC OR WHATEVER WE END UP USING----------------------
 
@@ -57,6 +60,39 @@ font_table_text<-"GothamBook"
 
 #Reference: W:\Project\RDA Team\LAFed\R\LAFed\visual_functions_static.R
 
+# RACE RECODING FX-----------------------------
+
+# Use this to automatically recode your race column to be spelled out labels for the graph
+
+race_recode<-function(df, col_recode){
+  df<-df%>%
+    filter(!grepl("nh_aian|nh_nhpi|nh_asian_wo_sa|nh_sswana",{{col_recode}}))%>%
+    mutate(label = case_when(
+      {{col_recode}} == "nh_white"     ~ "White",
+      {{col_recode}} == "aian"         ~ "AIAN",
+      {{col_recode}} == "AIAN AOIC"    ~ "AIAN",
+      {{col_recode}} == "latino"       ~ "Latinx",
+      {{col_recode}} == "latinx"       ~ "Latinx",
+      {{col_recode}} == "nh_asian"     ~ "Asian",
+      {{col_recode}} == "nh_black"     ~ "Black",
+      {{col_recode}} == "nh_other"     ~ "Other",
+      {{col_recode}} == "nh_twoormor"  ~ "Multiracial",
+      {{col_recode}} == "nhpi"         ~ "NHPI",
+      {{col_recode}} == "NHPI AOIC"   ~ "NHPI",
+      {{col_recode}} == "sswana"       ~ "SSWANA",
+      {{col_recode}} == "SSWANA AOIC" ~ "SSWANA",
+      {{col_recode}} == "swana"        ~ "SWANA",
+      TRUE                             ~ as.character({{col_recode}})
+    ))
+}
+
+######  EX) RACE RECODING ###### 
+
+df<-dbGetQuery(con, "SELECT * FROM analysis_stops_race")
+
+df_recode<-race_recode(df=df,
+                       col_recode=reportingcategory_re)
+
 # STATIC TABLE FX-----------------------------
 
 
@@ -75,6 +111,10 @@ static_table <- function(df, indicator, title_text, footnote_text)
   colnames(df) <- colnames(df) %>%
     str_replace_all("_", " ") %>%
     str_to_title()
+  
+# set footnote text to use values from the data dictionary
+  
+footnote_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],". ",dict$method_note[dict$indicator_short==indicator])
   
   # visualize your gt table
   
@@ -129,8 +169,7 @@ static_table <- function(df, indicator, title_text, footnote_text)
   return(final_visual)
 }
   
-# EX) STATIC TABLE--------------------------
-
+######  EX) STATIC TABLE ###### 
 
 # Example: Suspensions (in English)
 
@@ -139,12 +178,10 @@ static_table <- function(df, indicator, title_text, footnote_text)
 df<-dbGetQuery( con, "SELECT * FROM analysis_suspensions")%>%
   select(label, enrollment_total, suspension_count, suspension_rate) # select columns you want in the table
 
-# define parameters outside of function ( these  can also be defined in the function)
+# define parameters outside of function
 
-indicator="suspensions"
+indicator="Suspensions" # THIS NEEDS TO MATCH the way it is spelled out in the data_dictionary df
 title_text="Suspension Rates by Student Group, Antelope Valley Union High School District, 2023-24"
-footnote_text="Source: Catalyst California calculations of California Department of Education data, 2023-24.
-Note: The student group category for non-binary students was unavailable because of a lack of data. AIAN stands for American Indian Alaskan Native."
 
 # Apply function
 
@@ -156,14 +193,8 @@ static_table(df=df,
 
 # SINGLE BAR GRAPH FUNCTION -------------------------------------
 
-df<-dbGetQuery(con, "SELECT * FROM av_population_race")
 
-
-title_text<-"Antelope Valley Demographics by Race"
-caption_text<-"Source: ACS 5-year Estimates Table DP05, 2018-2023. 
-Note: Rates are out of 100 people. AIAN stands for American Indian and Alaskan Native."
-
-single_bar<-function(df, indicator, title_text, subtitle_text, caption_text){
+single_bar<-function(df, label, indicator, title_text){
   
   # rename 'rate' column for function and arrange by rate descending
   df<-df%>%
@@ -171,6 +202,15 @@ single_bar<-function(df, indicator, title_text, subtitle_text, caption_text){
   
   # Define max value
   max_y = 1.15 * max(df$rate)
+  
+  # # set caption text to use values from the data dictionary
+  
+ caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],". ",dict$method_note[dict$indicator_short==indicator])
+ caption_text <- str_wrap(caption_text, width = 110)
+ 
+ # # set subtitle text to use values from the data dictionary
+ 
+subtitle_text<-paste0(dict$indicator[dict$indicator_short==indicator])
 
     # Graph
   
@@ -185,9 +225,10 @@ single_bar<-function(df, indicator, title_text, subtitle_text, caption_text){
     
     geom_text(aes(label = paste0(round(rate, 1), "%")),
               family = font_bar_label, 
-              position = position_dodge(width = 1), vjust = 0.25 , hjust= 1.15,
+              hjust = -0.1,   # small negative number pushes text to the right of the bar
+              vjust = 0.5,
               fontface = "bold",  
-              colour = "white") +  
+              colour = "black") +
     
     labs(title = str_wrap(title_text, width = 65),
          subtitle = str_wrap(subtitle_text, width = 80),
@@ -196,7 +237,7 @@ single_bar<-function(df, indicator, title_text, subtitle_text, caption_text){
     scale_x_discrete(labels = function(label) str_wrap(label, width = 20)) +            # wrap long labels
     xlab("") +
     ylab("") +
-    expand_limits(y = c(0,100))+
+    expand_limits(y = c(0, max_y))  +  
     coord_flip()+
     theme_minimal()+
     theme(legend.title = element_blank(), # no legend--modify if necessary
@@ -231,41 +272,49 @@ single_bar<-function(df, indicator, title_text, subtitle_text, caption_text){
   return(final_visual)
 }
 
-# EX) SINGLE BAR GRAPH LINE------------------------------------
+###### EX 1) SINGLE BAR GRAPH LINE BY RACE ######
 
+### This is an example of visualizing an analysis that is by race: 
 
 df<-dbGetQuery(con, "SELECT * FROM av_population_race")
+df_recode<-race_recode(df=df, col_recode = race)
 
-indicator<-"race"
 title_text<-"Findings based title"
-subtitle_text<-"High School Graduation Rates by Student Subgroup in Antelope Valley Union High School District"
-caption_text<-"Source: California Department of Education, Adjusted Cohort Graduation Rate and Outcome Data,
-2023-2024. Note: Rates are out of 100 students. AIAN stands for American Indian and Alaskan Native."
+indicator<-"Race"
 
 # Apply function
 
-# make sure you have a label column in your df. If you don't and for internal purposes only OK to just use
-# non frontward facing label column (i.e. races not all spelled out).
-# Or you can create one with everything spelled out. 
+# You can use the race_recode function to automatically recode your race column to be spelled out if your visual is by race
+# if your visual is NOT by race, make sure you rename whatever your categorical column is to have the colname=="label"
 
-df<-df%>%
-  mutate(label=race)
+single_bar(df=df_recode, 
+              label="label", 
+              indicator="Race", # THIS HAS TO BE spelled out the way it is in the data_dictionary df
+               title_text=title_text)
+
+
+###### EX 2) SINGLE BAR GRAPH LINE NOT BY RACE ######
+
+### This is an example of visualizing an analysis that is NOT by race: 
+# you need to rename your categorical variable column to be named 'label' for the function to work
+
+df<-dbGetQuery(con, "SELECT * FROM av_population_age")%>%
+  rename("label"="age_re")
+
+title_text<-"Findings based title"
+indicator<-"Population"
+
+# Apply function
 
 single_bar(df=df, 
-               indicator=indicator, 
-               title_text=title_text,
-               subtitle_text=subtitle_text,
-               caption_text=caption_text)
+           label="label",
+           indicator=indicator,
+           title_text=title_text)
+
 
 # SINGLE BAR GRAPH W/ TOTAL LINE FUNCTION -------------------------------------
 
-df<-dbGetQuery(con, "SELECT * FROM analysis_graduation")
-
-title_text<-"High School Graduation Rates by Student Subgroup, <br>2023-24 School Year, Antelope Valley Union High School District"
-caption_text<-"Source: California Department of Education, Adjusted Cohort Graduation Rate and Outcome Data,
-2023-2024. Note: Rates are out of 100 students. AIAN stands for American Indian and Alaskan Native."
-
-single_bar_tot<-function(df, indicator, title_text, subtitle_text, caption_text){
+single_bar_tot<-function(df, label, indicator, title_text){
   
   # rename 'rate' column for function and arrange by rate descending
   df<-df%>%
@@ -280,6 +329,15 @@ single_bar_tot<-function(df, indicator, title_text, subtitle_text, caption_text)
  # set total value
  total_value<- subset(df, label=="Total")$rate
  
+ # # set caption text to use values from the data dictionary
+ 
+ caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],". ",dict$method_note[dict$indicator_short==indicator])
+ caption_text <- str_wrap(caption_text, width = 110)
+ 
+ # # set subtitle text to use values from the data dictionary
+ 
+subtitle_text<-paste0(dict$indicator[dict$indicator_short==indicator])
+
  # Graph
  
   final_visual <-  ggplot(subset(df, label !='Total' ), aes(x= reorder(label, rate), y=rate)) +   
@@ -305,9 +363,10 @@ single_bar_tot<-function(df, indicator, title_text, subtitle_text, caption_text)
     
     geom_text(aes(label = paste0(round(rate, 1), "%")),
               family = font_bar_label, 
-              position = position_dodge(width = 1), vjust = 0.25 , hjust= 1.15,
+              hjust = -0.1,   # small negative number pushes text to the right of the bar
+              vjust = 0.5,
               fontface = "bold",  
-              colour = "white") +  
+              colour = "black") +
     
     labs(title = title_text,
          subtitle = str_wrap(subtitle_text, width = 80),
@@ -316,7 +375,7 @@ single_bar_tot<-function(df, indicator, title_text, subtitle_text, caption_text)
     scale_x_discrete(labels = function(label) str_wrap(label, width = 20)) +            # wrap long labels
     xlab("") +
     ylab("") +
-    expand_limits(y = c(0,91))+
+    expand_limits(y = c(0, max_y))+  
     coord_flip()+
     theme_minimal()+
     theme(legend.title = element_blank(), # no legend--modify if necessary
@@ -351,24 +410,20 @@ single_bar_tot<-function(df, indicator, title_text, subtitle_text, caption_text)
   return(final_visual)
 }
 
-# EX) SINGLE BAR GRAPH W/ TOTAL LINE------------------------------------
+######  EX) SINGLE BAR GRAPH W/ TOTAL LINE ###### 
 
 
-df<-dbGetQuery(con, "SELECT * FROM analysis_graduation")
+df<-dbGetQuery(con, "SELECT * FROM analysis_suspensions")
 
-indicator<-"graduation"
+indicator<-"Suspensions by race"
 title_text<-"Findings based title"
-subtitle_text<-"High School Graduation Rates by Student Subgroup in Antelope Valley Union High School District"
-caption_text<-"Source: California Department of Education, Adjusted Cohort Graduation Rate and Outcome Data,
-2023-2024. Note: Rates are out of 100 students. AIAN stands for American Indian and Alaskan Native."
 
 # Apply function
 
 single_bar_tot(df=df, 
+              label="label",
              indicator=indicator, 
-             title_text=title_text,
-           subtitle_text=subtitle_text,
-             caption_text=caption_text)
+             title_text=title_text)
 
 # Disconnect from postgres--------------------------
 dbDisconnect(con)
