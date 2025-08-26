@@ -26,16 +26,15 @@ con<- connect_to_db("cancel_the_contract")
 
 ## COLORS## Taken from W:\Project\RDA Team\Region 5 State of the Child\Documentation\F5LA_BrandGuidelines_COLORS.pdf
 #primary
-lightblue <- "#009CDB"
-darkblue <- "#332985"
-tealblue <- "#22BCB8"
+yellow <- "#d7a24b"
+magenta <- "#af3c6d"
+teal <- "#46756f"
+navy<-"#3f444e"
+mauve<-"#c492b1"
+lightblue<-"#bae7fc"
 black <- "#000000"
 textgrey <- "#919191"
-#secondary 
-green <- "#54B847"
-orange <- "#F58326"
-hotpink <- "#EC098C"
-red <- "#EF4034"
+
 
 ## FONTS ##
 # Step 1: Download fonts (Gotham Bold and Gotham Book) 
@@ -96,7 +95,7 @@ static_table <- function(df, indicator, title_text, footnote_text)
     data_color(
       columns = matches("Rate"),
       colors = scales::col_numeric(
-        palette = c("white", lightblue),
+        palette = c("white", magenta),
         domain = NULL,
         na.color = textgrey
       )
@@ -180,7 +179,7 @@ single_bar<-function(df, indicator, title_text, subtitle_text, caption_text){
     
     # define the bars
     
-    geom_col(fill = lightblue) +
+    geom_col(fill = teal) +
     
     # bar labels
     
@@ -288,7 +287,7 @@ single_bar_tot<-function(df, indicator, title_text, subtitle_text, caption_text)
     
     # define the bars
     
-    geom_col(fill = lightblue) +
+    geom_col(fill = teal) +
     
   # vertical line for Total %
     geom_hline(yintercept = subset(df, label =="Total")$rate, linetype = "dotted", color = black, size = 0.75) +    
