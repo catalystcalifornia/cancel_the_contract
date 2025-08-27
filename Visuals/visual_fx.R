@@ -95,7 +95,6 @@ df_recode<-race_recode(df=df,
 
 # STATIC TABLE FX-----------------------------
 
-
 static_table <- function(df, indicator, title_text, footnote_text)
 {
   
