@@ -16,6 +16,7 @@ library(gt)
 library(showtext)
 library(scales)
 library(forcats)
+library(showtext)
 
 #connect to postgres
 source("W:\\RDA Team\\R\\credentials_source.R")
@@ -25,7 +26,8 @@ con<- connect_to_db("cancel_the_contract")
 dict<-dbGetQuery(con, "SELECT * FROM data_dictionary")
 
 
-#### Set up style guide: SUBSTITUTE WITH CTC OR WHATEVER WE END UP USING----------------------
+# Styling----------------------
+
 
 ## COLORS## Taken from W:\Project\RDA Team\Region 5 State of the Child\Documentation\F5LA_BrandGuidelines_COLORS.pdf
 #primary
@@ -40,7 +42,7 @@ textgrey <- "#919191"
 
 
 ## FONTS ##
-# Step 1: Download fonts (Gotham Bold and Gotham Book) 
+# Step 1: Download fonts (see CTC font guide here: https://catalystcalifornia.sharepoint.com/sites/Portal/AP%20Projects/Forms/AllItems.aspx?viewid=1aaeb4a9%2D2232%2D41c7%2Da71c%2D727af9e1f5d7&viewpath=%2Fsites%2FPortal%2FAP%20Projects%2FForms%2FAllItems%2Easpx&id=%2Fsites%2FPortal%2FAP%20Projects%2FReimagine%20Justice%20%26%20Safety%2FProjects%2FAV%20Report%2FFont%20Options%20%2Epdf&parent=%2Fsites%2FPortal%2FAP%20Projects%2FReimagine%20Justice%20%26%20Safety%2FProjects%2FAV%20Report)
 # Step 2: Load the downloaded fonts into the R script:
 # General: See tutorial here, under "THE SHOWTEXT PACKAGE" section: https://r-coder.com/custom-fonts-r/#The_showtext_package 
 # Step 3: Run the code below in each R script
@@ -48,15 +50,30 @@ textgrey <- "#919191"
 font_add(family = "GothamBold", regular = "C:/Windows/Fonts/Gotham-Bold 700.otf")
 font_add(family = "GothamBook", regular = "C:/Windows/Fonts/Gotham-Book 325.otf")
 
+library(systemfonts)
+
+system_fonts() |> subset(grepl("Placard", name, ignore.case = TRUE))
+
+placard_fonts <- system_fonts()
+placard_fonts[grep("Gill Sans", placard_fonts$family, ignore.case = TRUE), ]
+
+# Add Placard Next (system-installed font)
+font_add(family = "placard_regular", regular = "C:\\Users\\JZhang\\AppData\\Local\\Microsoft\\Windows\\Fonts\\PlacardNextRegular.ttf")
+font_add(family = "placard_regular_bold", regular = "C:\\Users\\JZhang\\AppData\\Local\\Microsoft\\Windows\\Fonts\\PlacardNextBold.ttf")
+font_add(family = "gillsans", regular = "C:\\Windows\\Fonts\\GIL_____.TTF")
+
+
 showtext_auto()
 
 # define fonts in chart
-font_title <- "GothamBold"
-font_subtitle <- "GothamBook"
-font_caption <- "GothamBook"
-font_bar_label <- "GothamBold"
-font_axis_label <- "GothamBook"
-font_table_text<-"GothamBook"
+font_title <- "placard_regular"
+font_subtitle <- "placard_regular_bold"
+font_caption <- "gillsans"
+font_bar_label <- "gillsans"
+font_axis_label <- "gillsans"
+
+font_table_title<-"Work Sans"
+font_table_text<-"Work Sans"
 
 #Reference: W:\Project\RDA Team\LAFed\R\LAFed\visual_functions_static.R
 
@@ -155,8 +172,14 @@ footnote_text<-paste0("Source: Catalyst California calculations of ",dict$source
                 heading.align = "left",
                 container.width = 500
     ) %>%
-    opt_table_font(font = list(google_font(name = font_table_text), font_title, font_caption ,default_fonts()))
-
+   opt_table_font(
+     font = list(
+       google_font("Work Sans"),       # body font
+       google_font("Work Sans") # optional for title/footnote
+     )
+   ) 
+ 
+ 
  # Define base file path for saving visuals
  base_path <- paste0("W:/Project/RJS/CTC/Visuals/",indicator, "_table")
  showtext_opts(dpi=300)
@@ -242,12 +265,12 @@ subtitle_text<-paste0(dict$indicator[dict$indicator_short==indicator])
     theme(legend.title = element_blank(), # no legend--modify if necessary
           
           # define style for axis text
-          axis.text.y = element_text(size = 10, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
+          axis.text.y = element_text(size = 12, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
                                      colour = black, family= font_axis_label),
           axis.text.x = element_blank(),
-          plot.caption = element_text(hjust = 0.0, size = 8, colour = black, family = font_caption),
-          plot.title =  element_text(hjust = 0.0, size = 15, colour = black, family = font_title), 
-          plot.subtitle = element_text(hjust = 0.0, size = 12, colour = black, family = font_axis_label),
+          plot.caption = element_text(hjust = 0.0, size = 10, colour = black, family = font_caption),
+          plot.title =  element_text(hjust = 0.0, size = 30, colour = black, family = font_title), 
+          plot.subtitle = element_text(hjust = 0.0, size = 24, colour = black, family = font_subtitle),
           axis.ticks = element_blank(),
           # grid line style
           panel.grid.minor = element_blank(),
@@ -379,18 +402,20 @@ subtitle_text<-paste0(dict$indicator[dict$indicator_short==indicator])
     theme_minimal()+
     theme(legend.title = element_blank(), # no legend--modify if necessary
           
+          
           # define style for axis text
-          axis.text.y = element_text(size = 10, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
+          axis.text.y = element_text(size = 12, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
                                      colour = black, family= font_axis_label),
           axis.text.x = element_blank(),
-          plot.caption = element_text(hjust = 0.0, size = 9, colour = black, family = font_caption),
-          plot.title =  element_text(hjust = 0.0, size = 21, colour = black, family = font_title), 
-          plot.subtitle = element_text(hjust = 0.0, size = 14, colour = black, family = font_axis_label),
+          plot.caption = element_text(hjust = 0.0, size = 10, colour = black, family = font_caption),
+          plot.title =  element_text(hjust = 0.0, size = 30, colour = black, family = font_title), 
+          plot.subtitle = element_text(hjust = 0.0, size = 24, colour = black, family = font_subtitle),
           axis.ticks = element_blank(),
           # grid line style
           panel.grid.minor = element_blank(),
           panel.grid.major = element_line(size = 0.25),
           panel.grid.major.y = element_blank())
+  
   
   # Define base file path
   base_path <- paste0("W:/Project/RJS/CTC/Visuals/",indicator, "_singlebartot")
