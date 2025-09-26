@@ -1,0 +1,153 @@
+---
+title: "Percent of homeowners / renters by race"
+author: "Alicia Vo"
+date: "2025-08-25"
+output: html_document
+---
+
+```{r}
+#install packages if not already installed
+packages <- c("dplyr","data.table","tidycensus","sf","DBI","RPostgres","RPostgreSQL","stringr","tidyr","tigris","usethis", "here")  
+
+install_packages <- packages[!(packages %in% installed.packages()[,"Package"])] 
+
+if(length(install_packages) > 0) { 
+  install.packages(install_packages) 
+  
+} else { 
+  
+  print("All required packages are already installed.") 
+} 
+
+for(pkg in packages){ 
+  library(pkg, character.only = TRUE) 
+} 
+
+options(scipen=999)
+
+# create connection for rda database
+source("W:\\RDA Team\\R\\credentials_source.R")
+con <- connect_to_db("rda_shared_data")
+con_ctc <- connect_to_db("cancel_the_contract")
+
+### Update these variables each year ###
+curr_yr = 2023 # you MUST UPDATE each year
+rc_yr <- '2025'
+rc_schema <- 'v7'
+
+
+### Variables that do not need updates ###
+cv_threshold = 100         
+pop_threshold = 0       
+asbest = 'max'            
+schema = 'housing'
+table_code = 'b25003'
+
+# Grab SPA-tract xwalk so that we can get all tracts within SPA 1 which we are using as our AV geography. Census tracts are 2023.
+spa <- dbGetQuery(con, "SELECT * FROM crosswalks.lacounty_health_district_spa_tract_2022")%>%
+  filter(spa_num==1)
+
+df_wide_multigeo <- dbGetQuery(con, paste0("select * from ",schema,".acs_5yr_",table_code,"_multigeo_",curr_yr," WHERE geolevel IN ('tract')")) # import rda_shared_data table
+
+df_wide_av_tracts <- df_wide_multigeo %>%
+  filter(geoid %in% spa$ct_geoid)
+```
+
+```{r}
+############## Pre-RC CALCS ##############
+source("W:/Project/RACE COUNTS/2025_v7/RC_Github/staging/RaceCounts/Functions/rdashared_functions.R")
+
+df <- prep_acs(df_wide_av_tracts, table_code, cv_threshold, pop_threshold)
+
+```
+
+```{r}
+housing_counts <- df %>%
+  summarise(
+    # Ownership counts
+    own_all    = sum(total_raw, na.rm = TRUE),
+    own_black  = sum(black_raw, na.rm = TRUE),
+    own_aian   = sum(aian_raw, na.rm = TRUE),
+    own_asian  = sum(asian_raw, na.rm = TRUE),
+    own_pacisl = sum(pacisl_raw, na.rm = TRUE),
+    own_other  = sum(other_raw, na.rm = TRUE),
+    own_twoormor = sum(twoormor_raw, na.rm = TRUE),
+    own_nhwhite = sum(nh_white_raw, na.rm = TRUE),
+    own_latino   = sum(latino_raw, na.rm = TRUE),
+    
+    # Rental counts
+    rent_all    = sum(total003e, na.rm = TRUE),
+    rent_black  = sum(black003e, na.rm = TRUE),
+    rent_aian   = sum(aian003e, na.rm = TRUE),
+    rent_asian  = sum(asian003e, na.rm = TRUE),
+    rent_pacisl = sum(pacisl003e, na.rm = TRUE),
+    rent_other  = sum(other003e, na.rm = TRUE),
+    rent_twoormor = sum(twoormor003e, na.rm = TRUE),
+    rent_nhwhite = sum(nh_white003e, na.rm = TRUE),
+    rent_latino   = sum(latino003e, na.rm = TRUE),
+    
+    # Totals
+    total_all    = sum(total_pop, na.rm = TRUE),
+    total_black  = sum(black_pop, na.rm = TRUE),
+    total_aian   = sum(aian_pop, na.rm = TRUE),
+    total_asian  = sum(asian_pop, na.rm = TRUE),
+    total_pacisl = sum(pacisl_pop, na.rm = TRUE),
+    total_other  = sum(other_pop, na.rm = TRUE),
+    total_twoormor = sum(twoormor_pop, na.rm = TRUE),
+    total_nhwhite = sum(nh_white_pop, na.rm = TRUE),
+    total_latino   = sum(latino_pop, na.rm = TRUE)
+  )
+
+housing_longer <- housing_counts %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = c("tenure", "race"),
+    names_sep = "_",
+    values_to = "count"
+  )
+
+housing_wider <- housing_longer %>%
+  pivot_wider(
+    names_from = tenure,
+    values_from = count
+  )
+
+qa <- housing_wider %>%
+  mutate(housed = own+rent)
+
+housing_rates <- housing_wider %>% 
+  mutate(
+    geography = "Antelope Valley",
+    rate_own  = own  / total * 100,
+    rate_rent = rent / total * 100
+  ) %>%
+  rename(own_count = own, rent_count = rent) %>%
+  select(geography,everything())
+  
+```
+
+```{r}
+table_name <- "analysis_homeowners_renters_race"
+schema <- "data"
+indicator <- "Percentage of homeowners and the percentage of renters that live in the Antelope Valley by race"
+source <- "R Script: W:\\Project\\RJS\\CTC\\Github\\AV\\cancel_the_contract\\Analysis\\analysis_homeownership_renters_by_race.R"
+qa_filepath <- " W:\\Project\\RJS\\CTC\\Documentation\\QA_analysis_homeownership.docx" 
+table_comment <- paste0(indicator, source)
+
+dbWriteTable(con_ctc, Id(schema, table_name), housing_rates, overwrite = TRUE, row.names = FALSE)
+
+# Comment on table and columns
+column_names <- colnames(housing_rates) # Get column names
+column_comments <- c(
+  "geography level",
+  "racial group",
+  "number of homeowners",
+  "number of renters",
+  "total number of homeowners and renters",
+  "racial rate of homeownership",
+  "racial rate of renters"
+)
+
+add_table_comments(con_ctc, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
+```
+
