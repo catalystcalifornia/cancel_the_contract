@@ -47,6 +47,7 @@ table_code = 'b25003'
 spa <- dbGetQuery(con, "SELECT * FROM crosswalks.lacounty_health_district_spa_tract_2022")%>%
   filter(spa_num==1)
 
+# Get AV census tracts
 df_wide_multigeo <- dbGetQuery(con, paste0("select * from ",schema,".acs_5yr_",table_code,"_multigeo_",curr_yr," WHERE geolevel IN ('tract')")) # import rda_shared_data table
 
 df_wide_av_tracts <- df_wide_multigeo %>%
@@ -54,15 +55,144 @@ df_wide_av_tracts <- df_wide_multigeo %>%
 ```
 
 ```{r}
+##### Prep ACS tables for modified RC fx #####
+prep_acs_ctc <- function(x, table_code, cv_threshold, pop_threshold) {
+  
+  # renaming rules will change depending on type of census table
+  if (startsWith(table_code, "b")) {
+    total_table_code = paste0(table_code, "_")
+    table_b_code = paste0(table_code, "b_")
+    table_c_code = paste0(table_code, "c_")
+    table_d_code = paste0(table_code, "d_")
+    table_e_code = paste0(table_code, "e_")
+    table_f_code = paste0(table_code, "f_")
+    table_g_code = paste0(table_code, "g_")
+    table_h_code = paste0(table_code, "h_")
+    table_i_code = paste0(table_code, "i_")
+    
+    names(x) <- gsub(total_table_code, "total", names(x))
+    names(x) <- gsub(table_b_code, "black", names(x))
+    names(x) <- gsub(table_c_code, "aian", names(x))
+    names(x) <- gsub(table_d_code, "asian", names(x))
+    names(x) <- gsub(table_e_code, "pacisl", names(x))
+    names(x) <- gsub(table_f_code, "other", names(x))
+    names(x) <- gsub(table_g_code, "twoormor", names(x))
+    names(x) <- gsub(table_h_code, "nh_white", names(x))
+    names(x) <- gsub(table_i_code, "latino", names(x))
+  }
+  
+  if(endsWith(table_code, "b25003")) {
+    names(x) <- gsub("001e", "_pop", names(x))
+    names(x) <- gsub("001m", "_pop_moe", names(x))
+    
+    names(x) <- gsub("002e", "_raw", names(x))
+    names(x) <- gsub("002m", "_raw_moe", names(x))
+    
+    # [race]_rate  ### AV 9/30/25: Change "<= 0, NA" to "<= 0, 0"
+    x$total_rate <- ifelse(x$total_pop <= 0, 0, x$total_raw/x$total_pop*100)
+    x$asian_rate <- ifelse(x$asian_pop <= 0, 0, x$asian_raw/x$asian_pop*100)
+    x$black_rate <- ifelse(x$black_pop <= 0, 0, x$black_raw/x$black_pop*100)
+    x$nh_white_rate <- ifelse(x$nh_white_pop <= 0, 0, x$nh_white_raw/x$nh_white_pop*100)
+    x$latino_rate <- ifelse(x$latino_pop <= 0, 0, x$latino_raw/x$latino_pop*100)
+    x$other_rate <- ifelse(x$other_pop <= 0, 0, x$other_raw/x$other_pop*100)
+    x$pacisl_rate <- ifelse(x$pacisl_pop <= 0, 0, x$pacisl_raw/x$pacisl_pop*100)
+    x$twoormor_rate <- ifelse(x$twoormor_pop <= 0, 0, x$twoormor_raw/x$twoormor_pop*100)
+    x$aian_rate <- ifelse(x$aian_pop <= 0, 0, x$aian_raw/x$aian_pop*100)
+    
+    # [race]_rate_moe
+    x$total_rate_moe <- moe_prop(x$total_raw,
+                                 x$total_pop,
+                                 x$total_raw_moe,
+                                 x$total_pop_moe)*100
+    
+    x$asian_rate_moe <- moe_prop(x$asian_raw,
+                                 x$asian_pop,
+                                 x$asian_raw_moe,
+                                 x$asian_pop_moe)*100
+    
+    x$black_rate_moe <- moe_prop(x$black_raw,
+                                 x$black_pop,
+                                 x$black_raw_moe,
+                                 x$black_pop_moe)*100
+    
+    x$nh_white_rate_moe <- moe_prop(x$nh_white_raw,
+                                    x$nh_white_pop,
+                                    x$nh_white_raw_moe,
+                                    x$nh_white_pop_moe)*100
+    
+    x$latino_rate_moe <- moe_prop(x$latino_raw,
+                                  x$latino_pop,
+                                  x$latino_raw_moe,
+                                  x$latino_pop_moe)*100
+    
+    x$other_rate_moe <- moe_prop(x$other_raw,
+                                 x$other_pop,
+                                 x$other_raw_moe,
+                                 x$other_pop_moe)*100
+    
+    x$pacisl_rate_moe <- moe_prop(x$pacisl_raw,
+                                  x$pacisl_pop,
+                                  x$pacisl_raw_moe,
+                                  x$pacisl_pop_moe)*100
+    
+    x$twoormor_rate_moe <- moe_prop(x$twoormor_raw,
+                                    x$twoormor_pop,
+                                    x$twoormor_raw_moe,
+                                    x$twoormor_pop_moe)*100
+    
+    x$aian_rate_moe <- moe_prop(x$aian_raw,
+                                x$aian_pop,
+                                x$aian_raw_moe,
+                                x$aian_pop_moe)*100
+    
+  }
+  
+  # Finish up data cleaning
+  # make colnames lower case
+  colnames(x) <- tolower(colnames(x))
+  
+  # Clean geo names
+  x$name <- gsub(", California", "", x$name)
+  x$name <- gsub(" County", "", x$name)
+  x$name <- gsub(" city", "", x$name)
+  x$name <- gsub(" town", "", x$name)
+  x$name <- gsub(" CDP", "", x$name)
+  x$name <- str_remove(x$name,  "\\s*\\(.*\\)\\s*")
+  x$name <- gsub("; California", "", x$name)
+  
+  
+  ### Coefficient of Variation (CV) CALCS ###
+  df <- x
+  
+  ### calc cv's
+  ## Calculate CV values for all rates - store in columns as cv_[race]_rate
+  if (!is.na(cv_threshold)){
+    df$total_rate_cv <- ifelse(df$total_rate==0, NA, df$total_rate_moe/1.645/df$total_rate*100)
+    df$asian_rate_cv <- ifelse(df$asian_rate==0, NA, df$asian_rate_moe/1.645/df$asian_rate*100)
+    df$black_rate_cv <- ifelse(df$black_rate==0, NA, df$black_rate_moe/1.645/df$black_rate*100)
+    df$nh_white_rate_cv <- ifelse(df$nh_white_rate==0, NA, df$nh_white_rate_moe/1.645/df$nh_white_rate*100)
+    df$latino_rate_cv <- ifelse(df$latino_rate==0, NA, df$latino_rate_moe/1.645/df$latino_rate*100)
+    df$other_rate_cv <- ifelse(df$other_rate==0, NA, df$other_rate_moe/1.645/df$other_rate*100)
+    df$pacisl_rate_cv <- ifelse(df$pacisl_rate==0, NA, df$pacisl_rate_moe/1.645/df$pacisl_rate*100)
+    df$twoormor_rate_cv <- ifelse(df$twoormor_rate==0, NA, df$twoormor_rate_moe/1.645/df$twoormor_rate*100)
+    df$aian_rate_cv <- ifelse(df$aian_rate==0, NA, df$aian_rate_moe/1.645/df$aian_rate*100)
+    
+  }
+  return(df)
+}
+```
+
+
+```{r}
 ############## Pre-RC CALCS ##############
 source("W:/Project/RACE COUNTS/2025_v7/RC_Github/staging/RaceCounts/Functions/rdashared_functions.R")
 
-df <- prep_acs(df_wide_av_tracts, table_code, cv_threshold, pop_threshold)
+df_ctc <- prep_acs_ctc(df_wide_av_tracts, table_code, cv_threshold, pop_threshold)
 
 ```
 
 ```{r}
-housing_counts <- df %>%
+housing_counts_ctc <- df_ctc %>%
   summarise(
     # Ownership counts
     own_all    = sum(total_raw, na.rm = TRUE),
@@ -98,7 +228,7 @@ housing_counts <- df %>%
     total_latino   = sum(latino_pop, na.rm = TRUE)
   )
 
-housing_longer <- housing_counts %>%
+housing_longer_ctc <- housing_counts_ctc %>%
   pivot_longer(
     cols = everything(),
     names_to = c("tenure", "race"),
@@ -106,16 +236,16 @@ housing_longer <- housing_counts %>%
     values_to = "count"
   )
 
-housing_wider <- housing_longer %>%
+housing_wider_ctc <- housing_longer_ctc %>%
   pivot_wider(
     names_from = tenure,
     values_from = count
   )
 
-qa <- housing_wider %>%
+qa_ctc <- housing_wider_ctc %>%
   mutate(housed = own+rent)
 
-housing_rates <- housing_wider %>% 
+housing_rates_ctc <- housing_wider_ctc %>% 
   mutate(
     geography = "Antelope Valley",
     rate_own  = own  / total * 100,
@@ -134,10 +264,10 @@ source <- "R Script: W:\\Project\\RJS\\CTC\\Github\\AV\\cancel_the_contract\\Ana
 qa_filepath <- " W:\\Project\\RJS\\CTC\\Documentation\\QA_analysis_homeownership.docx" 
 table_comment <- paste0(indicator, source)
 
-dbWriteTable(con_ctc, Id(schema, table_name), housing_rates, overwrite = TRUE, row.names = FALSE)
+dbWriteTable(con_ctc, Id(schema, table_name), housing_rates_ctc, overwrite = TRUE, row.names = FALSE)
 
 # Comment on table and columns
-column_names <- colnames(housing_rates) # Get column names
+column_names <- colnames(housing_rates_ctc) # Get column names
 column_comments <- c(
   "geography level",
   "racial group",
@@ -149,5 +279,7 @@ column_comments <- c(
 )
 
 add_table_comments(con_ctc, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
+
+dbDisconnect(con_ctc)
 ```
 
