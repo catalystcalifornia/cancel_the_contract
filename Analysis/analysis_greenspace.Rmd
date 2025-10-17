@@ -1,0 +1,191 @@
+---
+title: "Access to green space in the AV"
+author: "Alicia Vo"
+date: "2025-10-01"
+output: html_document
+---
+### Lack of Greenspace (Weighted Avg) ### 
+```{r}
+#install packages if not already installed
+packages <- c("dplyr","data.table","tidycensus","sf","DBI","RPostgres","stringr","tidyr","tigris","usethis")  
+
+install_packages <- packages[!(packages %in% installed.packages()[,"Package"])] 
+
+if(length(install_packages) > 0) { 
+  install.packages(install_packages) 
+  
+} else { 
+  
+  print("All required packages are already installed.") 
+} 
+
+for(pkg in packages){ 
+  library(pkg, character.only = TRUE) 
+} 
+
+options(scipen=999)
+
+###### SET UP WORKSPACE #######
+# create connection for rda database
+source("W:\\RDA Team\\R\\credentials_source.R")
+conn <- connect_to_db("rda_shared_data")
+con <- connect_to_db("cancel_the_contract")
+
+# set source for Weighted Average Functions & SWANA Ancestry scripts
+source("W:/RDA Team/R/Github/RDA Functions/LF/RDA-Functions/Cnty_St_Wt_Avg_Functions.R")
+source("W:/RDA Team/R/Github/RDA Functions/LF/RDA-Functions/SWANA_Ancestry_List.R")
+
+
+# update variables used throughout each year
+curr_yr <- 2023  # NLCD and ACS year
+rc_yr <- '2025'
+rc_schema <- 'v7'
+
+# Check that variables in vars_list_dp05 used in WA fx haven't changed --------
+# select acs race/eth pop variables: All AIAN/PacIsl, NH Alone White/Black/Asian/Other, NH Two+, Latinx of any race
+## the variables MUST BE in this order:
+vars_list_dp05 <-      c('total_'= "DP05_0001",
+                         'aian_' = "DP05_0071",
+                         'pacisl_' = "DP05_0073",
+                         'latino_' = "DP05_0076",
+                         'nh_white_' = "DP05_0082",
+                         'nh_black_' = "DP05_0083",
+                         'nh_asian_' = "DP05_0085",
+                         'nh_other_' = "DP05_0087",
+                         'nh_twoormor_' = "DP05_0088")
+
+race_mapping <- data.frame(
+  name = unlist(vars_list_dp05),
+  race = names(vars_list_dp05),
+  stringsAsFactors = FALSE
+)
+
+dp05_curr <- load_variables(curr_yr, "acs5/profile", cache = TRUE) %>% 
+  select(-c(concept)) %>% 
+  filter(name %in% vars_list_dp05) %>%
+  left_join(race_mapping, by="name") %>%
+  mutate(rc_races = paste0(race, "pop"), 
+         name = tolower(name),            # get all DP05 vars
+         label <- gsub("Estimate!!|HISPANIC OR LATINO AND RACE!!", "", label))              
+
+# CHECK THIS TABLE TO MAKE SURE THE LABEL AND RC_RACES COLUMNS MATCH UP
+print(dp05_curr) 
+
+# Grab SPA-tract xwalk so that we can get all tracts within SPA 1 which we are using as our AV geography. Census tracts are 2023.
+spa <- dbGetQuery(conn, "SELECT * FROM crosswalks.lacounty_health_district_spa_tract_2022")%>%
+  filter(spa_num==1)
+##### 1. GET INDICATOR DATA ######
+
+# You MUST load indicator data using these table/column names (ind_df with cols subid / indicator) in order for WA functions to work
+ind_df <- dbGetQuery(conn, paste0("SELECT ct_geoid AS sub_id, median AS indicator FROM built_environment.nlcd_tract_impervious_land_", curr_yr))
+
+# only keep geos in Antelope Valley
+ind_df_av <- ind_df %>% filter(sub_id %in% spa$ct_geoid)
+```
+
+```{r}
+#### Y is a required table (with cols: sub_id and indicator) to run this function: Calc weighted averages at target geolevel and apply screens. This function is modified from the RC function wt_avg() - the only difference is that this function doesn't apply screening. #####
+wt_avg_ctc <- function(x, y) {
+  
+  a <- x %>% dplyr::select(target_id, sub_id, n, ends_with("_pct_target_pop"))
+  a <- a %>% dplyr::left_join(select(y, sub_id, indicator), by = "sub_id", relationship = "many-to-many")   # join indicator data to pop data
+  a_long <- pivot_longer(a, ends_with("_pct_target_pop"), names_to="raceeth", values_to="pct_pop") %>%           # pivot wide table to long
+    dplyr::mutate(wa= ifelse(is.na(indicator), NA, indicator*pct_pop), raceeth=sub("_pct_target_pop", "-", raceeth))     # calc wa by tract, make raceeth names generic
+  
+  a_long <- a_long %>% ungroup() %>% dplyr::select(target_id, n, wa, raceeth)      
+  grp_long = a_long %>% dplyr::group_by(target_id, raceeth, n) %>%                       # calc wa at 1 target geolevel                         
+    dplyr::summarise(wtavg = sum(wa, na.rm = TRUE), .groups = 'drop')               
+  
+  targ_pop <- x %>% ungroup() %>% dplyr::select(target_id, ends_with("target_pop"), -ends_with("pct_target_pop"))      # get target pop
+  targ_pop <- dplyr::distinct(targ_pop, .keep_all = FALSE)                                            # drop duplicate rows
+  targ_pop_long <- pivot_longer(targ_pop, ends_with("target_pop"), names_to = "raceeth", values_to = "target_pop") %>% 
+    dplyr::mutate(raceeth = gsub("_target_pop", "-", raceeth))                           # make raceeth names generic 
+  
+  grp_long <- grp_long %>% dplyr::left_join(targ_pop_long, by = c("target_id", "raceeth"))     # join target pop data to wt avgs
+  grp_long <- grp_long %>% dplyr::mutate(raceeth = sub("-", "_rate", raceeth))                                            # update column names
+  
+  grp_wide <- grp_long %>% dplyr::select(target_id, raceeth, wtavg) %>%           # pivot long table back to wide keeping only WA columns
+    pivot_wider(names_from=raceeth, values_from=wtavg)
+  grp_wide_pop <- grp_long %>% dplyr::select(target_id, raceeth, target_pop) %>%               # pivot long table back to wide keeping only target pop columns
+    pivot_wider(names_from=raceeth, values_from=target_pop)
+  colnames(grp_wide_pop) = gsub("_rate", "_pop", colnames(grp_wide_pop))                       # update target pop column names                            
+  grp_wide <- grp_wide %>% left_join(grp_wide_pop, by = "target_id")                           # join target pop columns to WA table
+  n_table <- a %>% ungroup() %>% dplyr::select(target_id, n)
+  grp_wide <- grp_wide %>% left_join(n_table, by = "target_id")
+  grp_wide <- distinct(grp_wide, .keep_all = FALSE)                                            # remove dupe rows
+  
+  return(grp_wide)                        
+}
+```
+
+```{r}
+############# ANTELOPE VALLEY ##################
+###### DEFINE VALUES FOR FUNCTIONS ###
+
+# set values for weighted average functions - You may need to update these
+subgeo <- c('tract')             # define your sub geolevel: tract
+survey <- "acs5"                 # define which Census survey you want
+pop_threshold = 0              # define population threshold for screening
+
+##### GET SUB GEOLEVEL POP DATA ###
+pop <- update_detailed_table(vars = vars_list_dp05, yr = curr_yr, srvy = survey)  # subgeolevel pop
+
+pop_av <- pop %>% as.data.frame() %>% filter(GEOID %in% spa$ct_geoid) # only keep Antelope Valley geoids
+
+# get SWANA pop
+vars_list_swana <- get_swana_var(curr_yr, survey)
+# QA check: has 93 rows, equal to the number of unique geoids in Antelope Valley
+pop_swana <- update_detailed_table(vars = vars_list_swana, yr = curr_yr, srvy = survey) %>%
+  as.data.frame() %>%
+  filter(GEOID %in% spa$ct_geoid) %>%
+  group_by(GEOID, NAME, geolevel) %>%
+  summarise(estimate=sum(estimate),
+            moe=moe_sum(moe,estimate)) %>% 
+  mutate(variable = "swana_") # subgeolevel pop 
+
+# combine DP05 groups with SWANA tract level estimates 
+pop_ <- rbind(pop_av, pop_swana %>% filter(geolevel == 'tract')) %>%
+  rename(e = estimate, m = moe)
+
+# transform pop data to wide format 
+# QA check: has 93 rows, equal to the number of unique geoids in Antelope Valley
+pop_wide <- to_wide(pop_)
+
+#### add target_id field
+pop_wide <- dplyr::rename(pop_wide, sub_id = GEOID) %>% mutate(target_id = "antelope_valley")
+
+# calc target geolevel pop and number of sub geolevels per target geolevel
+# QA check: Antelope Valley pop numbers in the columns that end with _target_pop are the same numbers as in the postgres table data.av_population_race
+pop_df <- targetgeo_pop(pop_wide) 
+
+##### ANTELOPE VALLEY WEIGHTED AVG CALCS ###
+pct_df <- pop_pct(pop_df) # calc sub geolevel pop as pct of each target geolevel pop
+
+av_wa_wide <- wt_avg_ctc(pct_df, ind_df_av) # get weighted average 
+
+av_wa <- pivot_longer(av_wa_wide, cols = ends_with("rate")) %>% 
+  select(name, value) %>%
+  mutate(name = sub("_rate", "", name)) %>%
+  arrange(value) %>%
+  rename(race=name, rate=value)
+```
+
+```{r}
+# Write table with metadata
+table_name <- "analysis_greenspace_av"
+schema <- "data"
+indicator <- "A table showing the percentage of imperious land cover experienced by racial groups in the Antelope Valley. For example, Black residents live in areas that are on average 34.8% impervious land area. Impervious land area refers to surfaces that do not absorb water, such as roofs, pavement, and driveways, which prevent rainwater from infiltrating the soil."
+source <- "Script: W:/Project/RJS/CTC/Github/AV/cancel_the_contract/Analysis/analysis_greenspace.Rmd"
+qa_filepath <- "W:/Project/RJS/CTC/Documentation/QA_av_greenspace.docx"
+table_comment <- paste0(indicator, source)
+dbWriteTable(con, Id(schema, table_name), av_wa, overwrite = TRUE, row.names = FALSE)
+
+# Comment on table and columns
+column_names <- colnames(av_wa) # Get column names
+column_comments <- c(
+  "Race group",
+  "Percentage of imperious land cover experienced by the race group"
+)
+
+add_table_comments(con, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
+```
