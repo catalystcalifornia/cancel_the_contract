@@ -38,8 +38,8 @@ la_county_subset <- la_county %>% filter(geoname == "Los Angeles County, Califor
 
 # combine AV and County and calculate percentages
 df <- rbind(av_subset, la_county_subset) %>% 
-  mutate(pct_hh_below_rcm = num_hh_below_rcm / num_hh,
-         pct_hh_above_rcm = num_hh_above_rcm / num_hh)
+  mutate(pct_hh_below_rcm = num_hh_below_rcm / num_hh * 100,
+         pct_hh_above_rcm = num_hh_above_rcm / num_hh * 100)
 
 
 # Finalize and push table to postgres --------------------------------
@@ -63,6 +63,7 @@ qa_filepath <- "W:\\Project\\RJS\\CTC\\Documentation\\QA_analysis_real_cost.docx
 # comment on table and columns
 column_names <- colnames(df)
 column_comments <- c('geography',
+                     'number of households',
                      'number of households below the real cost measure of living',
                      'number of households above the real cost measure of living',
                      'percentage of households below the real cost measure of living',
