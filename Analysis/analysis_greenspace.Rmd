@@ -178,14 +178,24 @@ indicator <- "A table showing the percentage of imperious land cover experienced
 source <- "Script: W:/Project/RJS/CTC/Github/AV/cancel_the_contract/Analysis/analysis_greenspace.Rmd"
 qa_filepath <- "W:/Project/RJS/CTC/Documentation/QA_av_greenspace.docx"
 table_comment <- paste0(indicator, source)
-dbWriteTable(con, Id(schema, table_name), av_wa, overwrite = TRUE, row.names = FALSE)
+# dbWriteTable(con, Id(schema, table_name), av_wa, overwrite = TRUE, row.names = FALSE)
 
 # Comment on table and columns
 column_names <- colnames(av_wa) # Get column names
 column_comments <- c(
   "Race group",
-  "Percentage of imperious land cover experienced by the race group"
+  "Percentage of impervious land cover experienced by the race group"
 )
 
 add_table_comments(con, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
+```
+
+
+```{r}
+dbDisconnect(conn)
+dbDisconnect(con)
+```
+
+
+```{r}
 ```
