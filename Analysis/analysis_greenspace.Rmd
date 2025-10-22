@@ -66,7 +66,7 @@ dp05_curr <- load_variables(curr_yr, "acs5/profile", cache = TRUE) %>%
   left_join(race_mapping, by="name") %>%
   mutate(rc_races = paste0(race, "pop"), 
          name = tolower(name),            # get all DP05 vars
-         label <- gsub("Estimate!!|HISPANIC OR LATINO AND RACE!!", "", label))              
+         label = gsub("Estimate!!|HISPANIC OR LATINO AND RACE!!", "", label))              
 
 # CHECK THIS TABLE TO MAKE SURE THE LABEL AND RC_RACES COLUMNS MATCH UP
 print(dp05_curr) 
@@ -174,7 +174,7 @@ av_wa <- pivot_longer(av_wa_wide, cols = ends_with("rate")) %>%
 # Write table with metadata
 table_name <- "analysis_greenspace_av"
 schema <- "data"
-indicator <- "A table showing the percentage of imperious land cover experienced by racial groups in the Antelope Valley. For example, Black residents live in areas that are on average 34.8% impervious land area. Impervious land area refers to surfaces that do not absorb water, such as roofs, pavement, and driveways, which prevent rainwater from infiltrating the soil."
+indicator <- "A table showing the percentage of impervious land cover experienced by racial groups in the Antelope Valley. For example, Black residents live in areas that are on average 34.8% impervious land area. Impervious land area refers to surfaces that do not absorb water, such as roofs, pavement, and driveways, which prevent rainwater from infiltrating the soil."
 source <- "Script: W:/Project/RJS/CTC/Github/AV/cancel_the_contract/Analysis/analysis_greenspace.Rmd"
 qa_filepath <- "W:/Project/RJS/CTC/Documentation/QA_av_greenspace.docx"
 table_comment <- paste0(indicator, source)
