@@ -235,3 +235,79 @@ column_comments <- c(
 
 dbDisconnect(con)
 dbDisconnect(con_shared)
+
+
+
+####################### Calculate rates for HIT RATES BY RACE ###################
+# This looks at out of everyone who was searched with contraband found, what was the disaggregation by race
+# amont those with contraband found
+
+# First: Recode our contraband flag so now contraband_found==1 and no contraband_found==0
+
+contra_re<-av_stops%>%
+  select(contact_id, person_id, reportingcategory_re, aian_flag, nhpi_flag, sswana_flag, latinx,
+         search_of_person_conducted, contraband_evidence_discovered_none)%>%
+  mutate(contraband_evidence_discovered_none = case_when(
+    contraband_evidence_discovered_none %in% c("Yes", "true")  ~ 0,
+    contraband_evidence_discovered_none %in% c("No", "false")  ~ 1,
+    TRUE                                    ~ NA_real_
+  ))%>%
+  rename("contraband_found"="contraband_evidence_discovered_none")%>%
+  mutate(search_of_person_conducted = case_when(
+    search_of_person_conducted %in% c("Yes", "true")  ~ 1,
+    search_of_person_conducted %in% c("No", "false")  ~ 0,
+    TRUE                                    ~ NA_real_
+  ))
+
+
+df_contra_nh<-contra_re%>%
+  filter(search_of_person_conducted==1)%>%
+  group_by(search_of_person_conducted, contraband_found)%>%
+  mutate(total=n())%>%
+  filter(contraband_found==1)%>%
+  group_by(reportingcategory_re)%>%
+  mutate(
+    count=n(),
+    rate=count/total*100
+  )%>%
+  slice(1)
+  mutate(universe="All searches",
+         geography="Antelope Valley Union High School District")%>%
+  filter(reportingcategory_re!="NULL")%>%
+  slice(1)%>%
+  ungroup()%>%
+  select(universe, geography, contraband_evidence_discovered_none, reportingcategory_re, total, count, rate)
+
+  
+  ### Out of my own curiosity: Explore what contraband was actually found by race ###
+  
+  contra_re1<-av_stops%>%
+    select(contact_id, person_id, reportingcategory_re, aian_flag, nhpi_flag, sswana_flag, latinx,
+           search_of_person_conducted, starts_with("contraband_evidence"))%>%
+    mutate(contraband_evidence_discovered_none = case_when(
+      contraband_evidence_discovered_none %in% c("Yes", "true")  ~ 0,
+      contraband_evidence_discovered_none %in% c("No", "false")  ~ 1,
+      TRUE                                    ~ NA_real_
+    ))%>%
+    rename("contraband_found"="contraband_evidence_discovered_none")%>%
+    mutate(
+      # your existing column
+      search_of_person_conducted = case_when(
+        search_of_person_conducted %in% c("Yes", "true")  ~ 1,
+        search_of_person_conducted %in% c("No", "false")  ~ 0,
+        TRUE ~ NA_real_
+      ),
+      
+      # apply same logic to all contraband_evidence* columns
+      across(
+        starts_with("contraband_evidence"),
+        ~ case_when(
+          .x %in% c("Yes", "true")  ~ 1,
+          .x %in% c("No", "false")  ~ 0,
+          TRUE ~ NA_real_
+        )
+      )
+    )%>%
+    select(-aian_flag, -nhpi_flag, -sswana_flag)%>%
+    filter(if_any(starts_with("contraband_evidence"), ~ .x == 1) & search_of_person_conducted==1)
+  
