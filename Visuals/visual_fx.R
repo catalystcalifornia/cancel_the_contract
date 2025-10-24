@@ -21,42 +21,30 @@ library(forcats)
 source("W:\\RDA Team\\R\\credentials_source.R")
 con<- connect_to_db("cancel_the_contract")
 
+# grab data dictionary
 
-#### Set up style guide: SUBSTITUTE WITH CTC OR WHATEVER WE END UP USING----------------------
+dict<-dbGetQuery(con, "SELECT * FROM data_dictionary")
 
-## COLORS## Taken from W:\Project\RDA Team\Region 5 State of the Child\Documentation\F5LA_BrandGuidelines_COLORS.pdf
-#primary
-lightblue <- "#009CDB"
-darkblue <- "#332985"
-tealblue <- "#22BCB8"
+#### Set up style guide---------------------
+
+yellow <- "#d7a24b"
+magenta <- "#af3c6d"
+teal <- "#46756f"
+navy<-"#3f444e"
+mauve<-"#c492b1"
+lightblue<-"#bae7fc"
 black <- "#000000"
 textgrey <- "#919191"
-#secondary 
-green <- "#54B847"
-orange <- "#F58326"
-hotpink <- "#EC098C"
-red <- "#EF4034"
-
-## FONTS ##
-# Step 1: Download fonts (Gotham Bold and Gotham Book) 
-# Step 2: Load the downloaded fonts into the R script:
-# General: See tutorial here, under "THE SHOWTEXT PACKAGE" section: https://r-coder.com/custom-fonts-r/#The_showtext_package 
-# Step 3: Run the code below in each R script
-
-font_add(family = "GothamBold", regular = "C:/Windows/Fonts/Gotham-Bold 700.otf")
-font_add(family = "GothamBook", regular = "C:/Windows/Fonts/Gotham-Book 325.otf")
-
-showtext_auto()
 
 # define fonts in chart
-font_title <- "GothamBold"
-font_subtitle <- "GothamBook"
-font_caption <- "GothamBook"
-font_bar_label <- "GothamBold"
-font_axis_label <- "GothamBook"
-font_table_text<-"GothamBook"
+font_title <- "placard_regular"
+font_subtitle <- "placard_regular_bold"
+font_caption <- "gillsans"
+font_bar_label <- "gillsans"
+font_axis_label <- "gillsans"
 
-#Reference: W:\Project\RDA Team\LAFed\R\LAFed\visual_functions_static.R
+font_table_title<-"Work Sans"
+font_table_text<-"Work Sans"
 
 # STATIC TABLE FX-----------------------------
 
@@ -157,13 +145,6 @@ static_table(df=df,
 
 # SINGLE BAR GRAPH FUNCTION -------------------------------------
 
-df<-dbGetQuery(con, "SELECT * FROM av_population_race")
-
-
-title_text<-"Antelope Valley Demographics by Race"
-caption_text<-"Source: ACS 5-year Estimates Table DP05, 2018-2023. 
-Note: Rates are out of 100 people. AIAN stands for American Indian and Alaskan Native."
-
 single_bar<-function(df, indicator, title_text, subtitle_text, caption_text){
   
   # rename 'rate' column for function and arrange by rate descending
@@ -180,15 +161,16 @@ single_bar<-function(df, indicator, title_text, subtitle_text, caption_text){
     
     # define the bars
     
-    geom_col(fill = lightblue) +
+    geom_col(fill = teal) +
     
     # bar labels
     
     geom_text(aes(label = paste0(round(rate, 1), "%")),
               family = font_bar_label, 
-              position = position_dodge(width = 1), vjust = 0.25 , hjust= 1.15,
+              hjust = -0.1,   # small negative number pushes text to the right of the bar
+              vjust = 0.5,
               fontface = "bold",  
-              colour = "white") +  
+              colour = "black") +
     
     labs(title = str_wrap(title_text, width = 65),
          subtitle = str_wrap(subtitle_text, width = 80),
