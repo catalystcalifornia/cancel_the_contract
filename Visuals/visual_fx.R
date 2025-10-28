@@ -65,10 +65,9 @@ font_add("gillsans_bold", regular = "C:\\Windows\\Fonts\\GILB____.TTF")
 # 
 # system_fonts_df
 
-font_add("placard", regular = "C:\\Users\\JZhang\\AppData\\Local\\Microsoft\\Windows\\Fonts\\PlacardNextRegular.TTF")
+font_add("placard", regular = "W:\\Project\\RJS\\CTC\\CTC Fonts\\PlacardNextRegular.TTF")
 
-font_add("placard_bold", regular = "C:\\Users\\JZhang\\AppData\\Local\\Microsoft\\Windows\\Fonts\\PlacardNextBold.TTF")
-
+font_add("placard_bold", regular = "W:\\Project\\RJS\\CTC\\CTC Fonts\\PlacardNextBold.TTF")
 
 # Use showtext_auto() to get fonts to load
 
@@ -115,11 +114,11 @@ race_recode<-function(df){
                         
 # EX) RACE RECODING----------------------------------
 
-df<-dbGetQuery(con, "SELECT * FROM analysis_stops_race")%>%
-  rename(label=reportingcategory_re)
-  
-  
- df_new<- race_recode(df)
+# df<-dbGetQuery(con, "SELECT * FROM analysis_stops_race")%>%
+#   rename(label=reportingcategory_re)
+#   
+#   
+#  df_new<- race_recode(df)
   
 
 
@@ -254,21 +253,21 @@ static_table <- function(df, indicator, group_col, title_text)
 
 #load in data
 
-df<-dbGetQuery( con, "SELECT * FROM analysis_suspensions")%>%
-  select(label, enrollment_total, suspension_count, suspension_rate) # select columns you want in the table
+# df<-dbGetQuery( con, "SELECT * FROM analysis_suspensions")%>%
+#   select(label, enrollment_total, suspension_count, suspension_rate) # select columns you want in the table
 
 # NOTE: The indicator field needs to match the way it is in the data dictionary indicator_short column
 ## i.e.) for suspensions by race, I need to set indicator_short== "Suspensions by race"
 
-indicator="Suspensions by race"
-title_text="Marginalized Students are Suspended at Disproportionately High Rates"
+# indicator="Suspensions by race"
+# title_text="Marginalized Students are Suspended at Disproportionately High Rates"
  
 # Apply function
 
-static_table(df=df, 
-             indicator=indicator, 
-             group_col="Student Group", # specify the way you want the category column to be labeled as on the visual
-             title_text=title_text)
+# static_table(df=df, 
+#              indicator=indicator, 
+#              group_col="Student Group", # specify the way you want the category column to be labeled as on the visual
+#              title_text=title_text)
 
 
 # SINGLE BAR GRAPH FUNCTION -------------------------------------
@@ -353,27 +352,27 @@ single_bar<-function(df, indicator, title_text){
 # EX) SINGLE BAR GRAPH LINE------------------------------------
 
 
-df<-dbGetQuery(con, "SELECT * FROM av_population_race")
+# df<-dbGetQuery(con, "SELECT * FROM av_population_race")
 
 # first apply the race_recode function if you are visualizing something disaggregated by race
 # for it to work you need to rename your column that needs to be recoded to 'label'
 
-df<-df%>%
-  rename("label"="race")%>% # This is the column that needs to get renamed
-  race_recode() # apply race recoding
+# df<-df%>%
+#   rename("label"="race")%>% # This is the column that needs to get renamed
+#   race_recode() # apply race recoding
 
 # NOTE: The indicator field needs to match the way it is in the data dictionary indicator_short column
 ## i.e.) for suspensions by race, I need to set indicator== "Suspensions by race"
 
-indicator<-"Race"
-title_text<-"The Majority of the Antelope Valley Population is Latinx, White or Black"
+# indicator<-"Race"
+# title_text<-"The Majority of the Antelope Valley Population is Latinx, White or Black"
 
 # Apply function
 
-single_bar(df=df, 
-           indicator=indicator, 
-           title_text=title_text
-               )
+# single_bar(df=df, 
+#            indicator=indicator, 
+#            title_text=title_text
+#                )
 
 # SINGLE BAR GRAPH W/ TOTAL LINE FUNCTION -------------------------------------
 
@@ -475,25 +474,25 @@ single_bar_tot<-function(df, indicator, title_text){
 # EX) SINGLE BAR GRAPH W/ TOTAL LINE------------------------------------
 
 
-df<-dbGetQuery(con, "SELECT * FROM analysis_rent_burden")
+# df<-dbGetQuery(con, "SELECT * FROM analysis_rent_burden")
 
 # check your table and do any prep necessary prior to visual
 ## if you have rate_Se and rate_moe type columns, remove prior to visualizing!
 
-df<-df%>%
-  rename(label=subgroup)%>%
-  select(-rate_se, -rate_moe, -rate_cv)%>%
-  race_recode()
+# df<-df%>%
+#   rename(label=subgroup)%>%
+#   select(-rate_se, -rate_moe, -rate_cv)%>%
+#   race_recode()
   
 
-indicator<-"Police Stops by Race"
-title_text<-"Findings based title"
+# indicator<-"Police Stops by Race"
+# title_text<-"Findings based title"
 
 # Apply function
 
-single_bar_tot(df=df, 
-             indicator=indicator, 
-             title_text=title_text)
+# single_bar_tot(df=df, 
+#              indicator=indicator, 
+#              title_text=title_text)
 
 # Disconnect from postgres--------------------------
 dbDisconnect(con)
