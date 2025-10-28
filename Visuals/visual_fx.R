@@ -238,7 +238,7 @@ static_table <- function(df, indicator, group_col, title_text)
     ) 
   
  # Define base file path for saving visuals
- base_path <- paste0("W:/Project/RJS/CTC/Visuals/",indicator, "_table")
+ base_path <- paste0("./Visuals/",indicator, "_table")
  showtext_opts(dpi=300)
   
  # save as PNG
@@ -267,7 +267,7 @@ title_text="Marginalized Students are Suspended at Disproportionately High Rates
 
 static_table(df=df, 
              indicator=indicator, 
-             group_col="Student Group",
+             group_col="Student Group", # specify the way you want the category column to be labeled as on the visual
              title_text=title_text)
 
 
@@ -334,7 +334,7 @@ single_bar<-function(df, indicator, title_text){
           panel.grid.major.y = element_blank())
   
   # Define base file path
-  base_path <- paste0("W:/Project/RJS/CTC/Visuals/",indicator, "_singlebar")
+  base_path <- paste0("./Visuals/",indicator, "_singlebar")
   
   showtext_opts(dpi=300)
   
@@ -456,7 +456,7 @@ single_bar_tot<-function(df, indicator, title_text){
           panel.grid.major.y = element_blank())
   
   # Define base file path
-  base_path <- paste0("W:/Project/RJS/CTC/Visuals/",indicator, "_singlebartot")
+  base_path <- paste0("./Visuals/",indicator, "_singlebartot")
 
   showtext_opts(dpi=300)
   
