@@ -83,9 +83,13 @@ df[18, ] <- list("Police Stops by Race", "People law enforcement stopped in the 
 
 ### TCE indicators
 
-df[19, ] <- list("Pollution Burden", "", "OEHHA CalEnviroScreen 4.0", "", "2024", "", "", "", "")
-df[20, ] <- list("Infant Mortality", "", "LA County Department of Public Health", "", "", "", "", "", "")
-df[21, ] <- list("Youth Mental Health Hospitalizations", "", "", "", "", "", "", "", "", "")
+df[19, ] <- list("Green space", "", "", "", "", "", "", "", racenote)
+df[20, ] <- list("Infant Mortality", "", "LA County Department of Public Health", "", "", "", "", "", racenote)
+df[21, ] <- list("Youth Mental Health", "", "", "", "", "", "", "", "", "")
+df[22, ] <- list("Manager employment", "", "", "", "", "", "", "", "", racenote)
+df[23, ] <- list("Healthy food", "", "", "", "", "", "", "", "", "")
+df[24, ] <- list("Homeowners renters", "", "", "", "", "", "", "", "", racenote)
+df[25, ] <- list("Rent burden", "", "", "", "", "", "", "", "", racenote)
 
 
 print (df)
@@ -105,7 +109,7 @@ table_comment <- paste0(indicator, source)
 
 dbWriteTable(con,
              Id(schema = schema, table = table_name),
-             df, overwrite = FALSE, row.names = FALSE)
+             df, overwrite = TRUE, row.names = FALSE)
 
 
 #Add comment on table and columns
