@@ -138,7 +138,7 @@ static_table <- function(df, indicator, title_text)
     
   # # set caption text to use values from the data dictionary
   
-  footnote_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],". ",dict$method_note[dict$indicator_short==indicator])
+  footnote_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],"<br>",dict$method_note[dict$indicator_short==indicator],"<br>",dict$race_note[dict$indicator_short==indicator]) 
   footnote_text <- str_wrap(footnote_text, width = 110)
   
   # Conditionally rename 'label' column to 'Student Group' ONLY if the table is with education data
@@ -250,7 +250,6 @@ static_table <- function(df, indicator, title_text)
   
 # EX) STATIC TABLE--------------------------
 
-
 # Example: Suspensions (in English)
 
 #load in data
@@ -259,7 +258,7 @@ df<-dbGetQuery( con, "SELECT * FROM analysis_suspensions")%>%
   select(label, enrollment_total, suspension_count, suspension_rate) # select columns you want in the table
 
 # NOTE: The indicator field needs to match the way it is in the data dictionary indicator_short column
-## i.e.) for suspensions by race, I need to set indicator== "Suspensions by race"
+## i.e.) for suspensions by race, I need to set indicator_short== "Suspensions by race"
 
 indicator="Suspensions by race"
 title_text="Marginalized Students are Suspended at Disproportionately High Rates"
@@ -288,7 +287,7 @@ single_bar<-function(df, indicator, title_text){
   
   # # set caption text to use values from the data dictionary
   
-  caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],". ",dict$method_note[dict$indicator_short==indicator])
+  caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],". ",dict$method_note[dict$indicator_short==indicator],"\n",dict$race_note[dict$indicator_short==indicator]) 
   caption_text <- str_wrap(caption_text, width = 110)
 
     # Graph
@@ -377,8 +376,6 @@ single_bar(df=df,
 
 # SINGLE BAR GRAPH W/ TOTAL LINE FUNCTION -------------------------------------
 
-
-
 single_bar_tot<-function(df, indicator, title_text){
   
   # rename 'rate' column for function and arrange by rate descending
@@ -400,7 +397,7 @@ single_bar_tot<-function(df, indicator, title_text){
  
  # # set caption text to use values from the data dictionary
  
- caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],". ",dict$method_note[dict$indicator_short==indicator])
+ caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],". ",dict$method_note[dict$indicator_short==indicator],"\n",dict$race_note[dict$indicator_short==indicator]) 
  caption_text <- str_wrap(caption_text, width = 110)
  
  # Graph
@@ -410,7 +407,7 @@ single_bar_tot<-function(df, indicator, title_text){
     
     # define the bars
     
-    geom_col(fill = lightblue) +
+    geom_col(fill = teal) +
     
   # vertical line for Total %
     geom_hline(yintercept = subset(df, label =="Total")$rate, linetype = "dotted", color = black, size = 0.75) +    
@@ -420,7 +417,7 @@ single_bar_tot<-function(df, indicator, title_text){
     annotate(geom = "text",
              x = 0.75,
              y = subset(df, label=="Total")$rate,
-             label = paste0("Total: ", subset(df, label=="Total")$rate,"%"),
+             label = sprintf("Total: %.1f%%", subset(df, label == "Total")$rate),
              hjust =0, vjust = 0,
              color = black, size = 4, family = font_axis_label) +
     
@@ -480,9 +477,11 @@ single_bar_tot<-function(df, indicator, title_text){
 df<-dbGetQuery(con, "SELECT * FROM analysis_rent_burden")
 
 # check your table and do any prep necessary prior to visual
+## if you have rate_Se and rate_moe type columns, remove prior to visualizing!
 
 df<-df%>%
   rename(label=subgroup)%>%
+  select(-rate_se, -rate_moe, -rate_cv)%>%
   race_recode()
   
 
