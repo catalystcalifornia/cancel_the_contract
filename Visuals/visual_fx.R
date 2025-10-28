@@ -103,12 +103,14 @@ race_recode<-function(df){
                                                     ifelse(label %in% "AIAN AOIC", "AIAN",
                                                     ifelse(label %in% "nh_twoormor", "Multiracial",
                                                            ifelse(label %in% "sswana", "SSWANA",
+                                                                  ifelse(label %in% "swana", "SWANA",
                                                                   ifelse(label %in% "SSWANA AOIC", "SSWANA",
+                                                                         ifelse(label %in% "SWANA AOIC", "SWANA",
                                                                   ifelse(label %in% "nh_other", "Other",
                                                                          ifelse(label %in% "nhpi", "NHPI",
                                                                                 ifelse(label %in% "NHPI AOIC", "NHPI",
                                                                                        label)
-                                                                  )))))))))))))
+                                                                  )))))))))))))))
 }
                         
 # EX) RACE RECODING----------------------------------
@@ -124,7 +126,7 @@ df<-dbGetQuery(con, "SELECT * FROM analysis_stops_race")%>%
 # STATIC TABLE FX-----------------------------
 
 
-static_table <- function(df, indicator, title_text)
+static_table <- function(df, indicator, group_col, title_text)
 {
  
   # Divide rate by 100
@@ -138,21 +140,19 @@ static_table <- function(df, indicator, title_text)
     
   # # set caption text to use values from the data dictionary
   
-  footnote_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],"<br>",dict$method_note[dict$indicator_short==indicator],"<br>",dict$race_note[dict$indicator_short==indicator]) 
+  footnote_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],". ",dict$race_note[dict$indicator_short==indicator]) 
   footnote_text <- str_wrap(footnote_text, width = 110)
-  
-  # Conditionally rename 'label' column to 'Student Group' ONLY if the table is with education data
-  
-  if ("geography" %in% names(df) &&
-      any(df$geography == "Antelope Valley Union High School District", na.rm = TRUE)) {
-    df <- df %>% rename(`Student Group` = label)
-  }
-  
+
+  # rename column to what you specify in the group_col arguement for labeling on the table
+  df<-df%>%
+    rename(!!group_col := label)
   # rename column names in the df you are visualizing to be title case and have spaces
   
   colnames(df) <- colnames(df) %>%
     str_replace_all("_", " ") %>%
     str_to_title()
+  
+
   
   # visualize your gt table
   
@@ -207,7 +207,7 @@ static_table <- function(df, indicator, title_text)
      style = cell_text(weight = "bold"),
      locations = cells_body(
        columns = matches("Rate"),
-       rows = `Label` == "TOTAL"
+       rows = `group_col` == "TOTAL"
      ))%>%
     data_color(
       columns = matches("Rate"),
@@ -267,6 +267,7 @@ title_text="Marginalized Students are Suspended at Disproportionately High Rates
 
 static_table(df=df, 
              indicator=indicator, 
+             group_col="Student Group",
              title_text=title_text)
 
 
@@ -287,7 +288,7 @@ single_bar<-function(df, indicator, title_text){
   
   # # set caption text to use values from the data dictionary
   
-  caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],". ",dict$method_note[dict$indicator_short==indicator],"\n",dict$race_note[dict$indicator_short==indicator]) 
+  caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],". ",dict$race_note[dict$indicator_short==indicator]) 
   caption_text <- str_wrap(caption_text, width = 110)
 
     # Graph
@@ -325,7 +326,7 @@ single_bar<-function(df, indicator, title_text){
           axis.text.x = element_blank(),
           plot.caption = element_text(hjust = 0.0, size = 8, colour = black, family = font_caption),
           plot.title =  element_text(hjust = 0.0, size = 18, colour = black, family = font_title), 
-          plot.subtitle = element_text(hjust = 0.0, size = 12, colour = black, family = font_subtitle),
+          plot.subtitle = element_text(hjust = 0.0, size = 14, colour = black, family = font_subtitle),
           axis.ticks = element_blank(),
           # grid line style
           panel.grid.minor = element_blank(),
@@ -397,7 +398,7 @@ single_bar_tot<-function(df, indicator, title_text){
  
  # # set caption text to use values from the data dictionary
  
- caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],". ",dict$method_note[dict$indicator_short==indicator],"\n",dict$race_note[dict$indicator_short==indicator]) 
+ caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],". ",dict$race_note[dict$indicator_short==indicator]) 
  caption_text <- str_wrap(caption_text, width = 110)
  
  # Graph
@@ -415,10 +416,10 @@ single_bar_tot<-function(df, indicator, title_text){
     # label for vertical Total % line
     
     annotate(geom = "text",
-             x = 0.75,
+             x = 1.0,
              y = subset(df, label=="Total")$rate,
              label = sprintf("Total: %.1f%%", subset(df, label == "Total")$rate),
-             hjust =0, vjust = 0,
+             hjust =-0.1, vjust = 0,
              color = black, size = 4, family = font_axis_label) +
     
     # bar labels
