@@ -32,11 +32,11 @@ id_binary_dem <- dbGetQuery(con_bv, "SELECT * FROM youth_thriving.demographics_b
 #combine with actual data
 svy_data <- raw_svy_data %>% 
   left_join(id_binary_dem, by='response_id') %>%
-  mutate(foster_care = ifelse(ga==1, 1, 0))
+  mutate(fostercare = ifelse(ga==1, 1, 0)) 
 
 # Filter for SPA 1 respondents
-svy_data_av <- svy_data %>% 
-  filter(spa_final_respondent == 1)
+# svy_data_av <- svy_data %>% 
+#   filter(spa_final_respondent == 1)
 ```
 
 ```{r}
@@ -100,13 +100,20 @@ fx_freq_table  <- function(svy_data, demographic_variable) {
 ```
 
 ```{r}
-# df_merged_per_arrested <- fx_freq_table(svy_data_av, "arrested")
-# df_merged_per_suspended <- fx_freq_table(svy_data_av, "suspended")
-# df_merged_per_suspended_worthless <- df_merged_per_suspended %>% filter(variable == "cy")
+response_analysis_per_total <- dbGetQuery(con_bv, "SELECT * FROM youth_thriving.tot_freq_strong_minds WHERE variable = 'cy'")
+response_analysis_per_suspended <- dbGetQuery(con_bv, "SELECT * FROM youth_thriving.response_analysis_per_suspended WHERE variable = 'cy'")
+response_analysis_per_arrested <- dbGetQuery(con_bv, "SELECT * FROM youth_thriving.response_analysis_per_arrested WHERE variable = 'cy'")
 
-response_analysis_per_foster <- fx_freq_table(svy_data, "foster_care") %>% 
+response_analysis_per_suspended_test <- fx_freq_table(svy_data, "suspended") %>% 
   filter(variable == "cy")
+
+response_analysis_per_foster <- fx_freq_table(svy_data, "fostercare") %>% 
+  filter(variable == "cy")
+
+
 ```
+
+The code below is ONLY necessary if we want to visualize the data.
 
 Modified from W:/Project/OSI/Bold Vision/Youth Thriving Survey/GitHub/AV/boldvision_youththriving/Visuals/visual_smallmultiples.R
 
