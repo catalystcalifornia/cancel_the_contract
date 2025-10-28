@@ -325,7 +325,7 @@ single_bar<-function(df, indicator, title_text){
                                      colour = black, family= font_axis_label),
           axis.text.x = element_blank(),
           plot.caption = element_text(hjust = 0.0, size = 8, colour = black, family = font_caption),
-          plot.title =  element_text(hjust = 0.0, size = 18, colour = black, family = font_title), 
+          plot.title =  element_text(hjust = 0.0, size = 21, colour = black, family = font_title), 
           plot.subtitle = element_text(hjust = 0.0, size = 14, colour = black, family = font_subtitle),
           axis.ticks = element_blank(),
           # grid line style
