@@ -9,4 +9,6 @@ indicator <- "Suspensions by race"
 title_text <- "AVUHSD administrators suspend nearly 1 in 5 Black students"
 
 single_bar(df, indicator, title_text)
+
+dbDisconnect(con_ctc)
 ```
