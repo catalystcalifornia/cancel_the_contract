@@ -9,5 +9,7 @@ indicator <- "Student graduation by race"
 title_text <- "AVUHSD fails to support disadvantaged students in graduating"
 
 single_bar_tot(df, indicator, title_text)
+
+dbDisconnect(con_ctc)
 ```
 
