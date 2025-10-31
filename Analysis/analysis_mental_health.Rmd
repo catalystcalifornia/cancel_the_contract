@@ -1,7 +1,5 @@
-Modified from W:/Project/OSI/Bold Vision/Youth Thriving Survey/GitHub/AV/boldvision_youththriving/Descriptive and Demographic Analyses/analysis_freq_by_demo.R
 
 ```{r}
-#### STEP 1: Setting Up and Downloading Tables ####
 library(dplyr)
 library(RPostgreSQL)
 library(sf)
@@ -20,28 +18,22 @@ options(scipen=999)
 # connect to postgres and pull credentials
 source("W:\\RDA Team\\R\\credentials_source.R")
 con_bv <- connect_to_db("bold_vision")
+con_ctc <- connect_to_db("cancel_the_contract")
 
 #raw survey data 
 raw_svy_data <- dbGetQuery(con_bv, "SELECT * FROM youth_thriving.raw_survey_data")
 #data dictionary
 svy_dd <- dbGetQuery(con_bv, "SELECT * FROM youth_thriving.bvys_datadictionary_2024 where response_type = 'mc' AND response_domain !='Demographics' AND response_domain != 'Info'")
 
-#BINARY demographics data
-id_binary_dem <- dbGetQuery(con_bv, "SELECT * FROM youth_thriving.demographics_binary_data")
-
-#combine with actual data
+# rename relevant column to foster_care, indicating respondents who are foster youth
 svy_data <- raw_svy_data %>% 
-  left_join(id_binary_dem, by='response_id') %>%
-  mutate(fostercare = ifelse(ga==1, 1, 0)) 
-
-# Filter for SPA 1 respondents
-# svy_data_av <- svy_data %>% 
-#   filter(spa_final_respondent == 1)
+  rename(foster_care = ga)
 ```
 
+
 ```{r}
-# AV: The only change to this function is that I added svy_data as an input parameter.
-fx_freq_table  <- function(svy_data, demographic_variable) {
+# This function returns a response frequency table for all questions in the Bold Vision Youth Thriving survey, for a specified demographic group. This function is from W:/Project/OSI/Bold Vision/Youth Thriving Survey/GitHub/MK/boldvision_youththriving/Descriptive and Demographic Analyses/analysis_freq_by_demo.R, which has already been QAed.
+fx_freq_table  <- function(demographic_variable) {
   weights_col <- "weights_final"  # Define the weight column name
   unique_indicators <- unique(svy_dd$variable)  # Extract unique indicators
   
@@ -100,241 +92,55 @@ fx_freq_table  <- function(svy_data, demographic_variable) {
 ```
 
 ```{r}
-response_analysis_per_total <- dbGetQuery(con_bv, "SELECT * FROM youth_thriving.tot_freq_strong_minds WHERE variable = 'cy'")
-response_analysis_per_suspended <- dbGetQuery(con_bv, "SELECT * FROM youth_thriving.response_analysis_per_suspended WHERE variable = 'cy'")
-response_analysis_per_arrested <- dbGetQuery(con_bv, "SELECT * FROM youth_thriving.response_analysis_per_arrested WHERE variable = 'cy'")
+# Grab tables from the bold_vision database to see the response breakdown for all youth, as well as youth who have been arrested, suspended, and/or unhoused. We are interested in responses to the mental health question, "Q9. About how often during the past 30 days did you feel worthless?"
 
-response_analysis_per_suspended_test <- fx_freq_table(svy_data, "suspended") %>% 
-  filter(variable == "cy")
+response_analysis_per_total <- dbGetQuery(con_bv, "SELECT * FROM youth_thriving.tot_freq_strong_minds WHERE variable = 'cy'") %>% 
+  mutate(group= "all youth") %>%
+  rename(count = frequency, rate = weighted_percent) %>%
+  select(group, response, count, rate, question, sub_question)
+response_analysis_per_suspended <- dbGetQuery(con_bv, "SELECT * FROM youth_thriving.response_analysis_per_suspended WHERE variable = 'cy' AND suspended = 'suspended'") %>% rename(group = suspended)
+response_analysis_per_arrested <- dbGetQuery(con_bv, "SELECT * FROM youth_thriving.response_analysis_per_arrested WHERE variable = 'cy' AND arrested = 'arrested'") %>% rename(group = arrested)
+response_analysis_per_unhoused <- dbGetQuery(con_bv, "SELECT * FROM youth_thriving.response_analysis_per_unhoused WHERE variable = 'cy' AND unhoused = 'unhoused'") %>% rename(group = unhoused)
 
-response_analysis_per_foster <- fx_freq_table(svy_data, "fostercare") %>% 
-  filter(variable == "cy")
+# Get response breakdown for foster youth
+response_analysis_per_foster <- fx_freq_table("foster_care") %>% 
+  filter(variable == "cy") %>%
+  rename(group = foster_care) %>%
+  select(-c(likert_type, ))
 
-
-```
-
-The code below is ONLY necessary if we want to visualize the data.
-
-Modified from W:/Project/OSI/Bold Vision/Youth Thriving Survey/GitHub/AV/boldvision_youththriving/Visuals/visual_smallmultiples.R
-
-```{r}
-# List of tables
-tables <- c("response_analysis_per_suspended",
-            "response_analysis_per_arrested")
-
-#define factor levels in order we want them
-#NOTE THAT Don't Wish to Answer, Not Sure, and Does Not Apply to Me ARE OMMITTED IN THIS STEP
-true_factors<-c("Never true","Sometimes true","Often true","Always true")
-time_factors<-c("None of the time","A little of the time","Some of the time","Most of the time","All of the time")
-time_factors_reverse<-c("All of the time", "Most of the time", "Some of the time", "A little of the time", "None of the time") #reverse so a greater number means a good outcome and a smaller number means a bad outcome
-yes_factors<-c("No", "Not sure", "Yes")
-yes_factors_reverse <- c("Yes", "No", "Not sure") #reverse so a greater number means a good outcome and a smaller number means a bad outcome
-count_factors<-c("None","One","Two","Three or more")
-freq_factors<-c("Never","Rarely","Sometimes","Most of the time","All of the time")
-freq_factors_reverse<-c("All of the time", "Most of the time","Sometimes", "Rarely","Never") #reverse so a greater number means a good outcome and a smaller number means a bad outcome
-
+# Combine all the group data into one dataframe
+demo_df <- rbind(response_analysis_per_arrested, response_analysis_per_foster, response_analysis_per_suspended, response_analysis_per_unhoused) %>%
+  select(group, response, count, rate, question, sub_question) %>%
+  rbind(response_analysis_per_total) %>%
+  arrange(response)
 ```
 
 ```{r}
-#### Function to download tables and merge into one df for visualization ####
+# Write table with metadata
+table_name <- "analysis_mentalhealth_lacounty"
+schema <- "data"
+indicator <- "A table of response rates to the Bold Vision Youth Thriving survey question <About how often during the past 30 days did you feel worthless?> for all youth, as well as youth who have been in foster care, arrested, suspended, and/or unhoused."
+source <- "Script: W:/Project/RJS/CTC/Github/AV/cancel_the_contract/Analysis/analysis_mental_health.Rmd"
+qa_filepath <- "See QA doc for details: W:/Project/RJS/CTC/Documentation/QA_analysis_mental_health.docx"
+table_comment <- paste0(indicator, source)
+dbWriteTable(con_ctc, Id(schema, table_name), demo_df, overwrite = TRUE, row.names = FALSE)
 
-fx_create_df <- function(con, tables, response_domain, variable, response_domain_table) {
-  
-  # Function to fetch data from a single table
-  fetch_data <- function(table) {
-    query <- sprintf("SELECT * FROM youth_thriving.%s WHERE response_domain = '%s' AND variable = '%s'",
-                     table, response_domain, variable)
-    
-    # Use tryCatch to handle potential query errors
-    df <- tryCatch(
-      dbGetQuery(con, query),
-      error = function(e) {
-        message(sprintf("Error querying table %s: %s", table, e$message))
-        return(NULL)
-      }
-    )
-    
-    # Ensure df is a valid data frame before proceeding
-    if (is.null(df) || nrow(df) == 0) return(NULL)
-    
-    # Rename first column to youth
-    colnames(df)[1] <- "youth"
-    
-    # Add 'source_table' and 'youth_label' columns
-    df <- df %>%
-      filter(!youth %in% c("nh_aian", "nh_nhpi", "nh_swana")) %>%  # remove nh because we will be using aoic results 
-      mutate(source_table = table,
-             youth_label = youth %>%
-               str_replace_all("^nh_", "") %>%  # Remove "nh_" at the start of the string
-               str_replace_all("_", " "), # Replace underscores with spaces
-             youth_label = 
-               case_when(
-                 str_detect(youth_label, "lgbtqia") ~ "LGBTQIA+",
-                 str_detect(youth_label, "bipoc") ~ str_to_upper(youth_label),
-                 str_detect(youth_label, "swana") ~ str_to_upper(youth_label),
-                 str_detect(youth_label, "aian") ~ str_to_upper(youth_label),
-                 str_detect(youth_label, "nhpi") ~ str_to_upper(youth_label),
-                 str_detect(youth_label, "twoormor") ~ "Multiracial",  # Rename "Twoormor" to "Two or More"
-                 str_detect(youth_label, "latinx") ~ "Latine",  # Rename "Latinx" to "Latine
-                 str_detect(youth_label, "systems") ~ "Systems- impacted",  
-                 str_detect(youth_label, "girl") ~ "Cis Woman/ Girl",  
-                 str_detect(youth_label, "boy") ~ "Cis Man/ Boy",  
-                 TRUE ~ str_to_title(youth_label)  # Capitalize first letter of each word otherwise
-               )) 
-    
-    return(df)
-  }
-  
-  #fetch and combine data from all tables, removing NULLs
-  all_demo_data <- bind_rows(lapply(tables, fetch_data)) # AV: need to make all_demo_data a parameter by combining the postgres response_analysis_ tables and the new one for foster youth
-  
-  #adding all youth data 
-  tot_freq_all_youth <- dbGetQuery(con, sprintf("SELECT response, frequency AS count, weighted_percent AS rate, percent_cv AS rate_cv, variable, question, sub_question, likert_type, variable_name, domain AS response_domain
-                                 FROM youth_thriving.%s WHERE variable = '%s'", response_domain_table, variable)) %>%
-    mutate(youth = "all youth",
-           youth_label = "All Youth",
-           source_table = response_domain_table)
-  
-  #combine with other data 
-  df_combined <- bind_rows(all_demo_data, tot_freq_all_youth)
+# Comment on table and columns
+column_names <- colnames(demo_df) # Get column names
+column_comments <- c(
+  "The group type, either all youth or a specific demographic",
+  "The response to the question, ranging from feeling worthless none of the time to all of the time",
+  "The number of youth in the specified group who chose the specified response",
+  "The rate of youth in the specified group who chose the specified response",
+  "The question wording",
+  "The rest of the question wording"
+)
 
-  #filter for rows that are not needed like not bipoc, not lgbtqia, etc.and those that have responses we don't want like Don't knows, etc. 
-  df_final <- df_combined %>%
-    filter(!grepl("^not ", .[[1]], ignore.case = TRUE)) %>%  # Filters out rows where first column starts with "not "
-    filter(!response %in% c("Don't wish to answer", "Don't know", "Does not apply to me")) %>% #Fiters out rows with responses we don't want to visualize
-    mutate(youth_label = case_when(
-      str_count(youth_label, " ") == 0 & nchar(youth_label) > 8 ~ str_replace(youth_label, "(.{4,5})", "\\1-\n"),  # Insert break for long single words
-      TRUE ~ str_wrap(youth_label, width = 8.25)),
-        youth_label =  
-                 case_when(
-                   str_detect(youth, "undocumented") ~ "Immigrant",
-                   TRUE ~ youth_label))  %>%
-    arrange(desc(rate)) 
-  
-  return(df_final)
-  
-}
+add_table_comments(con_ctc, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
 ```
 
 ```{r}
-#### Create a function to produce small multiple visuals from the df just produced####
-
-fx_vis_smallmultiples <- function(df, title_text, subtitle_text, likert_factors, graph_orderby, insert_gradient
-                                  ) {
-  
-  # complete cases where there were 0 responses originally
-  df <- df %>%
-    complete(
-      youth_label,
-      response = likert_factors
-    )
-  
-  #order the individual graphs by descending order of desired response 
-  df <- df %>%
-    group_by(youth_label) %>%
-    mutate(max_order = rate[response == graph_orderby]) %>%
-    ungroup() %>%
-    mutate(
-      youth_label = reorder(youth_label, -max_order), # Negative sign for descending order
-      label = case_when(
-        count <= 5 ~ NA, # threshold to leave out any data has a count of 5 or less
-        rate_cv > 40 ~ paste0(round(rate, 0), "%*"),
-        TRUE ~ paste0(round(rate, 0), "%")
-      ),
-      rate=case_when(
-        count <= 5 ~ NA, # threshold to leave out any data has a count of 5 or less
-        TRUE ~ rate))
-
-  #now order response category in associated factor level
-  df$response <- factor(df$response, levels = likert_factors)
-
-  
-  df_visual <- ggplot(df, aes(x = response, y = rate
-                              , fill = response
-                              )) +
-  geom_bar(stat = "identity", width = 0.8) +  
-  # Define custom BV colors 
-  scale_fill_manual(values = insert_gradient) + 
-  scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
-  facet_wrap(~ youth_label, scales = "free_x", nrow = 2, strip.position = "bottom") +  # Create small multiples
-  #bar labels
-  geom_text(data = df,
-              # subset(df, show_label),
-            aes(label = label),
-            size = 2.75,
-            family=font_bar_label,
-            stat="identity", colour = "black",
-            vjust = -0.1, #move bar labels above
-            check_overlap = TRUE) +  #take away overlapping labels
-  theme_minimal() +
-  labs(title = paste(str_wrap(title_text, whitespace_only = TRUE, width = 65), collapse = "\n"),
-       subtitle = paste(str_wrap(paste0("Survey Question: ", subtitle_text), whitespace_only = TRUE, width = 80), collapse = "\n"),
-       x = "",  
-       y = "",
-       fill = "",  
-       caption= paste(
-         "Data Source: Catalyst California's calculations of Bold Vision Youth Thriving Survey, 2024. *Unstable for",
-         "policy purposes; groups with fewer than five individuals are omitted for privacy purposes. AIAN=American",  
-         "Indian & Alaska Native; NHPI=Native Hawaiian & Pacific Islander; SWANA=Southwest Asian & North African.", 
-         "For more information, see the 2025 Bold Vision Youth Thriving Report Methodology.",
-         sep="\n"
-         )) +
-  theme(legend.position = "bottom",  # Show legend on the top/bottom
-     # remove axis text
-     axis.text.x = element_blank(), 
-     axis.text.y = element_blank(),
-     # define style for legend
-     legend.text = element_text(size = 12, colour = "black", family = font_subtitle, 
-                                # face = "bold",
-                                margin = margin(t = 5)),
-     legend.title = element_text(size = 12, colour = "black", family = font_axis_label, face = "plain", margin = margin(t = 5)),
-     strip.text=element_text(size=12, family=font_axis_label),
-     # define style for title and caption
-     plot.caption = element_text(hjust = 0.0, size = 11, colour = "black", family = font_caption, face = "plain"),
-     plot.title = element_text(hjust = 0.0, size = 18, colour = "black", family = font_title),
-     plot.subtitle = element_text(hjust = 0.0, size = 15, colour = "black", family = font_subtitle, 
-                                  margin = margin(b = 25)), #increase space between subtitle and plots because the high ones are getting cut off
-     # grid line style
-     panel.grid.minor = element_blank(),
-     panel.grid.major = element_blank(),
-     #space between facts/small multiple rows
-     panel.spacing.y = unit(.5, "lines"))  # Increase spacing between facet rows 
-  
-  
-  # ggsave(plot = df_visual, 
-  #        file = paste0("./Visuals/", 
-  #                      unique(df$response_domain[!is.na(df$response_domain)]), "/", unique(df$variable[!is.na(df$variable)]), "_smallmultiples.svg"),
-  #        units = "in", width = 7.5, height = 10)
-  # ggsave(plot = df_visual, 
-  #        file = paste0("./Visuals/",
-  #                      unique(df$response_domain[!is.na(df$response_domain)]), "/", unique(df$variable[!is.na(df$variable)]), "_smallmultiples.pdf"),
-  #        units = "in", width = 7.5, height = 10)
-  # 
-  # showtext_opts(dpi=300)
-  # 
-  # ggsave(plot = df_visual, 
-  #        file = paste0("./Visuals/",
-  #                      unique(df$response_domain[!is.na(df$response_domain)]), "/", unique(df$variable[!is.na(df$variable)]), "_smallmultiples.png"),
-  #        units = "in", width = 7.5, height = 10)
-  
-  return(df_visual)
-
-}
-
+dbDisconnect(con_bv)
+dbDisconnect(con_ctc)
 ```
-
-
-```{r}
-
-
-source("W:/Project/OSI/Bold Vision/Youth Thriving Survey/GitHub/AV/boldvision_youththriving/Visuals/BV_styling.R")
-
-df_cy <- fx_create_df(con_bv, tables, "Strong Minds", "cy", "tot_freq_strong_minds") 
-fx_vis_smallmultiples(df = df_cy, title_text = 'All youth should feel valuable, but systems-impacted youth are more likely to report feeling worthless'
-                      ,subtitle_text = "About how often in the past 30 days, did you feel worthless?",
-                      likert_factors = time_factors, graph_orderby = "None of the time",
-                      insert_gradient = pink_gradient)
-```
-
-
 
