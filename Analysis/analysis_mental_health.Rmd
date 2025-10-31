@@ -123,7 +123,7 @@ indicator <- "A table of response rates to the Bold Vision Youth Thriving survey
 source <- "Script: W:/Project/RJS/CTC/Github/AV/cancel_the_contract/Analysis/analysis_mental_health.Rmd"
 qa_filepath <- "See QA doc for details: W:/Project/RJS/CTC/Documentation/QA_analysis_mental_health.docx"
 table_comment <- paste0(indicator, source)
-dbWriteTable(con_ctc, Id(schema, table_name), demo_df, overwrite = TRUE, row.names = FALSE)
+# dbWriteTable(con_ctc, Id(schema, table_name), demo_df, overwrite = TRUE, row.names = FALSE)
 
 # Comment on table and columns
 column_names <- colnames(demo_df) # Get column names
@@ -136,7 +136,7 @@ column_comments <- c(
   "The rest of the question wording"
 )
 
-add_table_comments(con_ctc, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
+# add_table_comments(con_ctc, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
 ```
 
 ```{r}
