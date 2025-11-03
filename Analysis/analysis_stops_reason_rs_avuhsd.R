@@ -254,7 +254,7 @@ rs_table_final<- rs_table_final %>%
   rename(count=value) %>%
   mutate(reason_for_contact='Reasonable suspicion that the person was engaged in criminal activity',
        total=rs_total, #  904 total people stopped
-       rate=count/total) %>% # rates will not add up to 100% given that one stop can be in multiple columns of subtypes
+       rate=count/total*100) %>% # rates will not add up to 100% given that one stop can be in multiple columns of subtypes
   select(reason_for_contact,reasonable_suspicion_reason,total,count,rate)%>%
  
   # add some code to clean up the suspicion reason column
