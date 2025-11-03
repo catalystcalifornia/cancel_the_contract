@@ -3,10 +3,10 @@ source("./visual_fx.R")
 
 con_ctc<- connect_to_db("cancel_the_contract")
 
-df<-dbGetQuery(con_ctc, "SELECT * FROM analysis_suspensions")
+df<-dbGetQuery(con_ctc, "SELECT * FROM analysis_suspensions WHERE reportingcategory_re IN ('nh_black', 'latinx', 'nh_white', 'student__disability', 'total')")
 
 indicator <- "Suspensions by race"
-title_text <- "AVUHSD administrators suspend nearly 1 in 5 Black students"
+title_text <- "AVUHSD administrators overly suspend Black youth and students with disabilities"
 
 single_bar_tot(df, indicator, title_text)
 
