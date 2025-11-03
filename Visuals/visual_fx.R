@@ -447,7 +447,7 @@ single_bar_tot<-function(df, indicator, title_text){
           axis.text.x = element_blank(),
           plot.caption = element_text(hjust = 0.0, size = 9, colour = black, family = font_caption),
           plot.title =  element_text(hjust = 0.0, size = 21, colour = black, family = font_title), 
-          plot.subtitle = element_text(hjust = 0.0, size = 14, colour = black, family = font_axis_label),
+          plot.subtitle = element_text(hjust = 0.0, size = 14, colour = black, family = font_subtitle),
           axis.ticks = element_blank(),
           # grid line style
           panel.grid.minor = element_blank(),
