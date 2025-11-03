@@ -35,7 +35,7 @@ total_students <- c(621,1512,2592,2778,2520,2697,1526,2358,3170)
 number_of_counselors_needed <- c(1.1,NA,3.2,2.3,NA,1.1,0.1,1.9,3.6)
 
 # create data frame
-counselor_df <- data.frame(label, total_students,  total_counselors, student_counselor_ratio, counselors_needed_to_match)
+counselor_df <- data.frame(label, total_students,  total_counselors, student_counselor_ratio, number_of_counselors_needed)
 
 # Move NA values to bottom and order numerically 
 counselor_df<-counselor_df%>%
