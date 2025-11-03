@@ -245,16 +245,16 @@ check<-person_lasd%>%filter(reason_for_contact=="Reasonable suspicion that the p
 
 # Continue exploring the reasonable suspicion subtypes---------
 
-# ANALYSIS 1: Calculate Counts and Rates of the Reasonable Suspicion subtypes ---------
+# ANALYSIS 1: Calculate Counts and Rates of the Reasonable Suspicion subtypes WHERE DENOM==TOTAL STUDENTS STOPPED ---------
 rs_table_final # majority are reasonable_suspicion_person_witness_or_victim_ofsuspect: 662 - push this table
 
-rs_total<-nrow(rs_re_codes)
+rs_total<-nrow(person_lasd) # 904 total people stopped
 
 rs_table_final<- rs_table_final %>%
   rename(count=value) %>%
   mutate(reason_for_contact='Reasonable suspicion that the person was engaged in criminal activity',
-       total=rs_total, # 811 total reasonable suspicion stops
-       rate=count/total) %>% # rates will not add up to 100% given that one stop can be in multiple columns of subtypes
+       total=rs_total, #  904 total people stopped
+       rate=count/total*100) %>% # rates will not add up to 100% given that one stop can be in multiple columns of subtypes
   select(reason_for_contact,reasonable_suspicion_reason,total,count,rate)%>%
  
   # add some code to clean up the suspicion reason column
@@ -265,7 +265,7 @@ rs_table_final<- rs_table_final %>%
     )
   )
   
-# ANALYSIS 2: Calculate Counts and Rates of the Reasonable Suspicion offense codes ---------
+# ANALYSIS 2: Calculate Counts and Rates of the Reasonable Suspicion offense codes WHERE DENOM==TOTAL STUDENTS STOPPED ---------
 
 df<-rs_re_codes%>%
   mutate(total=n())%>%
@@ -282,42 +282,43 @@ sum(df$count) # 811
 
 # push df and rs_table_final to postgres
 
-# # Push reason_table to postgres--------------------------------------
+
+# # Analysis 1: Push reason_table to postgres--------------------------------------
 
 # # Write table with metadata
 table_name <- "analysis_stops_reason_rs_avuhsd"
 schema <- "data"
 indicator<- "This table looks at all of the stops for a reasonable suspicion reason broken down by the specific sub-type of
-reasonable suspicion reason. Universe or denominator is all people stopped for a reasonable suspicion reason. 
+reasonable suspicion reason. Universe or denominator is all people stopped in AVUHSD. 
 Rates may add to over 100% as someone can be stopped for more than one sub-type."
 source <- "Script: W:/Project/RJS/CTC/Github/AV/cancel_the_contract/Analysis/analysis_stops_reason_rs_avuhsd.R"
 qa_filepath <- "See QA doc for details: W:/Project/RJS/CTC/Documentation/QA_analysis_stops_reason_rs_avuhsd.docx"
 table_comment <- paste0(indicator, source)
-dbWriteTable(con_ctc, Id(schema, table_name), rs_table_final, overwrite = FALSE, row.names = FALSE)
+dbWriteTable(con_ctc, Id(schema, table_name), rs_table_final, overwrite = TRUE, row.names = FALSE)
 
 # Comment on table and columns
 column_names <- colnames(rs_table_final) # Get column names
 column_comments <- c(
   "Highest level of reason for contact (all reasonable suspicion)",
   "Reasonable suspicion sub-reason type",
-  "Denominator: The total number of students stopped in the school or district for  reasonable suspicion",
+  "Denominator: The total number of students stopped in the school or district (n=904)",
   "Numerator: The number of students stopped for the specificreasonable suspicion sub-reason",
   "The rate represents the percentage of reasonable suspicion sub types out of all people stopped for reasonable suspicion - total rates may exceed 100%"
 )
 
  add_table_comments(con_ctc, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
  
- # # Push reason codes table to postgres--------------------------------------
+ # # Analysis 2: Push reason codes table to postgres WHERE DENOM==TOTAL STUDENTS STOPPED--------------------------------------
  
  # # Write table with metadata
  table_name <- "analysis_stops_reason_rs_codes_avuhsd"
  schema <- "data"
  indicator<- "This table looks at all of the stops for a reasonable suspicion reason broken down by the specific offense code for
-the reasonable suspicion reason. Universe or denominator is all people stopped for a reasonable suspicion reason."
+the reasonable suspicion reason. Universe or denominator is all people stopped in AVUHSD."
  source <- "Script: W:/Project/RJS/CTC/Github/AV/cancel_the_contract/Analysis/analysis_stops_reason_rs_avuhsd.R"
  qa_filepath <- "See QA doc for details: W:/Project/RJS/CTC/Documentation/QA_analysis_stops_reason_rs_avuhsd.docx"
  table_comment <- paste0(indicator, source)
- dbWriteTable(con_ctc, Id(schema, table_name), df, overwrite = FALSE, row.names = FALSE)
+ dbWriteTable(con_ctc, Id(schema, table_name), df, overwrite = TRUE, row.names = FALSE)
  
  # Comment on table and columns
  column_names <- colnames(df) # Get column names
@@ -327,10 +328,11 @@ the reasonable suspicion reason. Universe or denominator is all people stopped f
    "Whether or not the offense code is deactivated (Yes/No) based on offense codes from 2023",
    "Text description of reasonable suspicion offense code - may include multiple descriptions based on offense type",
    "Offense type (I= Infraction, F = Felony, M = Misdemeanor) - may include multiple if an offense code could be charged at different levels",
-   "Denominator: The total number of students stopped in the school or district for  reasonable suspicion",
+   "Denominator: The total number of students stopped in the school or district (n=904)",
    "Numerator: The number of students stopped for the specific reasonable suspicion offense code",
    "The rate represents the percentage of reasonable suspicion offense codes out of all people stopped for reasonable suspicion"
  )
  
  add_table_comments(con_ctc, schema, table_name, indicator, source, qa_filepath, column_names, column_comments)
+ 
  
