@@ -23,14 +23,15 @@ con <- connect_to_db("cancel_the_contract")
 
 # create student teacher ratio table
 label <- c("Desert Winds Continuation", "Antelope Valley High","Eastside High","Highland High","Knight High","Lancaster High","Littlerock High","Palmdale High","Quartz Hill High")
-acs_english <- c(9,18,19,21,17,18,18,17,18)
-acs_math <- c(9,18,23,21,21,22,17,22,20)
-acs_science <- c(7,19,25,23,23,21,13,20,22)
-acs_history <- c(8,20,25,24,21,22,19,19,18)
-teachers_needed <- c(NA,NA,5.2,4.1,2.7,2.2,NA,1.2,1.5)
+english_average_class_size <- c(9,18,19,21,17,18,18,17,18)
+math_average_class_size <- c(9,18,23,21,21,22,17,22,20)
+science_average_class_size <- c(7,19,25,23,23,21,13,20,22)
+history_average_class_size <- c(8,20,25,24,21,22,19,19,18)
+number_of_teachers_needed <- c(NA,NA,5.2,4.1,2.7,2.2,NA,1.2,1.5)
 
 # create data frame
-teacher_df <- data.frame(label, acs_english, acs_math, acs_science, acs_history, teachers_needed)
+teacher_df <- data.frame(label, english_average_class_size, math_average_class_size,
+                         science_average_class_size, history_average_class_size, number_of_teachers_needed)
 
 # source visual script
 source("./Visuals/visual_fx.R")
@@ -39,7 +40,7 @@ source("./Visuals/visual_fx.R")
 # COUNSELORS STATIC TABLE--------------------------
 
 indicator="Student-to-Teacher Ratio"
-title_text="Seventeen Teachers are Needed for Recommended Student-to-Teacher Ratios"
+title_text="Hiring 17 Teachers Reduces Class Size to 20–23 Students Across AVUHSD"
 
 # Apply function
 
