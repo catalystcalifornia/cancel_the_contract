@@ -8,7 +8,7 @@ df<-dbGetQuery(con_ctc, "SELECT * FROM analysis_suspensions")
 indicator <- "Suspensions by race"
 title_text <- "AVUHSD administrators suspend nearly 1 in 5 Black students"
 
-single_bar(df, indicator, title_text)
+single_bar_tot(df, indicator, title_text)
 
 dbDisconnect(con_ctc)
 ```
