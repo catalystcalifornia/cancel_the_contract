@@ -144,13 +144,20 @@ table(qa$ancestry.x)
 table(qa$ancestry.y)
 
 # create columns nh_asian_wo_sa and sswana
-ppl_sswana <- ppl_soasian %>%
+
+ppl_sswana_or <- ppl_soasian %>%
+  mutate(nh_asian_wo_sa = ifelse(race=="nh_asian" & soasian=="not south asian", "nh_asian_wo_sa", "not nh_asian_wo_sa"),
+        sswana = ifelse(swana=="swana" | soasian=="south asian", "sswana", "not sswana")) # QA: I think the statement needs to be an 'and' statement: if a person is swana AND south asian, they should be labeled as SSWANA, otherwise they are NOT sswana. Originally you had an OR statement so that it was: if a person is swana OR south asian, then they are sswana. Using an OR statement produces 335 where someone who is swana but not south asian got recoded as SSWANA. 
+
+ppl_sswana_and <- ppl_soasian %>%
   mutate(nh_asian_wo_sa = ifelse(race=="nh_asian" & soasian=="not south asian", "nh_asian_wo_sa", "not nh_asian_wo_sa"),
         sswana = ifelse(swana=="swana" & soasian=="south asian", "sswana", "not sswana")) # QA: I think the statement needs to be an 'and' statement: if a person is swana AND south asian, they should be labeled as SSWANA, otherwise they are NOT sswana. Originally you had an OR statement so that it was: if a person is swana OR south asian, then they are sswana. Using an OR statement produces 335 where someone who is swana but not south asian got recoded as SSWANA. 
 
 # QA examine the recoding results
 
-sum(is.na(ppl_sswana$nh_asian_wo_sa)) # there are 364 NAs
+sum(is.na(ppl_sswana_and$nh_asian_wo_sa)) # there are 364 NAs
+sum(is.na(ppl_sswana_or$nh_asian_wo_sa)) # there are 364 NAs
+
 
 # examine NAs
 
@@ -159,7 +166,11 @@ sswana_na<-ppl_sswana%>%filter(is.na(nh_asian_wo_sa))%>%
 
 # now QA the rest
 
-sswana_qa<-ppl_sswana%>%
+sswana_qa_and<-ppl_sswana_and%>%
+  select(race, latino, soasian, nh_asian_wo_sa, swana, sswana)%>%
+  filter(soasian=="south asian") # it looks like everyone who is Southasian is also not Swana so they are not labeled as SSWANA which seems right to me. 
+
+sswana_qa_or<-ppl_sswana_or%>%
   select(race, latino, soasian, nh_asian_wo_sa, swana, sswana)%>%
   filter(soasian=="south asian") # it looks like everyone who is Southasian is also not Swana so they are not labeled as SSWANA which seems right to me. 
 
