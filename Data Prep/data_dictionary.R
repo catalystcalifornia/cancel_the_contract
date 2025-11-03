@@ -46,12 +46,12 @@ df[4, ] <- list("Student Race", "Student population by race", "California Depart
 
 df[5, ] <- list("Special Education Enrollment", "Student population enrolled in special education", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "")
 
-df[6, ] <- list("Student graduation by race", "AVUHSD student graduation by race", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "2023-2024", "", "", "Race Note: AIAN=American Indian/Alaskan Native Alone, NHPI=Native Hawaiian/Pacific Islander, SSWANA=South/Southwest Asian and North African. All racial groups are exclusive of Latinx except for AIAN, Latinx, NHPI, and SSWANA which are alone or in combination with other racial groups.")
+df[6, ] <- list("Student graduation by race", "AVUHSD student graduation by race", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "2023-2024", "", "", "Race Note: Latinx is alone or in combination with other racial groups.")
 
 
 df[7, ] <- list("Suspensions", "Student population suspended", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "")
 
-df[8, ] <- list("Suspensions by race", "Student population suspended by race", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", racenote)
+df[8, ] <- list("Suspensions by race", "Student population suspended by race", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "Race Note: Latinx is alone or in combination with other racial groups.")
 
 df[9, ] <- list("Suspensions by special education enrollment", "Student population suspended by enrollment in special education", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "")
 
@@ -91,6 +91,11 @@ df[23, ] <- list("Healthy food", "", "", "", "", "", "", "", "", "")
 df[24, ] <- list("Homeowners renters", "", "", "", "", "", "", "", "", racenote)
 df[25, ] <- list("Rent burden", "", "", "", "", "", "", "", "", racenote)
 
+
+### ECI Budget indicators
+
+df[26, ] <- list("Teacher Ratio", "Student to teacher ratios in AVUHSD", "School Accountability Report Cards, Antelope Valley Union High School District", "https://www.cta.org/our-advocacy/class-size-matters", "2023-2024", "School District", "", "",  "Note: NA applies to schools that already have a 20-23 student class size.")
+df[27, ] <- list("Counselor Ratio", "Student to counselor ratios in AVUHSD", "School Accountability Report Cards Antelope Valley Union High School District; California Department of Education", "https://www.avdistrict.org/schools/school-accountability-report-cards;  https://dq.cde.ca.gov/dataquest/page2.asp?level=District&subject=Enrollment&submit1=Submit", "2023-2024", "School District", "", "", "Note: NA applies to schools that already have a 1:298 or less student-counselor ratio.")
 
 print (df)
 
