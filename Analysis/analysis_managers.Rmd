@@ -145,7 +145,7 @@ table(qa$ancestry.y)
 
 # create columns nh_asian_wo_sa and sswana
 
-ppl_sswana_or <- ppl_soasian %>%
+ppl_sswana <- ppl_soasian %>%
   mutate(nh_asian_wo_sa = ifelse(race=="nh_asian" & soasian=="not south asian", "nh_asian_wo_sa", "not nh_asian_wo_sa"),
         sswana = ifelse(swana=="swana" | soasian=="south asian", "sswana", "not sswana")) # QA: I think the statement needs to be an 'and' statement: if a person is swana AND south asian, they should be labeled as SSWANA, otherwise they are NOT sswana. Originally you had an OR statement so that it was: if a person is swana OR south asian, then they are sswana. Using an OR statement produces 335 where someone who is swana but not south asian got recoded as SSWANA. 
 
