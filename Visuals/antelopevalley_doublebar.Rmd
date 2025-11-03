@@ -5,8 +5,8 @@ con_ctc<- connect_to_db("cancel_the_contract")
 
 pop_race<-dbGetQuery(con_ctc, "SELECT race, rate FROM av_population_race") %>%
   rename("label" = "race") %>%
-  race_recode(.) 
-  # %>% filter(label %in% c("Black", "White", "Latinx"))
+  race_recode(.) %>% 
+  filter(label %in% c("Black", "White", "Latinx"))
 
 stops_race<-dbGetQuery(con_ctc, "SELECT * FROM analysis_stops_race")
 
@@ -18,16 +18,16 @@ all_stops <- stops_race %>%
   race_recode(.) 
 
 df<- all_stops %>%
-  inner_join(pop_race, by = c("label"="race"))
+  inner_join(pop_race, by = "label")
 
-indicator.y <- "Student Population"
-indicator.x <- "Police Stops by Race AVUHSD"
+indicator.y <- "Population"
+indicator.x <- "Police Stops by Race"
 
-myindicator.y <- "Student Population"
+myindicator.y <- "Antelope Valley Population"
 myindicator.x <- "Police Stops"
-title_text <- "AVUHSD officers stop Black students at nearly 2x the rate of their population"
+title_text <- "Police officers stop Black residents at over 2x the rate of their population"
 
-race_note <- "Race Note: AIAN=American Indian/Alaskan Native Alone, NHPI=Native Hawaiian/Pacific Islander. All racial groups are exclusive of Latinx except for AIAN, Latinx, and NHPI which are alone or in combination with other racial groups."
+race_note <- "Race Note: Latinx is alone or in combination with other racial groups."
 ```
 
 ```{r}
