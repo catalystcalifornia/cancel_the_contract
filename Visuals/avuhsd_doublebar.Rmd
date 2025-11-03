@@ -3,9 +3,10 @@ source("./visual_fx.R")
 
 con_ctc<- connect_to_db("cancel_the_contract")
 
-pop_race<-dbGetQuery(con_ctc, "SELECT * FROM avuhsd_population_race")
+pop_race<-dbGetQuery(con_ctc, "SELECT * FROM avuhsd_population_race")%>% 
+  filter(race %in% c("Black", "White", "Latinx"))
 
-stops_race<-dbGetQuery(con_ctc, "SELECT * FROM analysis_stops_race")
+stops_race<-dbGetQuery(con_ctc, "SELECT * FROM analysis_stops_race_avuhsd")
 
 dbDisconnect(con_ctc)
 
@@ -22,7 +23,7 @@ indicator.x <- "Police Stops by Race AVUHSD"
 
 myindicator.y <- "Student Population"
 myindicator.x <- "Police Stops"
-title_text <- "AVUHSD officers stop Black students at nearly 2x the rate of their population"
+title_text <- "AVUHSD officers stop Black students at over 3x the rate of their population"
 
 race_note <- "Race Note: AIAN=American Indian/Alaskan Native Alone, NHPI=Native Hawaiian/Pacific Islander. All racial groups are exclusive of Latinx except for AIAN, Latinx, and NHPI which are alone or in combination with other racial groups."
 ```
@@ -34,6 +35,12 @@ double_bar <- function(df, indicator.x, indicator.y, myindicator.x, myindicator.
   if(!("rate.x" %in% names(df)) | !("rate.y" %in% names(df))) {
     stop("Your dataframe must include columns named rate.x and rate.y")
   }
+  
+  # Order labels by rate.x (descending or ascending — your choice)
+  df <- df %>%
+    arrange(rate.x) %>%   # change to arrange(rate.x) if you want ascending
+    mutate(label = factor(label, levels = label))
+
   
   # Reshape the data into long format
   df_long <- df %>%
@@ -67,7 +74,7 @@ double_bar <- function(df, indicator.x, indicator.y, myindicator.x, myindicator.
   caption_text <- str_wrap(caption_text, width = 110)
   
   # Graph
-  final_visual <- ggplot(df_long, aes(x = reorder(label, rate), y = rate, fill = group)) +
+  final_visual <- ggplot(df_long, aes(x = label, y = rate, fill = group)) +
     geom_col(position = position_dodge(width = 0.7), width = 0.6) +
     
     # Bar labels
