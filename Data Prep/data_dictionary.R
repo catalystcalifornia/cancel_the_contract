@@ -12,7 +12,7 @@ source("W:\\RDA Team\\R\\credentials_source.R")
 con <- connect_to_db("cancel_the_contract")
 
 # Preset the racenote
-racenote<-"Race Note: AIAN=American Indian/Alaskan Native Alone, NHPI=Native Hawaiian/Pacific Islander, SSWANA=South/Southwest Asian and North African. All racial groups are exclusive of Latinx except for AIAN, Latinx, NHPI, and SSWANA which are alone or in combination with other racial groups."
+racenote<-"Race Note: AIAN=American Indian/Alaskan Native Alone, NHPI=Native Hawaiian/Pacific Islander, SSWANA=South/Southwest Asian and North African."
 
 
 ##### Data frame set up #####
