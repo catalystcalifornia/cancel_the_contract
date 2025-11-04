@@ -69,7 +69,7 @@ df[12, ] <- list("Expulsions by special education enrollment", "Student populati
 df[13, ] <- list("Police Stops by Race AVUHSD", "People law enforcement stopped in a AVUHSD school by perceived race", "California Department of Justice", "", "2018-2023", "", "", "", "", racenote)
 
 df[14, ] <- list("Police Stops by Reason of Stop AVUHSD", "People law enforcement stopped in a AVUHSD school by reason of stop", "California Department of Justice", "", "2018-2023", "", "", "", "")
-df[15, ] <- list("Police Stops by Result of Stop AVUHSD", "People law enforcement stopped in a AVUHSD school by reason of stop", "California Department of Justice", "", "2018-2023", "", "", "", "")
+df[15, ] <- list("Police Stops by Result of Stop AVUHSD", "People law enforcement stopped in a AVUHSD school by reason of stop", "California Department of Justice", "", "2018-2023", "", "", "", "Note: A police officer can report more than one result for a stop. Stop results analyzed here are alone or in combination with other stop results.")
 
 df[16, ] <- list("Police Stops Search AVUHSD", "People law enforcement stopped and searched in a AVUHSD schoo by perceived race", "California Department of Justice", "", "2018-2023", "", "", "", racenote)
 df[17, ] <- list("Police Hit Rate AVUHSD", "People law enforcement stopped and searched with contraband found in a AVUHSD school", "California Department of Justice", "", "2018-2023", "", "", "", "")
