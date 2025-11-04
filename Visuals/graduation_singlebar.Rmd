@@ -1,0 +1,15 @@
+```{r}
+source("./visual_fx.R")
+
+con_ctc<- connect_to_db("cancel_the_contract")
+
+df<-dbGetQuery(con_ctc, "SELECT * FROM analysis_graduation")
+
+indicator <- "Student graduation by race"
+title_text <- "AVUHSD fails to support disadvantaged students in graduating"
+
+single_bar_tot(df, indicator, title_text)
+
+dbDisconnect(con_ctc)
+```
+
