@@ -237,7 +237,7 @@ static_table <- function(df, indicator, group_col, title_text)
     ) 
   
  # Define base file path for saving visuals
- base_path <- paste0("./Visuals/",indicator, "_table")
+ base_path <- paste0("./Visuals/Exports/",indicator, "_table")
  showtext_opts(dpi=300)
   
  # save as PNG
@@ -333,7 +333,7 @@ single_bar<-function(df, indicator, title_text){
           panel.grid.major.y = element_blank())
   
   # Define base file path
-  base_path <- paste0("./Visuals/",indicator, "_singlebar")
+  base_path <- paste0("./Visuals/Exports/",indicator, "_singlebar")
   
   showtext_opts(dpi=300)
   
@@ -417,7 +417,7 @@ single_bar_tot<-function(df, indicator, title_text){
     annotate(geom = "text",
              x = 1.0,
              y = subset(df, label=="Total")$rate,
-             label = sprintf("Total: %.1f%%", subset(df, label == "Total")$rate),
+             label = sprintf("Overall Rate: %.1f%%", subset(df, label == "Total")$rate),
              hjust =-0.1, vjust = 0,
              color = black, size = 4, family = font_axis_label) +
     
@@ -455,7 +455,7 @@ single_bar_tot<-function(df, indicator, title_text){
           panel.grid.major.y = element_blank())
   
   # Define base file path
-  base_path <- paste0("./Visuals/",indicator, "_singlebartot")
+  base_path <- paste0("./Visuals/Exports/",indicator, "_singlebartot")
 
   showtext_opts(dpi=300)
   
