@@ -286,6 +286,20 @@ single_bar<-function(df, indicator, title_text){
   # Define max value
   max_y = 1.15 * max(df$rate)
   
+  # Dynamically adjust dimensions of the output
+  
+  # Base width/height
+  base_width <- 7   # inches
+  base_height <- 5  # inches
+  
+  # Adjust height based on number of rows (bars)
+  num_bars <- nrow(df %>% filter(label != "Total"))
+  height <- base_height + 0.2 * num_bars  # each bar adds 0.2 inches
+  
+  # Adjust width based on title length
+  title_length <- nchar(title_text)
+  width <- base_width + 0.05 * title_length  # long titles get extra width
+  
   ## Set up subtitle text: This will be from the data dictionary
   
   subtitle_text<-paste0(dict$indicator[dict$indicator_short==indicator])
@@ -293,7 +307,8 @@ single_bar<-function(df, indicator, title_text){
   # # set caption text to use values from the data dictionary
   
   caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],". ",dict$race_note[dict$indicator_short==indicator]) 
-  # caption_text <- str_wrap(caption_text, width = 110)
+  wrap_width <- round(width * 12)
+  caption_text <- str_wrap(caption_text, width = wrap_width)
 
     # Graph
   
@@ -313,7 +328,7 @@ single_bar<-function(df, indicator, title_text){
               colour = "black") +
     
     labs(title = title_text,
-         subtitle = ssubtitle_text,
+         subtitle = subtitle_text,
          caption=caption_text) + 
     
     scale_x_discrete(labels = function(label) str_wrap(label, width = 20)) +            # wrap long labels
@@ -343,19 +358,7 @@ single_bar<-function(df, indicator, title_text){
   
   outfile <- file.path(export_dir, paste0(indicator, "_singlebar.png"))
   
-  # Dynamically adjust dimensions of the output
-  
-  # Base width/height
-  base_width <- 7   # inches
-  base_height <- 5  # inches
-  
-  # Adjust height based on number of rows (bars)
-  num_bars <- nrow(df %>% filter(label != "Total"))
-  height <- base_height + 0.2 * num_bars  # each bar adds 0.2 inches
-  
-  # Adjust width based on title length
-  title_length <- nchar(title_text)
-  width <- base_width + 0.05 * title_length  # long titles get extra width
+ 
   
   # Save with dynamic dimensions
   ggsave(outfile, plot = final_visual, width = width, height = height)
@@ -407,6 +410,20 @@ single_bar_tot<-function(df, indicator, title_text){
  # set total value
  total_value<- subset(df, label=="Total")$rate
  
+ # Dynamically adjust dimensions of the output
+ 
+ # Base width/height
+ base_width <- 7   # inches
+ base_height <- 5  # inches
+ 
+ # Adjust height based on number of rows (bars)
+ num_bars <- nrow(df %>% filter(label != "Total"))
+ height <- base_height + 0.2 * num_bars  # each bar adds 0.2 inches
+ 
+ # Adjust width based on title length
+ title_length <- nchar(title_text)
+ width <- base_width + 0.05 * title_length  # long titles get extra width
+ 
  ## Set up subtitle text: This will be from the data dictionary
  
  subtitle_text<-paste0(dict$indicator[dict$indicator_short==indicator])
@@ -414,8 +431,9 @@ single_bar_tot<-function(df, indicator, title_text){
  # # set caption text to use values from the data dictionary
  
  caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],". ",dict$race_note[dict$indicator_short==indicator]) 
- # caption_text <- str_wrap(caption_text, width = 110)
- 
+ wrap_width <- round(width * 12)
+ caption_text <- str_wrap(caption_text, width = wrap_width)
+
  # Graph
  
   final_visual <-  ggplot(subset(df, label !='Total' ), aes(x= reorder(label, rate), y=rate)) +   
@@ -476,20 +494,7 @@ single_bar_tot<-function(df, indicator, title_text){
   
   outfile <- file.path(export_dir, paste0(indicator, "_singlebartot.png"))
   
-  # Dynamically adjust dimensions of the output
-  
-  # Base width/height
-  base_width <- 7   # inches
-  base_height <- 5  # inches
-  
-  # Adjust height based on number of rows (bars)
-  num_bars <- nrow(df %>% filter(label != "Total"))
-  height <- base_height + 0.2 * num_bars  # each bar adds 0.2 inches
-  
-  # Adjust width based on title length
-  title_length <- nchar(title_text)
-  width <- base_width + 0.05 * title_length  # long titles get extra width
-  
+
   # Save with dynamic dimensions
   ggsave(outfile, plot = final_visual, width = width, height = height)
 
