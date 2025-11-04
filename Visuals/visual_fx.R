@@ -237,7 +237,7 @@ static_table <- function(df, indicator, group_col, title_text)
     ) 
   
  # Define base file path for saving visuals
- base_path <- paste0("./Visuals/",indicator, "_table")
+ base_path <- paste0("./Visuals/Exports/",indicator, "_table")
  showtext_opts(dpi=300)
   
  # save as PNG
@@ -333,7 +333,7 @@ single_bar<-function(df, indicator, title_text){
           panel.grid.major.y = element_blank())
   
   # Define base file path
-  base_path <- paste0("./Visuals/",indicator, "_singlebar")
+  base_path <- paste0("./Visuals/Exports/",indicator, "_singlebar")
   
   showtext_opts(dpi=300)
   
@@ -417,9 +417,9 @@ single_bar_tot<-function(df, indicator, title_text){
     annotate(geom = "text",
              x = 1.0,
              y = subset(df, label=="Total")$rate,
-             label = sprintf("Total: %.1f%%", subset(df, label == "Total")$rate),
+             label = sprintf("Overall Rate: %.1f%%", subset(df, label == "Total")$rate),
              hjust =-0.1, vjust = 0,
-             color = black, size = 4, family = font_axis_label) +
+             color = black, size = 18, family = font_axis_label) +
     
     # bar labels
     
@@ -427,6 +427,7 @@ single_bar_tot<-function(df, indicator, title_text){
               family = font_bar_label, 
               position = position_dodge(width = 1), vjust = 0.25 , hjust= 1.15,
               fontface = "bold",  
+              size=18,
               colour = "white") +  
     
     labs(title = title_text,
@@ -442,12 +443,12 @@ single_bar_tot<-function(df, indicator, title_text){
     theme(legend.title = element_blank(), # no legend--modify if necessary
           
           # define style for axis text
-          axis.text.y = element_text(size = 10, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
+          axis.text.y = element_text(size = 18, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
                                      colour = black, family= font_axis_label),
           axis.text.x = element_blank(),
-          plot.caption = element_text(hjust = 0.0, size = 9, colour = black, family = font_caption),
-          plot.title =  element_text(hjust = 0.0, size = 21, colour = black, family = font_title), 
-          plot.subtitle = element_text(hjust = 0.0, size = 14, colour = black, family = font_subtitle),
+          plot.caption = element_text(hjust = 0.0, size = 12, colour = black, family = font_caption),
+          plot.title =  element_text(hjust = 0.0, size = 25, colour = black, family = font_title), 
+          plot.subtitle = element_text(hjust = 0.0, size = 20, colour = black, family = font_subtitle),
           axis.ticks = element_blank(),
           # grid line style
           panel.grid.minor = element_blank(),
@@ -455,7 +456,7 @@ single_bar_tot<-function(df, indicator, title_text){
           panel.grid.major.y = element_blank())
   
   # Define base file path
-  base_path <- paste0("./Visuals/",indicator, "_singlebartot")
+  base_path <- paste0("./Visuals/Exports/",indicator, "_singlebartot")
 
   showtext_opts(dpi=300)
   
