@@ -114,7 +114,7 @@ double_bar <- function(df, indicator.x, indicator.y, myindicator.x, myindicator.
   export_dir <- here::here("Visuals", "Exports")
   dir.create(export_dir, recursive = TRUE, showWarnings = FALSE)
   
-  outfile <- file.path(export_dir, paste0(indicator, "_doublebar.png"))  
+  outfile <- file.path(export_dir, paste0(myindicator.x, "_vs_", myindicator.y, "_doublebar.png"))  
   showtext_opts(dpi = 300)
   
   # Save outputs
