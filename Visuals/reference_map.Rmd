@@ -1,0 +1,152 @@
+---
+title: "Antelope Valley Reference Map"
+author: "Chris Ringewald"
+date: "2025-11-05"
+output: html_document
+---
+### Reference Map ### 
+
+
+```{r}
+#### Set up
+
+# call needed libraries
+library(tidyverse)
+library(sf)
+library(tigris)
+library(RPostgres)
+library(ggplot2)
+library(ggtext)
+
+# get credentials and connect to postgres
+source("W:\\RDA Team\\R\\credentials_source.R")
+con_rda <- connect_to_db("rda_shared_data")
+
+```
+
+
+```{r}
+
+#### Get data for map
+
+# get SPA boundaries
+spas <- st_read(con_rda, query = "SELECT * FROM geographies_la.la_county_service_planning_areas_2022") 
+
+# check CRS
+#st_crs(spas) # 4326
+# change CRS to match others
+spas_4269 <- st_transform(spas, 4269)
+
+# carve out SPA 1
+spa1 <- spas_4269 %>% filter(SPA == "1")
+
+# review
+# ggplot(spa1)+geom_sf()
+
+# get school district boundaries
+high_school_districts <- school_districts(state = "CA", type = "secondary", cb = TRUE, year = 2023)
+
+# carve out Antelope Valley Union Joint High School District
+avuhsd <- high_school_districts %>% filter(NAME == "Antelope Valley Union Joint High School District")
+
+# check CRS
+#st_crs(avuhsd) # 4269
+
+# review
+# plot(avuhsd$geometry)
+
+# get city boundaries? points?
+cities <- places(state = "CA", cb = TRUE, year = 2023)
+
+# check CRS
+#st_crs(cities) #4269
+
+# Elizabeth Lake is in AVUHSD but mostly out of SPA 1
+cities_within_avuhsd <- cities %>% st_filter(avuhsd, .predicate = st_within)
+
+# Acton is in SPA 1 but mostly out of AVUHSD
+cities_within_spa1 <- cities %>% st_filter(spa1, .predicate = st_within)
+
+# Palmdale falls out for some reason
+palmdale <- cities %>% filter(NAME == "Palmdale")
+
+# Separate Lancaster to label
+lancaster <- cities %>% filter(NAME == "Lancaster")
+
+# review
+#plot(cities_within$geometry)
+
+# get schools?
+schools <- st_read(con_rda, query = "SELECT * FROM education.cde_public_schools_2024_25")
+
+# carve out AVUHSD schools
+avuhsd_schools <- schools %>% filter(district == "Antelope Valley Union High" & school != "No Data")
+
+# get neighborhoods?
+# leaving out for now as I don't think we name them in the report
+
+# disconnect from Postgres
+dbDisconnect(con_rda)
+
+```
+
+
+```{r}
+
+#### Map
+
+# map
+map <- ggplot() + 
+  
+  labs(title ="Antelope Valley Union High School District",
+       subtitle = "Service Planning Area 1, Cities, and Schools",
+       caption = "AVUHSD and city boundaries from the US Census, 2023. SPA boundaries from the LA County Department of Public Health, 2022.\nSchool locations from the CA Department of Education, 2024-25") +
+  
+  geom_sf(data = avuhsd, linewidth = .7) +
+  geom_sf(data = spa1, fill = NA, colour = "grey") +
+  geom_sf(data = cities_within_avuhsd, fill = NA) +
+  geom_sf(data = cities_within_spa1, fill = NA) +
+  geom_sf(data = palmdale, fill = NA) +
+  geom_sf(data = avuhsd_schools) +
+  
+  annotate(geom = "text", x = -118.2, y = 34.71, label = "Lancaster", size = 2) +
+  annotate(geom = "text", x = -118.113, y = 34.62, label = "Palmdale", size = 2) +
+  annotate(geom = "text", x = -118.19, y = 34.5, label = "Acton", size = 2) +
+  annotate(geom = "text", x = -118.475, y = 34.69, label = "Elizabeth\nLake", size = 2, lineheight = 0.5) +
+  
+  annotate(geom = "text", x = -118.025, y = 34.75, label = "12 of 15 AVUHSD schools are in\nLancaster and Palmdale", size = 2, hjust = 0) +  
+  
+  geom_segment(aes(x = -118.025, y = 34.75, xend = -118.2, yend = 34.75), 
+               size = 0.5, arrow = arrow(length = unit(0.1, "cm"))) +
+  
+    geom_segment(aes(x = -117.93, y = 34.725, xend = -117.93, yend = 34.62), 
+               size = 0.5, arrow = arrow(length = unit(0.1, "cm"))) +
+  
+  annotate(geom = "text", x = -118.75, y = 34.69, label = "AVUHSD boundaries\nextend beyond SPA 1 boundaries\nsouth of Elizabeth Lake", size = 2, hjust = 0) +
+  
+  geom_segment(aes(x = -118.7, y = 34.655, xend = -118.7, yend = 34.625), 
+               size = 0.5, arrow = arrow(length = unit(0.1, "cm"))) +
+  
+  annotate(geom = "text", x = -118.55, y = 34.495, label = "SPA 1 boundaries\nextend beyond AVUHSD\nsouth of Acton", size = 2, hjust = 0) +
+ 
+  geom_segment(aes(x = -118.42, y = 34.510, xend = -118.385, yend = 34.510), 
+               size = 0.5, arrow = arrow(length = unit(0.1, "cm"))) +
+
+  theme(plot.caption = element_text(hjust = 0),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.ticks = element_blank(), # Removes tick marks
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        panel.background = element_rect(fill = "white"), # Set background to white
+        panel.grid.major = element_blank(), # Remove major grid lines
+        panel.grid.minor = element_blank()  # Remove minor grid lines
+       )
+map 
+
+# save map
+#ggsave("reference_map.png", plot = map, width = 8, height = 4, units = "in", dpi = 300)
+
+
+```
+
