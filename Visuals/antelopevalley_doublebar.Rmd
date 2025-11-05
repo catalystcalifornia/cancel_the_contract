@@ -110,18 +110,16 @@ double_bar <- function(df, indicator.x, indicator.y, myindicator.x, myindicator.
       panel.grid.major.y = element_blank()
     )
   
-  # Define base file path
-  base_path <- paste0("./Visuals/", myindicator.x, "_vs_", myindicator.y, "_doublebar")
+# Define base file path
+  export_dir <- here::here("Visuals", "Exports")
+  dir.create(export_dir, recursive = TRUE, showWarnings = FALSE)
   
+  outfile <- file.path(export_dir, paste0(myindicator.x, "_vs_", myindicator.y, "_doublebar.png"))  
   showtext_opts(dpi = 300)
   
   # Save outputs
-  ggsave(plot = final_visual, filename = paste0(base_path, ".svg"),
-         device = "svg", width = 9, height = 6.5)
   
-  ggsave(plot = final_visual, filename = paste0(base_path, ".png"),
-         device = "png", width = 9, height = 6.5)
-  
+ ggsave(outfile, plot = final_visual)
   return(final_visual)
 }
 
