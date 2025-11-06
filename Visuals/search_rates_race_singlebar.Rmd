@@ -1,0 +1,43 @@
+```{r}
+source("./visual_fx.R")
+
+con_ctc<- connect_to_db("cancel_the_contract")
+
+df<-dbGetQuery(con_ctc, "SELECT * FROM analysis_stops_search_avuhsd WHERE reportingcategory_re IN ('nh_black', 'latinx', 'nh_white', 'student__disability', 'total')")
+
+
+df <- df %>% mutate(label = reportingcategory_re)
+
+# this doesn't seem to work
+race_recode(df)
+
+# pasting bc race_recode doesn't seem to work, also added total line
+df<-df%>%
+    filter(!label %in% c("nh_aian", "nh_nhpi", "nh_asian_wo_sa", "nh_sswana"))%>% # we can filter these groups out
+    mutate(label=ifelse(label %in% "total", "Total",
+      ifelse(label %in% "latino", "Latinx",
+                        ifelse(label %in% "latinx", "Latinx",
+                        ifelse(label %in% "nh_white", "White",
+                               ifelse(label %in% "nh_black", "Black",
+                                      ifelse(label %in% "nh_asian", "Asian",
+                                             ifelse(label %in% "aian", "AIAN",
+                                                    ifelse(label %in% "AIAN AOIC", "AIAN",
+                                                    ifelse(label %in% "nh_twoormor", "Multiracial",
+                                                           ifelse(label %in% "sswana", "SSWANA",
+                                                                  ifelse(label %in% "swana", "SWANA",
+                                                                  ifelse(label %in% "SSWANA AOIC", "SSWANA",
+                                                                         ifelse(label %in% "SWANA AOIC", "SWANA",
+                                                                  ifelse(label %in% "nh_other", "Other",
+                                                                         ifelse(label %in% "nhpi", "NHPI",
+                                                                                ifelse(label %in% "NHPI AOIC", "NHPI",
+                                                                                       label)
+                                                                  ))))))))))))))))
+
+
+indicator <- "Police Stops Search AVUHSD"
+title_text <- ""
+
+single_bar_tot(df, indicator, title_text)
+
+dbDisconnect(con_ctc)
+```
