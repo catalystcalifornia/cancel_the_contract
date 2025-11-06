@@ -1,0 +1,21 @@
+```{r}
+source("./visual_fx.R")
+
+con_ctc<- connect_to_db("cancel_the_contract")
+
+df<-dbGetQuery(con_ctc, "SELECT * FROM analysis_stops_search_avuhsd")
+               
+               
+               # WHERE reportingcategory_re IN ('nh_black', 'latinx', 'nh_white', 'student__disability', 'total')")
+
+
+df <- df %>% mutate(label = reportingcategory_re)%>%
+  race_recode()
+
+indicator <- "Police Stops Search AVUHSD"
+title_text <- "Law Enforcement Searches Black and Latinx Students during Stops far more than White Students"
+
+single_bar_tot(df, indicator, title_text)
+
+dbDisconnect(con_ctc)
+```
