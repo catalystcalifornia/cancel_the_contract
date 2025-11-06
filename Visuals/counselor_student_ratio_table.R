@@ -26,7 +26,7 @@ label <- c("Desert Winds Continuation", "Antelope Valley High","Eastside High","
 student_counselor_ratio <- c("621:1","252:1","471:1","397:1","280:1","337:1","305:1","393:1","453:1")
 counselors <- c(1.0,6.0,5.5,7.0,9.0,8.0,5.0,6.0,7.0)
 students <- c(621,1512,2592,2778,2520,2697,1526,2358,3170)
-counselors_needed_to_match <- c(1.1,NA,3.2,2.3,NA,1.1,0.1,1.9,3.6)
+counselors_needed_to_match <- c(1.1,0,3.2,2.3,0,1.1,0.1,1.9,3.6)
 
 # create data frame
 counselor_df <- data.frame(label, student_counselor_ratio, counselors, students, counselors_needed_to_match)
