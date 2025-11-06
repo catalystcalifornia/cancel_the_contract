@@ -35,7 +35,7 @@ df<-df%>%
 
 
 indicator <- "Police Stops Search AVUHSD"
-title_text <- ""
+title_text <- "Law Enforcement Searches Black and Latinx Students during Stops far more than White Students"
 
 single_bar_tot(df, indicator, title_text)
 
