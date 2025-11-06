@@ -17,6 +17,7 @@ library(showtext)
 library(scales)
 library(here)
 library(forcats)
+library(ragg)
 
 #connect to postgres
 source("W:\\RDA Team\\R\\credentials_source.R")
@@ -109,8 +110,9 @@ race_recode<-function(df){
                                                                   ifelse(label %in% "nh_other", "Other",
                                                                          ifelse(label %in% "nhpi", "NHPI",
                                                                                 ifelse(label %in% "NHPI AOIC", "NHPI",
+                                                                                       ifelse(label %in% "total", "Total",
                                                                                        label)
-                                                                  )))))))))))))))
+                                                                  ))))))))))))))))
 }
                         
 # EX) RACE RECODING----------------------------------
@@ -454,7 +456,7 @@ single_bar_tot<-function(df, indicator, title_text){
              y = subset(df, label=="Total")$rate,
              label = sprintf("Overall Rate: %.1f%%", subset(df, label == "Total")$rate),
              hjust =-0.1, vjust = 0,
-             color = black, size = 4, family = font_axis_label) +
+             color = black, size = 7, family = font_axis_label) +
     
     # bar labels
     
@@ -462,7 +464,8 @@ single_bar_tot<-function(df, indicator, title_text){
               family = font_bar_label, 
               hjust = -0.1,   # small negative number pushes text to the right of the bar
               vjust = 0.5,
-              colour = "black") +
+              colour = "black",
+              size = 7) +
     
     labs(title = title_text,
          subtitle = str_wrap(subtitle_text, width = 80),
@@ -477,17 +480,18 @@ single_bar_tot<-function(df, indicator, title_text){
     theme(legend.title = element_blank(), # no legend--modify if necessary
           
           # define style for axis text
-          axis.text.y = element_text(size = 10, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
+          axis.text.y = element_text(size = 18, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
                                      colour = black, family= font_axis_label),
           axis.text.x = element_blank(),
-          plot.caption = element_text(hjust = 0.0, size = 8, colour = black, family = font_caption),
-          plot.title =  element_text(hjust = 0.0, size = 21, colour = black, family = font_title), 
-          plot.subtitle = element_text(hjust = 0.0, size = 14, colour = black, family = font_subtitle),
+          plot.caption = element_text(hjust = 0.0, size = 18, colour = black, family = font_caption),
+          plot.title =  element_text(hjust = 0.0, size = 30, colour = black, family = font_title), 
+          plot.subtitle = element_text(hjust = 0.0, size = 25, colour = black, family = font_subtitle),
           axis.ticks = element_blank(),
           # grid line style
           panel.grid.minor = element_blank(),
           panel.grid.major = element_line(size = 0.25),
           panel.grid.major.y = element_blank())
+  
   
   # Define base file path
   export_dir <- here::here("Visuals", "Exports")
@@ -495,12 +499,15 @@ single_bar_tot<-function(df, indicator, title_text){
   
   outfile <- file.path(export_dir, paste0(indicator, "_singlebartot.png"))
   
+  ragg::agg_png(outfile, width = width, height = height, units = "in", res = 150)
+  print(final_visual)
+  dev.off()
+  
 
   # Save with dynamic dimensions
-  ggsave(outfile, plot = final_visual, width = width, height = height)
+  # ggsave(outfile, plot = final_visual, width = width, height = height)
 
   
-  return(final_visual)
 }
 
 # EX) SINGLE BAR GRAPH W/ TOTAL LINE------------------------------------
