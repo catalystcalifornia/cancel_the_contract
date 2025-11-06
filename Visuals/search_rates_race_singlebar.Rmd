@@ -10,9 +10,7 @@ df<-dbGetQuery(con_ctc, "SELECT * FROM analysis_stops_search_avuhsd")
 
 
 df <- df %>% mutate(label = reportingcategory_re)%>%
-  race_recode()%>%
-  mutate(label=ifelse(label %in% 'total', "Total", label))
-
+  race_recode()
 
 indicator <- "Police Stops Search AVUHSD"
 title_text <- "Law Enforcement Searches Black and Latinx Students during Stops far more than White Students"
