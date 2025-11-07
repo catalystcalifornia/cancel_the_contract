@@ -3,8 +3,8 @@ source("./visual_fx.R")
 
 con_ctc<- connect_to_db("cancel_the_contract")
 
-pop_race<-dbGetQuery(con_ctc, "SELECT * FROM avuhsd_population_race")%>% 
-filter(race %in% c("Black", "White", "Latinx"))
+pop_race<-dbGetQuery(con_ctc, "SELECT * FROM avuhsd_population_race")
+# %>% filter(race %in% c("Black", "White", "Latinx"))
 
 stops_race<-dbGetQuery(con_ctc, "SELECT * FROM analysis_stops_race_avuhsd")
 

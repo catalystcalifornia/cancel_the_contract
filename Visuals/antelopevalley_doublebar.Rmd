@@ -5,8 +5,8 @@ con_ctc<- connect_to_db("cancel_the_contract")
 
 pop_race<-dbGetQuery(con_ctc, "SELECT race, rate FROM av_population_race") %>%
   rename("label" = "race") %>%
-  race_recode(.) %>% 
-  filter(label %in% c("Black", "White", "Latinx"))
+  race_recode(.) 
+# %>%   filter(label %in% c("Black", "White", "Latinx"))
 
 stops_race<-dbGetQuery(con_ctc, "SELECT * FROM analysis_stops_race")
 
