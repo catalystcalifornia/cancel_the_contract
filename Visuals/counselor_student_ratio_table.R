@@ -36,7 +36,7 @@ students <- c(621,1512,2592,2778,2520,2697,1526,2358,3170)
 counselors_needed_to_match <- c(1.1,0,3.2,2.3,0,1.1,0.1,1.9,3.6)
 
 # create data frame
-counselor_df <- data.frame(label, total_students,  total_counselors, student_counselor_ratio, number_of_counselors_needed)
+counselor_df <- data.frame(label, total_students,  total_counselors, student_counselor_ratio, counselors_needed_to_match)
 
 # Move NA values to bottom and order numerically 
 counselor_df<-counselor_df%>%
@@ -48,7 +48,7 @@ source("./Visuals/visual_fx.R")
 
 # COUNSELORS STATIC TABLE--------------------------
 
-indicator="Student-to-Counselor Ratio"
+indicator="Counselor Ratio"
 title_text="13 Counselors are Needed in AVUHSD to Match Ideal Student-to-Counselor Ratio"
 
 # Apply function
