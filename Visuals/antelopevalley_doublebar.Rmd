@@ -107,7 +107,9 @@ double_bar <- function(df, indicator.x, indicator.y, myindicator.x, myindicator.
       axis.ticks = element_blank(),
       panel.grid.minor = element_blank(),
       panel.grid.major = element_line(size = 0.25),
-      panel.grid.major.y = element_blank()
+      panel.grid.major.y = element_blank(),
+      plot.background = element_rect(fill = "white", color = NA),
+      panel.background = element_rect(fill = "white", color = NA)
     )
   
 # Define base file path
