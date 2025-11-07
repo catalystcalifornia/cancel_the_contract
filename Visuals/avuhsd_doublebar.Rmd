@@ -3,8 +3,8 @@ source("./visual_fx.R")
 
 con_ctc<- connect_to_db("cancel_the_contract")
 
-pop_race<-dbGetQuery(con_ctc, "SELECT * FROM avuhsd_population_race")%>% 
-filter(race %in% c("Black", "White", "Latinx"))
+pop_race<-dbGetQuery(con_ctc, "SELECT * FROM avuhsd_population_race")
+# %>% filter(race %in% c("Black", "White", "Latinx"))
 
 stops_race<-dbGetQuery(con_ctc, "SELECT * FROM analysis_stops_race_avuhsd")
 
@@ -111,7 +111,9 @@ double_bar <- function(df, indicator.x, indicator.y, myindicator.x, myindicator.
       axis.ticks = element_blank(),
       panel.grid.minor = element_blank(),
       panel.grid.major = element_line(size = 0.25),
-      panel.grid.major.y = element_blank()
+      panel.grid.major.y = element_blank(),
+      plot.background = element_rect(fill = "white", color = NA),
+      panel.background = element_rect(fill = "white", color = NA)
     )
   
   # Define base file path
