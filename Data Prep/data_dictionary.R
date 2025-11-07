@@ -13,7 +13,7 @@ con <- connect_to_db("cancel_the_contract")
 
 # Preset the racenote
 racenote<-"Race Note: AIAN=American Indian/Alaskan Native Alone, NHPI=Native Hawaiian/Pacific Islander, SSWANA=South/Southwest Asian and North African."
-
+racenote_cde<-"Race Note: Latinx is alone or in combination with other racial groups."
 
 ##### Data frame set up #####
 
@@ -36,22 +36,22 @@ print (df)
 
 df[1, ] <- list("Population", "Total population", "American Community Survey 5-Year Estimates Table DP05", "https://data.census.gov/", "2019-2023", "Service Planning Area, LA County", "Antelope Valley population estimated by aggregating Census Tracts in Service Planning Area 1.", "Estimates are based on samples with margins of error.", "")
 
-df[2, ] <- list("Race", "Population by race", "American Community Survey 5-Year Estimates Table DP05", "https://data.census.gov/", "2019-2023", "Service Planning Area, LA County", "Antelope Valley population by race estimated by aggregating Census Tracts in Service Planning Area 1.", "Estimates are based on samples with margins of error.", racenote)
+df[2, ] <- list("Race", "Antelope Valley population by race", "American Community Survey 5-Year Estimates Table DP05", "https://data.census.gov/", "2019-2023", "Service Planning Area, LA County", "Antelope Valley population by race estimated by aggregating Census Tracts in Service Planning Area 1.", "Estimates are based on samples with margins of error.", racenote)
 
 df[3, ] <- list("Student Population", "Student population", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "")
 
-df[4, ] <- list("Student Race", "Student population by race", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", racenote)
+df[4, ] <- list("Student Race", "AVUHSD student population by race", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", racenote_cde)
 
 ## Education indicators
 
 df[5, ] <- list("Special Education Enrollment", "Student population enrolled in special education", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "")
 
-df[6, ] <- list("Student graduation by race", "AVUHSD student graduation by race", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "2023-2024", "", "", "Race Note: Latinx is alone or in combination with other racial groups.")
+df[6, ] <- list("Student graduation by race", "AVUHSD student graduation rate by race", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "2023-2024", "", "", "Race Note: Latinx is alone or in combination with other racial groups.")
 
 
-df[7, ] <- list("Suspensions", "Student population suspended", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "")
+df[7, ] <- list("Suspensions", "AUHSD student suspension rate", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "")
 
-df[8, ] <- list("Suspensions by race", "Student population suspended by race", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "Race Note: Latinx is alone or in combination with other racial groups.")
+df[8, ] <- list("Suspensions by race", "AVUHSD student suspension rate by race", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "Race Note: Latinx is alone or in combination with other racial groups.")
 
 df[9, ] <- list("Suspensions by special education enrollment", "Student population suspended by enrollment in special education", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "")
 
@@ -66,13 +66,13 @@ df[12, ] <- list("Expulsions by special education enrollment", "Student populati
 
 
 
-df[13, ] <- list("Police Stops by Race AVUHSD", "People law enforcement stopped in a AVUHSD school by perceived race", "California Department of Justice", "", "2018-2023", "", "", "", "", racenote)
+df[13, ] <- list("Police Stops by Race AVUHSD", "Students law enforcement stopped in a AVUHSD school by perceived race", "California Department of Justice", "", "2018-2023", "", "", "", "", racenote)
 
-df[14, ] <- list("Police Stops by Reason of Stop AVUHSD", "People law enforcement stopped in a AVUHSD school by reason of stop", "California Department of Justice", "", "2018-2023", "", "", "", "")
-df[15, ] <- list("Police Stops by Result of Stop AVUHSD", "People law enforcement stopped in a AVUHSD school by reason of stop", "California Department of Justice", "", "2018-2023", "", "", "", "Note: A police officer can report more than one result for a stop. Stop results analyzed here are alone or in combination with other stop results.")
+df[14, ] <- list("Police Stops by Reason of Stop AVUHSD", "Students law enforcement stopped in a AVUHSD school by reason of stop", "California Department of Justice", "", "2018-2023", "", "", "", "")
+df[15, ] <- list("Police Stops by Result of Stop AVUHSD", "Students law enforcement stopped in a AVUHSD school by reason of stop", "California Department of Justice", "", "2018-2023", "", "", "", "Note: A police officer can report more than one result for a stop. Stop results analyzed here are alone or in combination with other stop results.")
 
-df[16, ] <- list("Police Stops Search AVUHSD", "People law enforcement stopped and searched in a AVUHSD schoo by perceived race", "California Department of Justice", "", "2018-2023", "", "", "", racenote)
-df[17, ] <- list("Police Hit Rate AVUHSD", "People law enforcement stopped and searched with contraband found in a AVUHSD school", "California Department of Justice", "", "2018-2023", "", "", "", "")
+df[16, ] <- list("Police Stops Search AVUHSD", "Students law enforcement stopped and searched in a AVUHSD school by perceived race", "California Department of Justice", "", "2018-2023", "", "", "", "Race Note: AIAN=American Indian/Alaskan Native Alone, NHPI=Native Hawaiian/Pacific Islander.")
+df[17, ] <- list("Police Hit Rate AVUHSD", "Students law enforcement stopped and searched with contraband found in a AVUHSD school", "California Department of Justice", "", "2018-2023", "", "", "", "")
 
 
 ### RIPA indicators: AV
