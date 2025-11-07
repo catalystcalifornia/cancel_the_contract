@@ -17,6 +17,7 @@ library(showtext)
 library(scales)
 library(here)
 library(forcats)
+library(ragg)
 
 #connect to postgres
 source("W:\\RDA Team\\R\\credentials_source.R")
@@ -109,8 +110,9 @@ race_recode<-function(df){
                                                                   ifelse(label %in% "nh_other", "Other",
                                                                          ifelse(label %in% "nhpi", "NHPI",
                                                                                 ifelse(label %in% "NHPI AOIC", "NHPI",
+                                                                                       ifelse(label %in% "total", "Total",
                                                                                        label)
-                                                                  )))))))))))))))
+                                                                  ))))))))))))))))
 }
                         
 # EX) RACE RECODING----------------------------------
@@ -326,7 +328,8 @@ single_bar<-function(df, indicator, title_text){
               family = font_bar_label, 
               hjust = -0.1,   # small negative number pushes text to the right of the bar
               vjust = 0.5,
-              colour = "black") +
+              colour = "black",
+              size=7) +
     
     labs(title = title_text,
          subtitle = subtitle_text,
@@ -341,17 +344,18 @@ single_bar<-function(df, indicator, title_text){
     theme(legend.title = element_blank(), # no legend--modify if necessary
           
           # define style for axis text
-          axis.text.y = element_text(size = 10, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
+          axis.text.y = element_text(size = 18, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
                                      colour = black, family= font_axis_label),
           axis.text.x = element_blank(),
-          plot.caption = element_text(hjust = 0.0, size = 8, colour = black, family = font_caption),
-          plot.title =  element_text(hjust = 0.0, size = 21, colour = black, family = font_title), 
-          plot.subtitle = element_text(hjust = 0.0, size = 14, colour = black, family = font_subtitle),
+          plot.caption = element_text(hjust = 0.0, size = 18, colour = black, family = font_caption),
+          plot.title =  element_text(hjust = 0.0, size = 30, colour = black, family = font_title), 
+          plot.subtitle = element_text(hjust = 0.0, size = 25, colour = black, family = font_subtitle),
           axis.ticks = element_blank(),
           # grid line style
           panel.grid.minor = element_blank(),
           panel.grid.major = element_line(size = 0.25),
           panel.grid.major.y = element_blank())
+  
   
   # Define base file path for saving visuals
   export_dir <- here::here("Visuals", "Exports")
@@ -359,12 +363,10 @@ single_bar<-function(df, indicator, title_text){
   
   outfile <- file.path(export_dir, paste0(indicator, "_singlebar.png"))
   
- 
-  
-  # Save with dynamic dimensions
-  ggsave(outfile, plot = final_visual, width = width, height = height)
-  
-  
+  ragg::agg_png(outfile, width = width, height = height, units = "in", res = 150)
+  print(final_visual)
+  dev.off()
+
 
   return(final_visual)
 }
@@ -397,6 +399,9 @@ single_bar<-function(df, indicator, title_text){
 # SINGLE BAR GRAPH W/ TOTAL LINE FUNCTION -------------------------------------
 
 single_bar_tot<-function(df, indicator, title_text){
+  
+  message("single_bar_tot: version updated 2025-11-07")
+  
   
   # rename 'rate' column for function and arrange by rate descending
   df<-df%>%
@@ -454,7 +459,7 @@ single_bar_tot<-function(df, indicator, title_text){
              y = subset(df, label=="Total")$rate,
              label = sprintf("Overall Rate: %.1f%%", subset(df, label == "Total")$rate),
              hjust =-0.1, vjust = 0,
-             color = black, size = 4, family = font_axis_label) +
+             color = black, size = 7, family = font_axis_label) +
     
     # bar labels
     
@@ -462,7 +467,8 @@ single_bar_tot<-function(df, indicator, title_text){
               family = font_bar_label, 
               hjust = -0.1,   # small negative number pushes text to the right of the bar
               vjust = 0.5,
-              colour = "black") +
+              colour = "black",
+              size = 7) +
     
     labs(title = title_text,
          subtitle = str_wrap(subtitle_text, width = 80),
@@ -477,17 +483,18 @@ single_bar_tot<-function(df, indicator, title_text){
     theme(legend.title = element_blank(), # no legend--modify if necessary
           
           # define style for axis text
-          axis.text.y = element_text(size = 10, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
+          axis.text.y = element_text(size = 18, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
                                      colour = black, family= font_axis_label),
           axis.text.x = element_blank(),
-          plot.caption = element_text(hjust = 0.0, size = 8, colour = black, family = font_caption),
-          plot.title =  element_text(hjust = 0.0, size = 21, colour = black, family = font_title), 
-          plot.subtitle = element_text(hjust = 0.0, size = 14, colour = black, family = font_subtitle),
+          plot.caption = element_text(hjust = 0.0, size = 18, colour = black, family = font_caption),
+          plot.title =  element_text(hjust = 0.0, size = 30, colour = black, family = font_title), 
+          plot.subtitle = element_text(hjust = 0.0, size = 25, colour = black, family = font_subtitle),
           axis.ticks = element_blank(),
           # grid line style
           panel.grid.minor = element_blank(),
           panel.grid.major = element_line(size = 0.25),
           panel.grid.major.y = element_blank())
+  
   
   # Define base file path
   export_dir <- here::here("Visuals", "Exports")
@@ -495,17 +502,20 @@ single_bar_tot<-function(df, indicator, title_text){
   
   outfile <- file.path(export_dir, paste0(indicator, "_singlebartot.png"))
   
+  ragg::agg_png(outfile, width = width, height = height, units = "in", res = 150)
+  print(final_visual)
+  dev.off()
+  
 
   # Save with dynamic dimensions
-  ggsave(outfile, plot = final_visual, width = width, height = height)
+  # ggsave(outfile, plot = final_visual, width = width, height = height)
 
   
-  return(final_visual)
 }
 
 # EX) SINGLE BAR GRAPH W/ TOTAL LINE------------------------------------
 
-# 
+# # 
 #  df<-dbGetQuery(con, "SELECT * FROM analysis_rent_burden")
 # 
 # # check your table and do any prep necessary prior to visual
@@ -515,16 +525,134 @@ single_bar_tot<-function(df, indicator, title_text){
 #    rename(label=subgroup)%>%
 #    select(-rate_se, -rate_moe, -rate_cv)%>%
 #    race_recode()
-#   
+# 
 # 
 #  indicator<-"Police Stops by Race"
 #  title_text<-"Findings based title"
 # 
 # # Apply function
 # 
-#  single_bar_tot(df=df, 
-#               indicator=indicator, 
+#  single_bar_tot(df=df,
+#               indicator=indicator,
 #               title_text=title_text)
+
+
+# SINGLE BAR TOTAL LINE FX ONLY FOR SEARCHES BY RACE IN AVUHSD INDICATOR----------
+
+single_bar_search<-function(df, indicator, title_text){
+  
+  
+  # rename 'rate' column for function and arrange by rate descending
+  df<-df%>%
+    rename_with(~ "rate", .cols = contains("rate"))
+  
+  # Define max value
+  max_y = 1.15 * max(df$rate)
+  
+  # Define annotation
+  annotate_y = 1.12 * (df$rate[df$label=="Total"])
+  
+  # set total value
+  total_value<- subset(df, label=="Total")$rate
+  
+  # Dynamically adjust dimensions of the output
+  
+  # Base width/height
+  base_width <- 7   # inches
+  base_height <- 5  # inches
+  
+  # Adjust height based on number of rows (bars)
+  num_bars <- nrow(df %>% filter(label != "Total"))
+  height <- base_height + 0.2 * num_bars  # each bar adds 0.2 inches
+  
+  # Adjust width based on title length
+  title_length <- nchar(title_text)
+  width <- base_width + 0.05 * title_length  # long titles get extra width
+  scale_factor <- width / 7  # compare to base width
+  
+  ## Set up subtitle text: This will be from the data dictionary
+  
+  subtitle_text<-paste0(dict$indicator[dict$indicator_short==indicator])
+  
+  # # set caption text to use values from the data dictionary
+  
+  caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],". ",dict$race_note[dict$indicator_short==indicator]) 
+  wrap_width <- round(width * 12)
+  caption_text <- str_wrap(caption_text, width = wrap_width)
+  
+  # Graph
+  
+  final_visual <-  ggplot(subset(df, label !='Total' ), aes(x= reorder(label, rate), y=rate)) +   
+    geom_bar(stat="identity", position = position_dodge(0.7), show.legend = FALSE) +
+    
+    # define the bars
+    
+    geom_col(fill = teal) +
+    
+    # vertical line for Total %
+    geom_hline(yintercept = subset(df, label =="Total")$rate, linetype = "dotted", color = black, size = 0.75) +    
+    
+    # label for vertical Total % line
+    
+    annotate(geom = "text",
+             x = 1.0,
+             y = subset(df, label=="Total")$rate,
+             label = sprintf("Overall Rate: %.1f%%", subset(df, label == "Total")$rate),
+             hjust =-0.1, vjust = 0,
+             color = black, size = 7, family = font_axis_label) +
+    
+    # bar labels
+    
+    geom_text(aes(label = paste0(round(rate, 1), "%")),
+              family = font_bar_label, 
+              hjust = -0.1,   # small negative number pushes text to the right of the bar
+              vjust = 0.5,
+              colour = "black",
+              size = 7) +
+    
+    labs(title = title_text,
+         subtitle = str_wrap(subtitle_text, width = 80),
+         caption=caption_text) + 
+    
+    scale_x_discrete(labels = function(label) str_wrap(label, width = 20)) +            # wrap long labels
+    xlab("") +
+    ylab("") +
+    expand_limits(y = c(0, max_y))+
+    coord_flip()+
+    theme_minimal()+
+    theme(legend.title = element_blank(), # no legend--modify if necessary
+          
+          # define style for axis text
+          plot.title = element_text(size = 30 * scale_factor),
+          plot.subtitle = element_text(size = 25 * scale_factor),
+          plot.caption = element_text(size = 18 * scale_factor),
+          axis.text.y = element_text(size = 18 * scale_factor),
+          axis.text.x = element_blank(),
+          axis.ticks = element_blank(),
+          # grid line style
+          panel.grid.minor = element_blank(),
+          panel.grid.major = element_line(size = 0.25),
+          panel.grid.major.y = element_blank())
+  
+  
+  # Define base file path
+  export_dir <- here::here("Visuals", "Exports")
+  dir.create(export_dir, recursive = TRUE, showWarnings = FALSE)
+  
+  outfile <- file.path(export_dir, paste0(indicator, "_singlebartot.png"))
+  
+  ragg::agg_png(outfile, width = width, height = height, units = "in", res = 150)
+  print(final_visual)
+  dev.off()
+  
+  
+  # Save with dynamic dimensions
+  # ggsave(outfile, plot = final_visual, width = width, height = height)
+  
+  
+}
+
+
 
 # Disconnect from postgres--------------------------
 dbDisconnect(con)
