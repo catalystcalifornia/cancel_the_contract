@@ -104,9 +104,10 @@ map <- ggplot() +
   
   geom_sf(data = avuhsd, linewidth = .7) +
   geom_sf(data = spa1, fill = NA, colour = "grey") +
-  geom_sf(data = cities_within_avuhsd, fill = NA) +
-  geom_sf(data = cities_within_spa1, fill = NA) +
+  # geom_sf(data = cities_within_avuhsd, fill = NA) +
+  # geom_sf(data = cities_within_spa1, fill = NA) +
   geom_sf(data = palmdale, fill = NA) +
+  geom_sf(data = lancaster, fill = NA) +
   geom_sf(data = avuhsd_schools) +
   
   annotate(geom = "text", x = -118.2, y = 34.71, label = "Lancaster", size = 2) +
