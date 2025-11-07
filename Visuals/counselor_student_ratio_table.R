@@ -31,8 +31,8 @@ label <- c("Desert Winds Continuation",
            "Palmdale High","Quartz Hill High")
 student_counselor_ratio <- c("621:1","252:1","471:1","397:1","280:1","337:1","305:1","393:1","453:1")
 
-counselors <- c(1.0,6.0,5.5,7.0,9.0,8.0,5.0,6.0,7.0)
-students <- c(621,1512,2592,2778,2520,2697,1526,2358,3170)
+total_counselors <- c(1.0,6.0,5.5,7.0,9.0,8.0,5.0,6.0,7.0)
+total_students <- c(621,1512,2592,2778,2520,2697,1526,2358,3170)
 counselors_needed_to_match <- c(1.1,0,3.2,2.3,0,1.1,0.1,1.9,3.6)
 
 # create data frame
@@ -40,7 +40,7 @@ counselor_df <- data.frame(label, total_students,  total_counselors, student_cou
 
 # Move NA values to bottom and order numerically 
 counselor_df<-counselor_df%>%
-  arrange(desc(number_of_counselors_needed))
+  arrange(desc(counselors_needed_to_match))
 
 # source visual script
 source("./Visuals/visual_fx.R")
