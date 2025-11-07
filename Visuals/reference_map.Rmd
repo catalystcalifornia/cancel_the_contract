@@ -22,6 +22,8 @@ library(ggtext)
 source("W:\\RDA Team\\R\\credentials_source.R")
 con_rda <- connect_to_db("rda_shared_data")
 
+# connect to function script
+source("./visual_fx.R")
 ```
 
 
