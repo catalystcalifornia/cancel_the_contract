@@ -55,7 +55,7 @@ base_width <- 7   # inches
 base_height <- 5  # inches
 
 # Adjust height based on number of rows (bars)
-height <- base_height + 0.2 
+height <- base_height + 0.9
 
 # Adjust width based on title length
 title_length <- nchar(title_text)
@@ -67,8 +67,12 @@ caption_text <- str_wrap(caption_text, width = wrap_width)
 #### Graph
 
 final_visual<-df%>%
+  mutate(reportingcategory_re=ifelse(reportingcategory_re %in% "total", "Students searched by police", reportingcategory_re))%>%
   ggplot(aes(x = reportingcategory_re, y = rate, fill = contraband_evidence_discovered_none)) +
   geom_col() +
+  scale_x_discrete(
+    labels = function(x) str_wrap(x, width = 8)  # wrap at ~15 characters
+  )+
   
   geom_text(
     aes(label = paste0(round(rate, 1), "%")),
@@ -82,20 +86,30 @@ scale_fill_manual(
   labels = c("1" = "No", "0" = "Yes")    # legend item labels
 )+
   
-  labs(title = title_text,
-       subtitle = subtitle_text,
+  labs(title = str_wrap(title_text, width=65),
+       subtitle = str_wrap(subtitle_text, width=75),
        caption=caption_text) + 
-  ylab("") +
-  xlab(NULL)+
+  xlab("") +
+  ylab("")+
   coord_flip()+
   theme_minimal()+
   theme(
-        
-       
-        axis.text.x = element_blank(),
+    legend.title = element_text(
+      size = 8,        # font size
+      family = font_caption,  # optional: set your font
+      colour = black        # optional: set color
+    ),
+    legend.text = element_text(
+      size = 8,     
+      family = font_axis_label,  
+      colour = black
+    ),
+        axis.text.x = element_text( size = 7,         
+                                    family = font_axis_label,  
+                                    colour = black),
         plot.caption = element_text(hjust = 0.0, size = 5, colour = black, family = font_caption),
-        plot.title =  element_text(hjust = 0.0, size = 20, colour = black, family = font_title), 
-        plot.subtitle = element_text(hjust = 0.0, size = 16, colour = black, family = font_subtitle),
+        plot.title =  element_text(hjust = 0.0, size = 17, colour = black, family = font_title), 
+        plot.subtitle = element_text(hjust = 0.0, size = 13, colour = black, family = font_subtitle),
         axis.ticks = element_blank(),
         # grid line style
         panel.grid.minor = element_blank(),
@@ -109,6 +123,8 @@ dir.create(export_dir, recursive = TRUE, showWarnings = FALSE)
 outfile <- file.path(export_dir, paste0(indicator, "_stackedbar.png"))
 
 ragg::agg_png(outfile, width = width, height = height, units = "in", res = 150)
+print(final_visual)   # <- draw the plot
+
 dev.off()
 
 
