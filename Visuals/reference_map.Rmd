@@ -81,6 +81,9 @@ lancaster <- cities %>% filter(NAME == "Lancaster")
 lake <- cities %>% filter(NAME == "Elizabeth Lake")
 # plot(lake$geometry)
 
+acton <- cities %>% filter(NAME == "Acton")
+# plot(acton$geometry)
+
 # review
 #plot(cities_within$geometry)
 
@@ -90,9 +93,9 @@ schools <- st_read(con_rda, query = "SELECT * FROM education.cde_public_schools_
 # carve out AVUHSD schools
 avuhsd_schools <- schools %>% filter(district == "Antelope Valley Union High" & school != "No Data")
 
-# only get schools in xwalk
-school_names <- dbGetQuery(con_ctc, "SELECT cde_school FROM data.avuhsd_lasd_xwalk")
-avuhsd_schools <- avuhsd_schools %>% right_join(school_names, by= c("school"="cde_school"))
+# only get schools in xwalk, contains only 11 unique schools
+school_names <- dbGetQuery(con_ctc, "SELECT cde_school FROM data.avuhsd_lasd_xwalk") %>% unique(.)
+my_avuhsd_schools <- avuhsd_schools %>% right_join(school_names, by= c("school"="cde_school"))
 
 # get neighborhoods?
 # leaving out for now as I don't think we name them in the report
@@ -113,17 +116,18 @@ map <- ggplot() +
   
   geom_sf(data = avuhsd, linewidth = .7, colour = teal) +
   geom_sf(data = spa1, fill = NA, colour = mauve) +
-  geom_sf(data = cities_within_avuhsd, fill = NA) +
-  geom_sf(data = cities_within_spa1, fill = NA) +
   geom_sf(data = palmdale, fill = NA) +
-  geom_sf(data = avuhsd_schools, colour = teal, size=1) +
+  geom_sf(data = lancaster, fill = NA) +
+  geom_sf(data = lake, fill = NA) +
+  geom_sf(data = acton, fill = NA) +
+  geom_sf(data = my_avuhsd_schools, colour = teal, size=1.1) +
   
   annotate(geom = "text", x = -118.2, y = 34.71, label = "Lancaster", size = 2, family = font_caption) +
   annotate(geom = "text", x = -118.11, y = 34.63, label = "Palmdale", size = 2, family = font_caption) +
   annotate(geom = "text", x = -118.19, y = 34.5, label = "Acton", size = 2, family = font_caption) +
-  annotate(geom = "text", x = -118.37, y = 34.69, label = "Elizabeth\nLake", size = 2, lineheight = 0.8, family = font_caption) +
+  annotate(geom = "text", x = -118.38, y = 34.69, label = "Elizabeth\nLake", size = 2, lineheight = 0.8, family = font_caption) +
   
-  annotate(geom = "text", x = -118.025, y = 34.75, label = "12 of 15 AVUHSD schools are\nin Lancaster and Palmdale", size = 2, hjust = 0, family = font_caption) +  
+  annotate(geom = "text", x = -118.025, y = 34.75, label = "9 of 11 AVUHSD schools are\nin Lancaster and Palmdale", size = 2, hjust = 0, family = font_caption) +  
   
   geom_segment(aes(x = -118.030, y = 34.75, xend = -118.2, yend = 34.75), 
                size = 0.5, arrow = arrow(length = unit(0.1, "cm"))) +
@@ -157,8 +161,8 @@ map <- ggplot() +
 # map 
 
 # save map
-# ggsave("reference_map.png", plot = map, width = 8, height = 4, units = "in", dpi = 300)
-ggsave("reference_map.svg", plot = map, width = 8, height = 4, units = "in", dpi = 300)
+ggsave("./Exports/reference_map.png", plot = map, width = 8, height = 4, units = "in", dpi = 300)
+# ggsave("./Exports/reference_map.svg", plot = map, width = 8, height = 4, units = "in", dpi = 300)
 
 ```
 
