@@ -109,15 +109,14 @@ map <- ggplot() +
   labs(title ="Antelope Valley Union High School District",
        subtitle = "Service Planning Area 1, Cities, and Schools",
        caption = "Sources: AVUHSD and city boundaries from the US Census, 2023. SPA boundaries from the LA County Department of Public Health, 2022.\nSchool locations from the CA Department of Education, 2024-25.") +
-  
-  geom_sf(data = avuhsd, aes(color = "AVUHSD boundary"), linewidth = 1, fill = NA) +
-  geom_sf(data = spa1, aes(color = "SPA 1 boundary"), linewidth = 0.3, fill = NA) +
-  geom_sf(data = my_avuhsd_schools, aes(shape = "AVUHSD school"), size = 1.1) +
   geom_sf(data = palmdale, fill = NA) +
   geom_sf(data = lancaster, fill = NA) +
   geom_sf(data = lake, fill = NA) +
-  geom_sf(data = acton, fill = NA) +
+  geom_sf(data = acton, fill = NA) +  
+  geom_sf(data = spa1, aes(color = "SPA 1 boundary"), linewidth = 1, fill = NA) +
+  geom_sf(data = avuhsd, aes(color = "AVUHSD boundary"), linewidth = 1, fill = NA) +
 
+  geom_sf(data = my_avuhsd_schools, aes(shape = "AVUHSD school"), size = 1.7) +
   
   annotate(geom = "text", x = -118.2, y = 34.71, label = "Lancaster", size = 6, family = font_caption) +
   annotate(geom = "text", x = -118.11, y = 34.63, label = "Palmdale", size = 6, family = font_caption) +
