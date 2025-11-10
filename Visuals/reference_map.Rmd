@@ -21,6 +21,7 @@ library(ggtext)
 # get credentials and connect to postgres
 source("W:\\RDA Team\\R\\credentials_source.R")
 con_rda <- connect_to_db("rda_shared_data")
+con_ctc <- connect_to_db("cancel_the_contract")
 
 # connect to function script
 source("./visual_fx.R")
@@ -71,9 +72,14 @@ cities_within_spa1 <- cities %>% st_filter(spa1, .predicate = st_within)
 
 # Palmdale falls out for some reason
 palmdale <- cities %>% filter(NAME == "Palmdale")
+# plot(palmdale$geometry)
 
 # Separate Lancaster to label
 lancaster <- cities %>% filter(NAME == "Lancaster")
+# plot(lancaster$geometry)
+
+lake <- cities %>% filter(NAME == "Elizabeth Lake")
+# plot(lake$geometry)
 
 # review
 #plot(cities_within$geometry)
@@ -84,15 +90,16 @@ schools <- st_read(con_rda, query = "SELECT * FROM education.cde_public_schools_
 # carve out AVUHSD schools
 avuhsd_schools <- schools %>% filter(district == "Antelope Valley Union High" & school != "No Data")
 
+# only get schools in xwalk
+school_names <- dbGetQuery(con_ctc, "SELECT cde_school FROM data.avuhsd_lasd_xwalk")
+avuhsd_schools <- avuhsd_schools %>% right_join(school_names, by= c("school"="cde_school"))
+
 # get neighborhoods?
 # leaving out for now as I don't think we name them in the report
 
-# disconnect from Postgres
-dbDisconnect(con_rda)
-
 ```
 
-
+AV 11/7/25: reduced schools from 15 to 13. must edit annotation "12 of 15". play around with colors, point sizes
 ```{r}
 
 #### Map
@@ -102,40 +109,42 @@ map <- ggplot() +
   
   labs(title ="Antelope Valley Union High School District",
        subtitle = "Service Planning Area 1, Cities, and Schools",
-       caption = "AVUHSD and city boundaries from the US Census, 2023. SPA boundaries from the LA County Department of Public Health, 2022.\nSchool locations from the CA Department of Education, 2024-25") +
+       caption = "Sources: AVUHSD and city boundaries from the US Census, 2023.\nSPA boundaries from the LA County Department of Public Health, 2022.\nSchool locations from the CA Department of Education, 2024-25.") +
   
-  geom_sf(data = avuhsd, linewidth = .7) +
-  geom_sf(data = spa1, fill = NA, colour = "grey") +
-  # geom_sf(data = cities_within_avuhsd, fill = NA) +
-  # geom_sf(data = cities_within_spa1, fill = NA) +
+  geom_sf(data = avuhsd, linewidth = .7, colour = teal) +
+  geom_sf(data = spa1, fill = NA, colour = mauve) +
+  geom_sf(data = cities_within_avuhsd, fill = NA) +
+  geom_sf(data = cities_within_spa1, fill = NA) +
   geom_sf(data = palmdale, fill = NA) +
-  geom_sf(data = lancaster, fill = NA) +
-  geom_sf(data = avuhsd_schools) +
+  geom_sf(data = avuhsd_schools, colour = teal, size=1) +
   
-  annotate(geom = "text", x = -118.2, y = 34.71, label = "Lancaster", size = 2) +
-  annotate(geom = "text", x = -118.113, y = 34.62, label = "Palmdale", size = 2) +
-  annotate(geom = "text", x = -118.19, y = 34.5, label = "Acton", size = 2) +
-  annotate(geom = "text", x = -118.475, y = 34.69, label = "Elizabeth\nLake", size = 2, lineheight = 0.5) +
+  annotate(geom = "text", x = -118.2, y = 34.71, label = "Lancaster", size = 2, family = font_caption) +
+  annotate(geom = "text", x = -118.11, y = 34.63, label = "Palmdale", size = 2, family = font_caption) +
+  annotate(geom = "text", x = -118.19, y = 34.5, label = "Acton", size = 2, family = font_caption) +
+  annotate(geom = "text", x = -118.37, y = 34.69, label = "Elizabeth\nLake", size = 2, lineheight = 0.8, family = font_caption) +
   
-  annotate(geom = "text", x = -118.025, y = 34.75, label = "12 of 15 AVUHSD schools are in\nLancaster and Palmdale", size = 2, hjust = 0) +  
+  annotate(geom = "text", x = -118.025, y = 34.75, label = "12 of 15 AVUHSD schools are\nin Lancaster and Palmdale", size = 2, hjust = 0, family = font_caption) +  
   
-  geom_segment(aes(x = -118.025, y = 34.75, xend = -118.2, yend = 34.75), 
+  geom_segment(aes(x = -118.030, y = 34.75, xend = -118.2, yend = 34.75), 
                size = 0.5, arrow = arrow(length = unit(0.1, "cm"))) +
   
-    geom_segment(aes(x = -117.93, y = 34.725, xend = -117.93, yend = 34.62), 
+    geom_segment(aes(x = -117.93, y = 34.728, xend = -117.93, yend = 34.62), 
                size = 0.5, arrow = arrow(length = unit(0.1, "cm"))) +
   
-  annotate(geom = "text", x = -118.75, y = 34.69, label = "AVUHSD boundaries\nextend beyond SPA 1 boundaries\nsouth of Elizabeth Lake", size = 2, hjust = 0) +
+  annotate(geom = "text", x = -118.75, y = 34.69, label = "AVUHSD boundaries\nextend beyond SPA 1\nboundaries south of\nElizabeth Lake", size = 2, hjust = 0, family = font_caption) +
   
-  geom_segment(aes(x = -118.7, y = 34.655, xend = -118.7, yend = 34.625), 
+  geom_segment(aes(x = -118.7, y = 34.648, xend = -118.7, yend = 34.625), 
                size = 0.5, arrow = arrow(length = unit(0.1, "cm"))) +
   
-  annotate(geom = "text", x = -118.55, y = 34.495, label = "SPA 1 boundaries\nextend beyond AVUHSD\nsouth of Acton", size = 2, hjust = 0) +
+  annotate(geom = "text", x = -118.55, y = 34.495, label = "SPA 1 boundaries\nextend beyond\nAVUHSD south\nof Acton", size = 2, hjust = 0, family = font_caption) +
  
-  geom_segment(aes(x = -118.42, y = 34.510, xend = -118.385, yend = 34.510), 
+  geom_segment(aes(x = -118.437, y = 34.505, xend = -118.385, yend = 34.505), 
                size = 0.5, arrow = arrow(length = unit(0.1, "cm"))) +
 
-  theme(plot.caption = element_text(hjust = 0),
+  theme(
+        plot.title =  element_text(hjust = 0.0, size = 18, colour = black, family = font_title),
+        plot.subtitle = element_text(hjust = 0.0, size = 14, colour = black, family = font_subtitle),
+        plot.caption = element_text(hjust = 0.0, size = 10, colour = black, family = font_caption),
         axis.title.x = element_blank(),
         axis.title.y = element_blank(),
         axis.ticks = element_blank(), # Removes tick marks
@@ -145,11 +154,17 @@ map <- ggplot() +
         panel.grid.major = element_blank(), # Remove major grid lines
         panel.grid.minor = element_blank()  # Remove minor grid lines
        )
-map 
+# map 
 
 # save map
-#ggsave("reference_map.png", plot = map, width = 8, height = 4, units = "in", dpi = 300)
-
+# ggsave("reference_map.png", plot = map, width = 8, height = 4, units = "in", dpi = 300)
+ggsave("reference_map.svg", plot = map, width = 8, height = 4, units = "in", dpi = 300)
 
 ```
+
+```{r}
+# disconnect from Postgres
+dbDisconnect(con_rda)
+```
+
 
