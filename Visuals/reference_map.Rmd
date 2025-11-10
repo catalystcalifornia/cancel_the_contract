@@ -102,7 +102,6 @@ my_avuhsd_schools <- avuhsd_schools %>% right_join(school_names, by= c("school"=
 
 ```
 
-AV 11/7/25: reduced schools from 15 to 13. must edit annotation "12 of 15". play around with colors, point sizes
 ```{r}
 
 #### Map
@@ -112,53 +111,74 @@ map <- ggplot() +
   
   labs(title ="Antelope Valley Union High School District",
        subtitle = "Service Planning Area 1, Cities, and Schools",
-       caption = "Sources: AVUHSD and city boundaries from the US Census, 2023.\nSPA boundaries from the LA County Department of Public Health, 2022.\nSchool locations from the CA Department of Education, 2024-25.") +
+       caption = "Sources: AVUHSD and city boundaries from the US Census, 2023. SPA boundaries from the LA County Department of Public Health, 2022.\nSchool locations from the CA Department of Education, 2024-25.") +
   
-  geom_sf(data = avuhsd, linewidth = .7, colour = teal) +
-  geom_sf(data = spa1, fill = NA, colour = mauve) +
+  # geom_sf(data = avuhsd, linewidth = .7, colour = teal) +
+  # geom_sf(data = spa1, fill = NA, colour = mauve) +
+  # geom_sf(data = my_avuhsd_schools, colour = teal, size=1.1) +  
+  geom_sf(data = avuhsd, aes(color = "AVUHSD boundary"), linewidth = 1, fill = NA) +
+  geom_sf(data = spa1, aes(color = "SPA 1 boundary"), linewidth = 0.3, fill = NA) +
+  geom_sf(data = my_avuhsd_schools, aes(shape = "AVUHSD school"), size = 1.1) +
   geom_sf(data = palmdale, fill = NA) +
   geom_sf(data = lancaster, fill = NA) +
   geom_sf(data = lake, fill = NA) +
   geom_sf(data = acton, fill = NA) +
-  geom_sf(data = my_avuhsd_schools, colour = teal, size=1.1) +
+
   
-  annotate(geom = "text", x = -118.2, y = 34.71, label = "Lancaster", size = 2, family = font_caption) +
-  annotate(geom = "text", x = -118.11, y = 34.63, label = "Palmdale", size = 2, family = font_caption) +
-  annotate(geom = "text", x = -118.19, y = 34.5, label = "Acton", size = 2, family = font_caption) +
-  annotate(geom = "text", x = -118.38, y = 34.69, label = "Elizabeth\nLake", size = 2, lineheight = 0.8, family = font_caption) +
+  annotate(geom = "text", x = -118.2, y = 34.71, label = "Lancaster", size = 6, family = font_caption) +
+  annotate(geom = "text", x = -118.11, y = 34.63, label = "Palmdale", size = 6, family = font_caption) +
+  annotate(geom = "text", x = -118.19, y = 34.5, label = "Acton", size = 6, family = font_caption) +
+  annotate(geom = "text", x = -118.38, y = 34.695, label = "Elizabeth\nLake", size = 6, lineheight = 0.3, family = font_caption) +
   
-  annotate(geom = "text", x = -118.025, y = 34.75, label = "9 of 11 AVUHSD schools are\nin Lancaster and Palmdale", size = 2, hjust = 0, family = font_caption) +  
+  annotate(geom = "text", x = -118.025, y = 34.75, label = "9 of 11 AVUHSD schools are\nin Lancaster and Palmdale", size = 6, hjust = 0, family = font_caption, lineheight = 0.3) +  
   
   geom_segment(aes(x = -118.030, y = 34.75, xend = -118.2, yend = 34.75), 
                size = 0.5, arrow = arrow(length = unit(0.1, "cm"))) +
   
-    geom_segment(aes(x = -117.93, y = 34.728, xend = -117.93, yend = 34.62), 
+  geom_segment(aes(x = -117.93, y = 34.728, xend = -117.93, yend = 34.62), 
                size = 0.5, arrow = arrow(length = unit(0.1, "cm"))) +
   
-  annotate(geom = "text", x = -118.75, y = 34.69, label = "AVUHSD boundaries\nextend beyond SPA 1\nboundaries south of\nElizabeth Lake", size = 2, hjust = 0, family = font_caption) +
+  annotate(geom = "text", x = -118.75, y = 34.68, label = "AVUHSD boundaries\nextend beyond SPA 1\nboundaries south of\nElizabeth Lake", size = 6, hjust = 0, family = font_caption, lineheight = 0.3) +
   
-  geom_segment(aes(x = -118.7, y = 34.648, xend = -118.7, yend = 34.625), 
+  geom_segment(aes(x = -118.7, y = 34.645, xend = -118.7, yend = 34.625), 
                size = 0.5, arrow = arrow(length = unit(0.1, "cm"))) +
   
-  annotate(geom = "text", x = -118.55, y = 34.495, label = "SPA 1 boundaries\nextend beyond\nAVUHSD south\nof Acton", size = 2, hjust = 0, family = font_caption) +
+  annotate(geom = "text", x = -118.56, y = 34.495, label = "SPA 1 boundaries\nextend beyond\nAVUHSD south\nof Acton", size = 6, hjust = 0, family = font_caption, lineheight = 0.3) +
  
   geom_segment(aes(x = -118.437, y = 34.505, xend = -118.385, yend = 34.505), 
                size = 0.5, arrow = arrow(length = unit(0.1, "cm"))) +
-
+  
+  # --- color legend definition ---
+  scale_shape_manual(name = "",
+    values = c("AVUHSD school" = 16)) +
+    guides(
+    color = guide_legend(order = 2),
+    shape = guide_legend(order = 1)) +  
+  
+  scale_color_manual(
+    name = "",          # Legend title
+    values = c(
+      "AVUHSD boundary" = teal,   
+      "SPA 1 boundary"   = mauve
+    )) +
+  
+  theme_minimal(base_family = font_caption) + 
   theme(
-        plot.title =  element_text(hjust = 0.0, size = 18, colour = black, family = font_title),
-        plot.subtitle = element_text(hjust = 0.0, size = 14, colour = black, family = font_subtitle),
-        plot.caption = element_text(hjust = 0.0, size = 10, colour = black, family = font_caption),
+        legend.position = "bottom",
+        # legend.title = element_text(size = 10, family = font_subtitle),
+        legend.text = element_text(size = 18, family = font_caption),        
+        plot.title =  element_text(hjust = 0.0, size = 30, colour = black, family = font_title),
+        plot.subtitle = element_text(hjust = 0.0, size = 25, colour = black, family = font_subtitle),
+        plot.caption = element_text(hjust = 0.0, size = 18, colour = black, family = font_caption, lineheight = 0.3),
         axis.title.x = element_blank(),
         axis.title.y = element_blank(),
         axis.ticks = element_blank(), # Removes tick marks
         axis.text.x = element_blank(),
         axis.text.y = element_blank(),
-        panel.background = element_rect(fill = "white"), # Set background to white
+        panel.background = element_rect(fill = "white", colour = NA), # Set background to white
         panel.grid.major = element_blank(), # Remove major grid lines
         panel.grid.minor = element_blank()  # Remove minor grid lines
        )
-# map 
 
 # save map
 ggsave("./Exports/reference_map.png", plot = map, width = 8, height = 4, units = "in", dpi = 300)
