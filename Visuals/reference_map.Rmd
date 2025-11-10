@@ -87,7 +87,7 @@ acton <- cities %>% filter(NAME == "Acton")
 # review
 #plot(cities_within$geometry)
 
-# get schools?
+# get schools
 schools <- st_read(con_rda, query = "SELECT * FROM education.cde_public_schools_2024_25")
 
 # carve out AVUHSD schools
@@ -96,9 +96,6 @@ avuhsd_schools <- schools %>% filter(district == "Antelope Valley Union High" & 
 # only get schools in xwalk, contains only 11 unique schools
 school_names <- dbGetQuery(con_ctc, "SELECT cde_school FROM data.avuhsd_lasd_xwalk") %>% unique(.)
 my_avuhsd_schools <- avuhsd_schools %>% right_join(school_names, by= c("school"="cde_school"))
-
-# get neighborhoods?
-# leaving out for now as I don't think we name them in the report
 
 ```
 
@@ -113,9 +110,6 @@ map <- ggplot() +
        subtitle = "Service Planning Area 1, Cities, and Schools",
        caption = "Sources: AVUHSD and city boundaries from the US Census, 2023. SPA boundaries from the LA County Department of Public Health, 2022.\nSchool locations from the CA Department of Education, 2024-25.") +
   
-  # geom_sf(data = avuhsd, linewidth = .7, colour = teal) +
-  # geom_sf(data = spa1, fill = NA, colour = mauve) +
-  # geom_sf(data = my_avuhsd_schools, colour = teal, size=1.1) +  
   geom_sf(data = avuhsd, aes(color = "AVUHSD boundary"), linewidth = 1, fill = NA) +
   geom_sf(data = spa1, aes(color = "SPA 1 boundary"), linewidth = 0.3, fill = NA) +
   geom_sf(data = my_avuhsd_schools, aes(shape = "AVUHSD school"), size = 1.1) +
