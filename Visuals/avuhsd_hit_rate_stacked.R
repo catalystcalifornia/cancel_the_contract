@@ -78,7 +78,7 @@ final_visual<-df%>%
     aes(label = paste0(round(rate, 1), "%")),
     position = position_stack(vjust = 0.5),
     family = font_bar_label, 
-    size=4)+
+    size=10)+
   
 scale_fill_manual(
   name = "Contraband Found",              # legend title
@@ -104,12 +104,12 @@ scale_fill_manual(
       family = font_axis_label,  
       colour = black
     ),
-        axis.text.x = element_text( size = 7,         
+        axis.text.x = element_text( size = 12,         
                                     family = font_axis_label,  
                                     colour = black),
-        plot.caption = element_text(hjust = 0.0, size = 5, colour = black, family = font_caption),
-        plot.title =  element_text(hjust = 0.0, size = 17, colour = black, family = font_title), 
-        plot.subtitle = element_text(hjust = 0.0, size = 13, colour = black, family = font_subtitle),
+        plot.caption = element_text(hjust = 0.0, size = 12, colour = black, family = font_caption),
+        plot.title =  element_text(hjust = 0.0, size = 25, colour = black, family = font_title), 
+        plot.subtitle = element_text(hjust = 0.0, size = 22, colour = black, family = font_subtitle),
         axis.ticks = element_blank(),
         # grid line style
         panel.grid.minor = element_blank(),
