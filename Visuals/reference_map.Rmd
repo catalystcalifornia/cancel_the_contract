@@ -1,0 +1,187 @@
+---
+title: "Antelope Valley Reference Map"
+author: "Chris Ringewald"
+date: "2025-11-05"
+output: html_document
+---
+### Reference Map ### 
+
+
+```{r}
+#### Set up
+
+# call needed libraries
+library(tidyverse)
+library(sf)
+library(tigris)
+library(RPostgres)
+library(ggplot2)
+library(ggtext)
+
+# get credentials and connect to postgres
+source("W:\\RDA Team\\R\\credentials_source.R")
+con_rda <- connect_to_db("rda_shared_data")
+con_ctc <- connect_to_db("cancel_the_contract")
+
+# connect to function script
+source("./visual_fx.R")
+```
+
+
+```{r}
+
+#### Get data for map
+
+# get SPA boundaries
+spas <- st_read(con_rda, query = "SELECT * FROM geographies_la.la_county_service_planning_areas_2022") 
+
+# check CRS
+#st_crs(spas) # 4326
+# change CRS to match others
+spas_4269 <- st_transform(spas, 4269)
+
+# carve out SPA 1
+spa1 <- spas_4269 %>% filter(SPA == "1")
+
+# review
+# ggplot(spa1)+geom_sf()
+
+# get school district boundaries
+high_school_districts <- school_districts(state = "CA", type = "secondary", cb = TRUE, year = 2023)
+
+# carve out Antelope Valley Union Joint High School District
+avuhsd <- high_school_districts %>% filter(NAME == "Antelope Valley Union Joint High School District")
+
+# check CRS
+#st_crs(avuhsd) # 4269
+
+# review
+# plot(avuhsd$geometry)
+
+# get city boundaries? points?
+cities <- places(state = "CA", cb = TRUE, year = 2023)
+
+# check CRS
+#st_crs(cities) #4269
+
+# Elizabeth Lake is in AVUHSD but mostly out of SPA 1
+cities_within_avuhsd <- cities %>% st_filter(avuhsd, .predicate = st_within)
+
+# Acton is in SPA 1 but mostly out of AVUHSD
+cities_within_spa1 <- cities %>% st_filter(spa1, .predicate = st_within)
+
+# Palmdale falls out for some reason
+palmdale <- cities %>% filter(NAME == "Palmdale")
+# plot(palmdale$geometry)
+
+# Separate Lancaster to label
+lancaster <- cities %>% filter(NAME == "Lancaster")
+# plot(lancaster$geometry)
+
+lake <- cities %>% filter(NAME == "Elizabeth Lake")
+# plot(lake$geometry)
+
+acton <- cities %>% filter(NAME == "Acton")
+# plot(acton$geometry)
+
+# review
+#plot(cities_within$geometry)
+
+# get schools
+schools <- st_read(con_rda, query = "SELECT * FROM education.cde_public_schools_2024_25")
+
+# carve out AVUHSD schools
+avuhsd_schools <- schools %>% filter(district == "Antelope Valley Union High" & school != "No Data")
+
+# only get schools in xwalk, contains only 11 unique schools
+school_names <- dbGetQuery(con_ctc, "SELECT cde_school FROM data.avuhsd_lasd_xwalk") %>% unique(.)
+my_avuhsd_schools <- avuhsd_schools %>% right_join(school_names, by= c("school"="cde_school"))
+
+```
+
+```{r}
+
+#### Map
+
+# map
+map <- ggplot() + 
+  
+  labs(title ="Antelope Valley Union High School District",
+       subtitle = "Service Planning Area 1, Cities, and Schools",
+       caption = "Sources: AVUHSD and city boundaries from the US Census, 2023. SPA boundaries from the LA County Department of Public Health, 2022.\nSchool locations from the CA Department of Education, 2024-25.") +
+  geom_sf(data = palmdale, fill = NA) +
+  geom_sf(data = lancaster, fill = NA) +
+  geom_sf(data = lake, fill = NA) +
+  geom_sf(data = acton, fill = NA) +  
+  geom_sf(data = spa1, aes(color = "SPA 1 boundary"), linewidth = 1, fill = NA) +
+  geom_sf(data = avuhsd, aes(color = "AVUHSD boundary"), linewidth = 1, fill = NA) +
+
+  geom_sf(data = my_avuhsd_schools, aes(shape = "AVUHSD school"), size = 1.7) +
+  
+  annotate(geom = "text", x = -118.2, y = 34.71, label = "Lancaster", size = 6, family = font_caption) +
+  annotate(geom = "text", x = -118.11, y = 34.63, label = "Palmdale", size = 6, family = font_caption) +
+  annotate(geom = "text", x = -118.19, y = 34.5, label = "Acton", size = 6, family = font_caption) +
+  annotate(geom = "text", x = -118.38, y = 34.695, label = "Elizabeth\nLake", size = 6, lineheight = 0.3, family = font_caption) +
+  
+  annotate(geom = "text", x = -118.025, y = 34.75, label = "9 of 11 AVUHSD schools are\nin Lancaster and Palmdale", size = 6, hjust = 0, family = font_caption, lineheight = 0.3) +  
+  
+  geom_segment(aes(x = -118.030, y = 34.75, xend = -118.2, yend = 34.75), 
+               size = 0.5, arrow = arrow(length = unit(0.1, "cm"))) +
+  
+  geom_segment(aes(x = -117.93, y = 34.728, xend = -117.93, yend = 34.62), 
+               size = 0.5, arrow = arrow(length = unit(0.1, "cm"))) +
+  
+  annotate(geom = "text", x = -118.75, y = 34.68, label = "AVUHSD boundaries\nextend beyond SPA 1\nboundaries south of\nElizabeth Lake", size = 6, hjust = 0, family = font_caption, lineheight = 0.3) +
+  
+  geom_segment(aes(x = -118.7, y = 34.645, xend = -118.7, yend = 34.625), 
+               size = 0.5, arrow = arrow(length = unit(0.1, "cm"))) +
+  
+  annotate(geom = "text", x = -118.56, y = 34.495, label = "SPA 1 boundaries\nextend beyond\nAVUHSD south\nof Acton", size = 6, hjust = 0, family = font_caption, lineheight = 0.3) +
+ 
+  geom_segment(aes(x = -118.437, y = 34.505, xend = -118.385, yend = 34.505), 
+               size = 0.5, arrow = arrow(length = unit(0.1, "cm"))) +
+  
+  # --- color legend definition ---
+  scale_shape_manual(name = "",
+    values = c("AVUHSD school" = 16)) +
+    guides(
+    color = guide_legend(order = 2),
+    shape = guide_legend(order = 1)) +  
+  
+  scale_color_manual(
+    name = "",          # Legend title
+    values = c(
+      "AVUHSD boundary" = teal,   
+      "SPA 1 boundary"   = mauve
+    )) +
+  
+  theme_minimal(base_family = font_caption) + 
+  theme(
+        legend.position = "bottom",
+        # legend.title = element_text(size = 10, family = font_subtitle),
+        legend.text = element_text(size = 18, family = font_caption),        
+        plot.title =  element_text(hjust = 0.0, size = 30, colour = black, family = font_title),
+        plot.subtitle = element_text(hjust = 0.0, size = 25, colour = black, family = font_subtitle),
+        plot.caption = element_text(hjust = 0.0, size = 18, colour = black, family = font_caption, lineheight = 0.3),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.ticks = element_blank(), # Removes tick marks
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        panel.background = element_rect(fill = "white", colour = NA), # Set background to white
+        panel.grid.major = element_blank(), # Remove major grid lines
+        panel.grid.minor = element_blank()  # Remove minor grid lines
+       )
+
+# save map
+ggsave("./Exports/reference_map.png", plot = map, width = 8, height = 4, units = "in", dpi = 300)
+# ggsave("./Exports/reference_map.svg", plot = map, width = 8, height = 4, units = "in", dpi = 300)
+
+```
+
+```{r}
+# disconnect from Postgres
+dbDisconnect(con_rda)
+```
+
+
