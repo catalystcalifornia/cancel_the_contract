@@ -3,12 +3,12 @@
 
 @font-face {
   font-family: "placard";
-  src: url("file:///C:/Users/JZhang/AppData/Local/Microsoft/Windows/Fonts/PlacardNextRegular.TTF") format("truetype");
+  src: url("file:///W:Project/RJS/CTC/CTC Fonts/PlacardNextRegular.TTF") format("truetype");
 }
 
 @font-face {
   font-family: "placard_bold";
-  src: url("file:///C:/Users/JZhang/AppData/Local/Microsoft/Windows/Fonts/PlacardNextBold.TTF") format("truetype");
+  src: url("file:///W:Project/RJS/CTC/CTC Fonts/PlacardNextBold.TTF") format("truetype");
   font-weight: bold;
 }
 
