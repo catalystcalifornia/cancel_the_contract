@@ -1,0 +1,18 @@
+```{r}
+source("./visual_fx.R")
+
+con_ctc<- connect_to_db("cancel_the_contract")
+
+df<-dbGetQuery(con_ctc, "SELECT race, rate_own FROM analysis_homeowners_renters_race") %>%
+  rename("label"="race") %>%
+  race_recode(.)
+
+
+indicator <- "Homeowners renters"
+title_text <- "Black AV residents have a much lower homeownership rate compared to other groups"
+
+single_bar_tot(df, indicator, title_text)
+
+dbDisconnect(con_ctc)
+```
+
