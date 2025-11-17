@@ -108,7 +108,7 @@ race_recode<-function(df){
                                                                   ifelse(label %in% "SSWANA AOIC", "SSWANA",
                                                                          ifelse(label %in% "SWANA AOIC", "SWANA",
                                                                   ifelse(label %in% "nh_other", "Other",
-                                                                         ifelse(label %in% c("nhpi", "nh_nhpi", "pacisl"), "NHPI",
+                                                                         ifelse(label %in% c("nhpi", "pacisl"), "NHPI",
                                                                                 ifelse(label %in% "NHPI AOIC", "NHPI",
                                                                                        ifelse(label %in% "total", "Total",
                                                                                        label)
