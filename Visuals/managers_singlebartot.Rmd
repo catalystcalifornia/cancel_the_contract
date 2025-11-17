@@ -15,7 +15,7 @@ df_subset <- df %>%
   filter(label %in% races)
 
 indicator <- "Manager employment"
-title_text <- "AV residents who are Black, Latinx, or AIAN are least likely to be employed as managers"
+title_text <- "Employers are least likely to hire Black, Latinx, or AIAN AV residents as managers"
 
 single_bar_tot(df_subset, indicator, title_text)
 
