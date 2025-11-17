@@ -28,7 +28,8 @@ source("./Visuals/visual_fx.R")
 
 # AV DEMOGRAPHICS (RACE) BAR GRAPH ------------------------------------
 
-df<-dbGetQuery(con_ctc, "SELECT * FROM data.av_population_race")
+df<-dbGetQuery(con_ctc, "SELECT * FROM data.av_population_race 
+               WHERE race IN ('nh_black', 'latino', 'nh_white')")
 
 # first apply the race_recode function if you are visualizing something disaggregated by race
 # for it to work you need to rename your column that needs to be recoded to 'label'
