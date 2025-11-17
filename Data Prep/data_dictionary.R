@@ -88,7 +88,7 @@ df[20, ] <- list("Infant Mortality", "", "LA County Department of Public Health"
 df[21, ] <- list("Youth Mental Health", "", "", "", "", "", "", "", "", "")
 df[22, ] <- list("Manager employment", "", "", "", "", "", "", "", "", racenote)
 df[23, ] <- list("Healthy food", "", "", "", "", "", "", "", "", "")
-df[24, ] <- list("Homeowners renters", "", "", "", "", "", "", "", "", racenote)
+df[24, ] <- list("Home ownership", "AV homeownership rates by race", "American Community Survey 5-Year Estimates Table B25003","", "2019-2023", "", "", "", "Race Note: AIAN=American Indian/Alaskan Native Alone, NHPI=Native Hawaiian/Pacific Islander")
 df[25, ] <- list("Rent burden", "", "", "", "", "", "", "", "", racenote)
 
 
