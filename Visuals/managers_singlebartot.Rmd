@@ -1,0 +1,23 @@
+```{r}
+source("./visual_fx.R")
+
+con_ctc<- connect_to_db("cancel_the_contract")
+
+df <- dbGetQuery(
+  con_ctc,
+  "SELECT race AS label, rate 
+   FROM av_managers_by_race")
+
+races <- c("AIAN", "Latinx", "Black", "Other", "Total", "Multiracial", "SSWANA", "White", "NHPI", "Asian")
+
+df_subset <- df %>%
+  race_recode(.) %>%
+  filter(label %in% races)
+
+indicator <- "Manager employment"
+title_text <- "Employers are least likely to hire Black, Latinx, or AIAN AV residents as managers"
+
+single_bar_tot(df_subset, indicator, title_text)
+
+dbDisconnect(con_ctc)
+```

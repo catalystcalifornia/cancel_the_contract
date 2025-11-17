@@ -41,7 +41,7 @@ df<-df%>%
 ## i.e.) for suspensions by race, I need to set indicator== "Suspensions by race"
 
 indicator<-"Student Race"
-title_text<-"Latinx Students Are Two-Thirds of the Antelope Valley Union High School District Student Body"
+title_text<-"Latinx, Black, and white students comprise the majority of students in AVUHSD"
 
 # Apply function
 

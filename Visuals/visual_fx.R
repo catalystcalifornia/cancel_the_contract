@@ -108,7 +108,7 @@ race_recode<-function(df){
                                                                   ifelse(label %in% "SSWANA AOIC", "SSWANA",
                                                                          ifelse(label %in% "SWANA AOIC", "SWANA",
                                                                   ifelse(label %in% "nh_other", "Other",
-                                                                         ifelse(label %in% "nhpi", "NHPI",
+                                                                         ifelse(label %in% c("nhpi", "pacisl"), "NHPI",
                                                                                 ifelse(label %in% "NHPI AOIC", "NHPI",
                                                                                        ifelse(label %in% "total", "Total",
                                                                                        label)
@@ -163,7 +163,7 @@ static_table <- function(df, indicator, group_col, title_text)
    
    
    # use CSS file for fonts
-   opt_css(css = readLines("W:\\Project\\RJS\\CTC\\Github\\JZ\\cancel_the_contract\\Visuals\\styling.css"), add = TRUE) %>%
+   opt_css(css = readLines(".\\Visuals\\styling.css"), add = TRUE) %>%
    opt_table_font(font = font_table_text) %>%
    
     tab_header(title = md(title_text),
@@ -249,7 +249,7 @@ static_table <- function(df, indicator, group_col, title_text)
  
  # Save PNG and HTML
  gtsave(final_visual, filename = file.path(export_dir, paste0(clean_ind, "_table.png")))
- gtsave(final_visual, filename = file.path(export_dir, paste0(clean_ind, "_table.html")))
+ # gtsave(final_visual, filename = file.path(export_dir, paste0(clean_ind, "_table.html")))
  
  return(final_visual)
  
