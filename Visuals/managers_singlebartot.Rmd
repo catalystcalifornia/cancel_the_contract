@@ -8,7 +8,7 @@ df <- dbGetQuery(
   "SELECT race AS label, rate 
    FROM av_managers_by_race")
 
-races <- c("AIAN", "Latinx", "Black", "Other", "Total", "Multiracial", "SSWANA", "White", "NHPI", "Asian")
+races <- c( "Latinx", "Black",  "Total",  "White")
 
 df_subset <- df %>%
   race_recode(.) %>%
