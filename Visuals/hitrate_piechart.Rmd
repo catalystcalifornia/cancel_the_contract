@@ -9,7 +9,7 @@ df_subset <- df %>%
   mutate(label = ifelse(label=="0", "Contraband found", "No contraband found"))
 
 indicator <- "Police Hit Rate AVUHSD"
-title_text <- "The majority of LASD deputies' searches of AVUHSD students result in no contraband found"
+title_text <- "The vast majority of LASD searches of AVUHSD students result in no contraband found"
 ```
 
 ```{r}
@@ -29,17 +29,32 @@ pie_chart <- function(df, indicator, title_text) {
 
   caption_text <- str_wrap(caption_text, width = wrap_width)
 
+  grey_label_name <- df$label[which.min(df$rate)]
+  
   # ---- build plot ----
   final_visual <- ggplot(df, aes(x = "", y = rate, fill = label)) +
     geom_col(color = "white", width = 1, show.legend = TRUE) +
     coord_polar(theta = "y") +
     # center labels inside slices
-    geom_text(aes(label = paste0(round(rate, 1), "%")),
-              position = position_stack(vjust = 0.5),
-              family = font_bar_label,
-              size = 6,
-              colour = black) +
+    # geom_text(aes(label = paste0(round(rate, 1), "%")),
+    #           position = position_stack(vjust = 0.5),
+    #           family = font_bar_label,
+    #           size = 6,
+    #           colour = black) +
+    geom_text(
+      aes(
+        label = paste0(round(rate, 1), "%"),
+        colour = ifelse(label == grey_label_name, black, "white"),
+        family = ifelse(label == grey_label_name, "gillsans", "gillsans_bold")
+      ),
+      position = position_stack(vjust = 0.5),
+      # family = font_bar_label,
+      size = 6,
+      show.legend = FALSE
+    ) +
+
     scale_fill_manual(values = c(textgrey, teal), guide = guide_legend(reverse = FALSE)) +
+    scale_colour_identity() +
     labs(title = title_text, subtitle = subtitle_text, caption = caption_text, fill = "") +
     theme_minimal() +
     theme(
@@ -51,6 +66,7 @@ pie_chart <- function(df, indicator, title_text) {
       plot.title = element_text(hjust = 0, size = 18, family = font_title, colour = black),
       plot.subtitle = element_text(hjust = 0, size = 16, family = font_subtitle, colour = black),
       plot.caption = element_text(hjust = 0, size = 12, family = font_caption, colour = black),
+      plot.background = element_rect(fill = "white", color = NA),
 
       legend.text = element_text(size = 12, family = font_axis_label, colour = black),
       legend.position = "right"
