@@ -170,7 +170,8 @@ map <- ggplot() +
         axis.text.y = element_blank(),
         panel.background = element_rect(fill = "white", colour = NA), # Set background to white
         panel.grid.major = element_blank(), # Remove major grid lines
-        panel.grid.minor = element_blank()  # Remove minor grid lines
+        panel.grid.minor = element_blank(),  # Remove minor grid lines
+        plot.background = element_rect(fill = "white", color = NA)
        )
 
 # save map
