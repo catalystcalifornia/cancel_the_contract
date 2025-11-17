@@ -6,7 +6,7 @@ con_ctc<- connect_to_db("cancel_the_contract")
 df<-dbGetQuery(con_ctc, "SELECT * FROM analysis_graduation WHERE reportingcategory_re IN ('nh_black', 'latinx', 'nh_white', 'student__disability', 'total')")
 
 indicator <- "Student graduation by race"
-title_text <- "AVUHSD fails to support Black youth and students with disabilities in graduating"
+title_text <- "AVUHSD fails to support Black students and students with disabilities in graduating"
 
 single_bar_tot(df, indicator, title_text)
 
