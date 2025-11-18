@@ -97,20 +97,20 @@ race_recode<-function(df){
     filter(!label %in% c("nh_aian", "nh_nhpi", "nh_asian_wo_sa", "nh_sswana"))%>% # we can filter these groups out
     mutate(label=ifelse(label %in% "latino", "Latinx",
                         ifelse(label %in% "latinx", "Latinx",
-                        ifelse(label %in% "nh_white", "White",
-                               ifelse(label %in% "nh_black", "Black",
-                                      ifelse(label %in% "nh_asian", "Asian",
+                        ifelse(label %in% c("nhwhite", "nh_white"), "White",
+                               ifelse(label %in% c("nh_black", "black"), "Black",
+                                      ifelse(label %in% c("nh_asian", "asian"), "Asian",
                                              ifelse(label %in% "aian", "AIAN",
                                                     ifelse(label %in% "AIAN AOIC", "AIAN",
-                                                    ifelse(label %in% "nh_twoormor", "Multiracial",
+                                                    ifelse(label %in% c("nh_twoormor", "twoormor"), "Multiracial",
                                                            ifelse(label %in% "sswana", "SSWANA",
                                                                   ifelse(label %in% "swana", "SWANA",
                                                                   ifelse(label %in% "SSWANA AOIC", "SSWANA",
                                                                          ifelse(label %in% "SWANA AOIC", "SWANA",
-                                                                  ifelse(label %in% "nh_other", "Other",
-                                                                         ifelse(label %in% c("nhpi", "pacisl"), "NHPI",
+                                                                  ifelse(label %in% c("other","nh_other"), "Other",
+                                                                         ifelse(label %in% c("pacisl","nhpi"), "NHPI",
                                                                                 ifelse(label %in% "NHPI AOIC", "NHPI",
-                                                                                       ifelse(label %in% "total", "Total",
+                                                                                       ifelse(label %in% c("total", "all"), "Total",
                                                                                        label)
                                                                   ))))))))))))))))
 }
