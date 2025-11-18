@@ -40,7 +40,7 @@ df[2, ] <- list("Race", "Antelope Valley population by race", "American Communit
 
 df[3, ] <- list("Student Population", "Student population", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "")
 
-df[4, ] <- list("Student Race", "AVUHSD student population by race", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "")
+df[4, ] <- list("Student Race", "AVUHSD student population by race", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "Race Note: AIAN=American Indian/Alaskan Native Alone, NHPI=Native Hawaiian/Pacific Islander.")
 
 ## Education indicators
 
