@@ -8,10 +8,10 @@ df <- dbGetQuery(
   "SELECT race AS label, rate 
    FROM av_managers_by_race")
 
-races <- c("AIAN", "Latinx", "Black", "Other", "Total", "Multiracial", "SSWANA", "White", "NHPI", "Asian")
+races <- c( "Latinx", "Black",  "Total",  "White", "AIAN", "Asian", "NHPI", "SSWANA")
 
 df_subset <- df %>%
-  race_recode(.) %>%
+  race_recode(.)%>%
   filter(label %in% races)
 
 indicator <- "Manager employment"

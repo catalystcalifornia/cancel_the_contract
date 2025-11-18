@@ -8,7 +8,7 @@ df<-dbGetQuery(con_ctc, "SELECT race as label, rate_own FROM analysis_homeowners
 df_subset <- df %>%
   race_recode(.)
 
-indicator <- "Homeowners renters"
+indicator <- "Home ownership"
 title_text <- "Black AV residents have a much lower homeownership rate compared to other groups"
 
 single_bar_tot(df_subset, indicator, title_text)
