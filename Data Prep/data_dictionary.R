@@ -40,24 +40,24 @@ df[2, ] <- list("Race", "Antelope Valley population by race", "American Communit
 
 df[3, ] <- list("Student Population", "Student population", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "")
 
-df[4, ] <- list("Student Race", "AVUHSD student population by race", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", racenote_cde)
+df[4, ] <- list("Student Race", "AVUHSD student population by race", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "Race Note: AIAN=American Indian/Alaskan Native Alone, NHPI=Native Hawaiian/Pacific Islander.")
 
 ## Education indicators
 
 df[5, ] <- list("Special Education Enrollment", "Student population enrolled in special education", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "")
 
-df[6, ] <- list("Student graduation by race", "AVUHSD student graduation rate by race", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "2023-2024", "", "", "Race Note: Latinx is alone or in combination with other racial groups.")
+df[6, ] <- list("Student graduation by race", "AVUHSD student graduation rate by race", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "2023-2024", "", "", "")
 
 
 df[7, ] <- list("Suspensions", "AUHSD student suspension rate", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "")
 
-df[8, ] <- list("Suspensions by race", "AVUHSD student suspension rate by race", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "Race Note: Latinx is alone or in combination with other racial groups.")
+df[8, ] <- list("Suspensions by race", "AVUHSD student suspension rate by race", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "")
 
 df[9, ] <- list("Suspensions by special education enrollment", "Student population suspended by enrollment in special education", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "")
 
 df[10, ] <- list("Expulsions", "Student population expelled", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "")
 
-df[11, ] <- list("Expulsions by race", "Student population expelled by race", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", racenote)
+df[11, ] <- list("Expulsions by race", "Student population expelled by race", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "")
 
 df[12, ] <- list("Expulsions by special education enrollment", "Student population expelled by enrollment in special education", "California Department of Education", "https://dq.cde.ca.gov/dataquest/", "2023-2024", "School District, LA County", "", "", "")
 
@@ -66,18 +66,18 @@ df[12, ] <- list("Expulsions by special education enrollment", "Student populati
 
 
 
-df[13, ] <- list("Police Stops by Race AVUHSD", "Students law enforcement stopped in a AVUHSD school by perceived race", "California Department of Justice", "", "2018-2023", "", "", "", "", racenote)
+df[13, ] <- list("Police Stops by Race AVUHSD", "Students law enforcement stopped in a AVUHSD school by perceived race", "California Department of Justice", "", "2018-2023", "", "", "", "", "")
 
 df[14, ] <- list("Police Stops by Reason of Stop AVUHSD", "Students law enforcement stopped in a AVUHSD school by reason of stop", "California Department of Justice", "", "2018-2023", "", "", "", "")
-df[15, ] <- list("Police Stops by Result of Stop AVUHSD", "Students law enforcement stopped in a AVUHSD school by reason of stop", "California Department of Justice", "", "2018-2023", "", "", "", "Note: A police officer can report more than one result for a stop. Stop results analyzed here are alone or in combination with other stop results.")
+df[15, ] <- list("Police Stops by Result of Stop AVUHSD", "Stops of AVUHSD students by stop result", "California Department of Justice", "", "2018-2023", "", "", "", "Note: 904 students were stopped by police in AVUHSD between 2018-2023. Rates do not add to 100% because a police officer can report more than one result for a stop of a single student. Stop results analyzed here are alone or in combination with other stop results.")
 
-df[16, ] <- list("Police Stops Search AVUHSD", "Students law enforcement stopped and searched in a AVUHSD school by perceived race", "California Department of Justice", "", "2018-2023", "", "", "", "Race Note: AIAN=American Indian/Alaskan Native Alone, NHPI=Native Hawaiian/Pacific Islander.")
+df[16, ] <- list("Police Stops Search AVUHSD", "Searches by race", "California Department of Justice", "", "2018-2023", "", "", "", "")
 df[17, ] <- list("Police Hit Rate AVUHSD", "Students law enforcement stopped and searched with contraband found in a AVUHSD school", "California Department of Justice", "", "2018-2023", "", "", "", "")
 
 
 ### RIPA indicators: AV
 
-df[18, ] <- list("Police Stops by Race", "People law enforcement stopped in the AV by perceived race", "California Department of Justice", "", "2023", "", "", "", "", racenote)
+df[18, ] <- list("Police Stops by Race", "People law enforcement stopped in the AV by perceived race", "California Department of Justice", "", "2023", "", "", "", "", "")
 
 
 
@@ -86,16 +86,16 @@ df[18, ] <- list("Police Stops by Race", "People law enforcement stopped in the 
 df[19, ] <- list("Green space", "", "", "", "", "", "", "", racenote)
 df[20, ] <- list("Infant Mortality", "", "LA County Department of Public Health", "", "", "", "", "", racenote)
 df[21, ] <- list("Youth Mental Health", "", "", "", "", "", "", "", "", "")
-df[22, ] <- list("Manager employment", "", "", "", "", "", "", "", "", racenote)
+df[22, ] <- list("Manager employment", "AV manager rates by race", "American Community Survey 5-Year Estimates Public Use Microdata Sample", "", "2019-2023", "", "", "", "Race Note: AIAN=American Indian/Alaskan Native Alone, NHPI=Native Hawaiian/Pacific Islander, SSWANA=South/Southwest Asian and North African.")
 df[23, ] <- list("Healthy food", "", "", "", "", "", "", "", "", "")
-df[24, ] <- list("Homeowners renters", "", "", "", "", "", "", "", "", racenote)
+df[24, ] <- list("Home ownership", "AV homeownership rates by race", "American Community Survey 5-Year Estimates Table B25003","", "2019-2023", "", "", "", "Race Note: AIAN=American Indian/Alaskan Native Alone, NHPI=Native Hawaiian/Pacific Islander")
 df[25, ] <- list("Rent burden", "", "", "", "", "", "", "", "", racenote)
 
 
 ### ECI Budget indicators
 
-df[26, ] <- list("Teacher Ratio", "Student to teacher ratios in AVUHSD", "School Accountability Report Cards, Antelope Valley Union High School District", "https://www.cta.org/our-advocacy/class-size-matters", "2023-2024", "School District", "", "",  "Note: NA applies to schools that already have a 20-23 student class size.")
-df[27, ] <- list("Counselor Ratio", "Student to counselor ratios in AVUHSD", "School Accountability Report Cards Antelope Valley Union High School District; California Department of Education", "https://www.avdistrict.org/schools/school-accountability-report-cards;  https://dq.cde.ca.gov/dataquest/page2.asp?level=District&subject=Enrollment&submit1=Submit", "2023-2024", "School District", "", "", "Note: NA applies to schools that already have a 1:298 or less student-counselor ratio.")
+df[26, ] <- list("Teacher Ratio", "Student to teacher ratios in AVUHSD", "School Accountability Report Cards, Antelope Valley Union High School District", "https://www.cta.org/our-advocacy/class-size-matters", "2023-2024", "School District", "", "",  "")
+df[27, ] <- list("Counselor Ratio", "Student to counselor ratios in AVUHSD", "School Accountability Report Cards Antelope Valley Union High School District; California Department of Education", "https://www.avdistrict.org/schools/school-accountability-report-cards;  https://dq.cde.ca.gov/dataquest/page2.asp?level=District&subject=Enrollment&submit1=Submit", "2023-2024", "School District", "", "", "")
 
 print (df)
 
