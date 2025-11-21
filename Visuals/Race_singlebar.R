@@ -41,7 +41,7 @@ df<-df%>%
 ## i.e.) for suspensions by race, I need to set indicator== "Suspensions by race"
 
 indicator<-"Race"
-title_text<-"The majority of the Antelope Valley population is Latinx, white, or Black"
+title_text<-"The majority of the population is Latinx, White, or Black"
 
 # Apply function
 

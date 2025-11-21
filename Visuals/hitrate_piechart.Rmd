@@ -6,10 +6,10 @@ con_ctc<- connect_to_db("cancel_the_contract")
 df<-dbGetQuery(con_ctc, "SELECT contraband_evidence_discovered_none as label, rate FROM analysis_stops_hitrate_avuhsd")
 
 df_subset <- df %>%
-  mutate(label = ifelse(label=="0", "Contraband found", "No contraband found"))
+  mutate(label = ifelse(label=="0", "Contraband", "No contraband"))
 
 indicator <- "Police Hit Rate AVUHSD"
-title_text <- "The vast majority of LASD searches of AVUHSD students result in no contraband found"
+title_text <- "The vast majority of LASD searches of AVUHSD students result in no contraband"
 ```
 
 ```{r}

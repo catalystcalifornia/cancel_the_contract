@@ -49,7 +49,7 @@ source("./Visuals/visual_fx.R")
 # COUNSELORS STATIC TABLE--------------------------
 
 indicator="Counselor Ratio"
-title_text="13 Counselors are Needed in AVUHSD to Match Ideal Student-to-Counselor Ratio"
+title_text="13 counselors are needed in AVUHSD to match ideal student-to-counselor ratio"
 
 # Apply function
 
