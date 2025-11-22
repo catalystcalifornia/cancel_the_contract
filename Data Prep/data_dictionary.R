@@ -86,9 +86,9 @@ df[18, ] <- list("Police Stops by Race", "People law enforcement stopped in the 
 df[19, ] <- list("Green space", "", "", "", "", "", "", "", racenote)
 df[20, ] <- list("Infant Mortality", "", "LA County Department of Public Health", "", "", "", "", "", racenote)
 df[21, ] <- list("Youth Mental Health", "", "", "", "", "", "", "", "", "")
-df[22, ] <- list("Manager employment", "AV manager rates by race", "American Community Survey 5-Year Estimates Public Use Microdata Sample", "", "2019-2023", "", "", "", "Race Note: AIAN=American Indian/Alaskan Native Alone, NHPI=Native Hawaiian/Pacific Islander, SSWANA=South/Southwest Asian and North African.")
+df[22, ] <- list("Manager employment", "Antelope Valley manager rates by race", "American Community Survey 5-Year Estimates Public Use Microdata Sample", "", "2019-2023", "", "", "", "Race Note: AIAN=American Indian/Alaskan Native Alone, NHPI=Native Hawaiian/Pacific Islander, SSWANA=South/Southwest Asian and North African.")
 df[23, ] <- list("Healthy food", "", "", "", "", "", "", "", "", "")
-df[24, ] <- list("Home ownership", "AV homeownership rates by race", "American Community Survey 5-Year Estimates Table B25003","", "2019-2023", "", "", "", "Race Note: AIAN=American Indian/Alaskan Native Alone, NHPI=Native Hawaiian/Pacific Islander")
+df[24, ] <- list("Home ownership", "Antelope Valley homeownership rates by race", "American Community Survey 5-Year Estimates Table B25003","", "2019-2023", "", "", "", "Race Note: AIAN=American Indian/Alaskan Native Alone, NHPI=Native Hawaiian/Pacific Islander")
 df[25, ] <- list("Rent burden", "", "", "", "", "", "", "", "", racenote)
 
 

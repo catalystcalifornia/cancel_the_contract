@@ -23,7 +23,7 @@ indicator.x <- "Police Stops by Race AVUHSD"
 
 myindicator.y <- "Student population"
 myindicator.x <- "Stops"
-title_text <- "Sheriff’s deputies stop Black students in AVUHSD at over 3 times the rate of their population"
+title_text <- "Sheriff’s deputies stop Black students in AVUHSD at over 3 times the rate of their share"
 
 # race_note <- "Race Note: Latinx is alone or in combination with other racial groups."
 race_note <- ""
