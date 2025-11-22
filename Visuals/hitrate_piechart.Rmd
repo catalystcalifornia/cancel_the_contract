@@ -15,18 +15,18 @@ title_text <- "The vast majority of LASD searches of AVUHSD students result in n
 ```{r}
 pie_chart <- function(df, indicator, title_text) {
 
-  width <- 3.5   # inches
-  height <- 3.5  # inches  
+  width <- 5   # inches
+  height <- 5  # inches  
 
   # Adjust width based on title length
   title_length <- nchar(title_text)
-  title_text <- str_wrap(title_text, width = width * 17.5)
+  title_text <- str_wrap(title_text, width = width * 10)
 
   subtitle_text <- ""
   
   caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],". ",dict$race_note[dict$indicator_short==indicator]) 
 
-  caption_text <- str_wrap(caption_text, width = width * 20)
+  caption_text <- str_wrap(caption_text, width = width * 15)
 
   grey_label_name <- df$label[which.min(df$rate)]
   
@@ -48,7 +48,7 @@ pie_chart <- function(df, indicator, title_text) {
       ),
       position = position_stack(vjust = 0.5),
       # family = font_bar_label,
-      size = 6,
+      size = 12,
       show.legend = FALSE
     ) +
 
@@ -62,12 +62,12 @@ pie_chart <- function(df, indicator, title_text) {
       panel.grid = element_blank(),
       axis.ticks = element_blank(),
 
-      plot.title = element_text(hjust = 0, size = 18, family = font_title, colour = black),
-      plot.subtitle = element_text(hjust = 0, size = 16, family = font_subtitle, colour = black),
-      plot.caption = element_text(hjust = 0, size = 12, family = font_caption, colour = black),
+      plot.title = element_text(hjust = 0, size = 30, family = font_title, colour = black),
+      plot.subtitle = element_text(hjust = 0, size = 25, family = font_subtitle, colour = black),
+      plot.caption = element_text(hjust = 0, size = 18, family = font_caption, colour = black),
       plot.background = element_rect(fill = "white", color = NA),
 
-      legend.text = element_text(size = 12, family = font_axis_label, colour = black),
+      legend.text = element_text(size = 18, family = font_axis_label, colour = black),
       legend.position = "right"
     )
 
