@@ -6,7 +6,8 @@ con_ctc<- connect_to_db("cancel_the_contract")
 df <- dbGetQuery(
   con_ctc,
   "SELECT race AS label, rate 
-   FROM av_managers_by_race")
+   FROM av_managers_by_race") %>%
+  filter(label!="black")
 
 races <- c( "Latinx", "Black",  "Total",  "White", "AIAN", "Asian", "NHPI", "SSWANA")
 
@@ -15,7 +16,7 @@ df_subset <- df %>%
   filter(label %in% races)
 
 indicator <- "Manager employment"
-title_text <- "Employers are least likely to hire Black, Latinx, or AIAN AV residents as managers"
+title_text <- "Employers are least likely to hire Black, Latinx, or AIAN residents as managers"
 
 single_bar_tot(df_subset, indicator, title_text)
 
