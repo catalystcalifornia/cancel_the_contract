@@ -347,7 +347,7 @@ single_bar<-function(df, indicator, title_text){
           axis.text.y = element_text(size = 18, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
                                      colour = black, family= font_axis_label),
           axis.text.x = element_blank(),
-          plot.caption = element_text(hjust = 0.0, size = 18, colour = black, family = font_caption),
+          plot.caption = element_text(hjust = 0.0, size = 18, colour = black, family = font_caption, lineheight = 0.59),
           plot.title =  element_text(hjust = 0.0, size = 30, colour = black, family = font_title), 
           plot.subtitle = element_text(hjust = 0.0, size = 25, colour = black, family = font_subtitle),
           axis.ticks = element_blank(),
@@ -486,7 +486,7 @@ single_bar_tot<-function(df, indicator, title_text){
           axis.text.y = element_text(size = 18, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
                                      colour = black, family= font_axis_label),
           axis.text.x = element_blank(),
-          plot.caption = element_text(hjust = 0.0, size = 18, colour = black, family = font_caption),
+          plot.caption = element_text(hjust = 0.0, size = 18, colour = black, family = font_caption,  lineheight = 0.59),
           plot.title =  element_text(hjust = 0.0, size = 30, colour = black, family = font_title), 
           plot.subtitle = element_text(hjust = 0.0, size = 25, colour = black, family = font_subtitle),
           axis.ticks = element_blank(),
@@ -625,7 +625,7 @@ single_bar_search<-function(df, indicator, title_text){
           # define style for axis text
           plot.title = element_text(size = 30 * scale_factor),
           plot.subtitle = element_text(size = 25 * scale_factor),
-          plot.caption = element_text(size = 18 * scale_factor),
+          plot.caption = element_text(size = 18 * scale_factor,  lineheight = 0.3),
           axis.text.y = element_text(size = 18 * scale_factor),
           axis.text.x = element_blank(),
           axis.ticks = element_blank(),
