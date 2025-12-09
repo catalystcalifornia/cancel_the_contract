@@ -64,7 +64,7 @@ pie_chart <- function(df, indicator, title_text) {
 
       plot.title = element_text(hjust = 0, size = 30, family = font_title, colour = black),
       plot.subtitle = element_text(hjust = 0, size = 25, family = font_subtitle, colour = black),
-      plot.caption = element_text(hjust = 0, size = 18, family = font_caption, colour = black),
+      plot.caption = element_text(hjust = 0, size = 18, family = font_caption, colour = black, lineheight = 0.59),
       plot.background = element_rect(fill = "white", color = NA),
 
       legend.text = element_text(size = 18, family = font_axis_label, colour = black),
