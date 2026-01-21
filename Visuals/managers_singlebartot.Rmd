@@ -9,6 +9,10 @@ df <- dbGetQuery(
    FROM av_managers_by_race") %>%
   filter(label!="black")
 
+```
+
+```{r}
+## This chunk is for the English version
 races <- c( "Latinx", "Black",  "Total",  "White", "AIAN", "Asian", "NHPI", "SSWANA")
 
 df_subset <- df %>%
@@ -20,5 +24,29 @@ title_text <- "Employers are least likely to hire Black, Latinx, or AIAN residen
 
 single_bar_tot(df_subset, indicator, title_text)
 
+
+```
+
+```{r}
+## This chunk is for the Spanish version
+indicator <- "Manager employment"
+
+data_dict_sp <- dbGetQuery(con_ctc, "SELECT * FROM data_dictionary_sp") %>%
+  filter(indicator_short==indicator)
+
+races_sp <-c("pacisl","nh_white","sswana","nh_asian","nh_black","latino","aian","total")
+
+df_subset <- df %>%
+  filter(label %in% races_sp) %>%
+  race_sp(.)
+
+title_text <- data_dict_sp$title
+subtitle_text <- data_dict_sp$subtitle
+
+single_bar_tot_sp(df=df_subset, indicator=indicator)
+```
+
+```{r}
 dbDisconnect(con_ctc)
 ```
+
