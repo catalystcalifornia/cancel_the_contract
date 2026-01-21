@@ -335,7 +335,7 @@ single_bar<-function(df, indicator, title_text){
   
   # Adjust width based on title length
   title_length <- nchar(title_text)
-  width <- base_width + 0.05 * title_length  # long titles get extra width
+  width <- base_width + 0.1 * title_length  # long titles get extra width
   
   ## Set up subtitle text: This will be from the data dictionary
   
@@ -698,7 +698,7 @@ single_bar_tot_sp<-function(df, indicator){
   
   # Adjust width based on title length
   title_length <- nchar(title_text)
-  width <- base_width + 0.05 * title_length  # long titles get extra width
+  width <- base_width + 0.1 * title_length  # long titles get extra width
   
   ## Set up Title and subtitle text: This will be from the data dictionary
   
@@ -817,6 +817,7 @@ single_bar_search<-function(df, indicator, title_text){
   title_length <- nchar(title_text)
   width <- base_width + 0.05 * title_length  # long titles get extra width
   scale_factor <- width / 7  # compare to base width
+  
   
   ## Set up subtitle text: This will be from the data dictionary
   
