@@ -145,8 +145,8 @@ race_sp<-function(df){
                                                                                                                           ifelse(label %in% c("total", "all"), "Total",
                                                                                                                                  ifelse(label %in% c("Filipinx", "filipinx"), "Filipino",
                                                                                                                                         
-                                                                                                                                 label)))))))))))))))%>%
- mutate(label = iconv(label, "", "UTF-8")) # fix encoding for spanish 
+                                                                                                                                 label)))))))))))))))
+ # mutate(label = iconv(label, "", "UTF-8")) # fix encoding for spanish 
   
 }
 
