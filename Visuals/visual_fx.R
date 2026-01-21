@@ -142,8 +142,9 @@ race_sp<-function(df){
                                                                                                           ifelse(label %in% c("pacisl","nhpi", "NHPI", "NHPI AOIC"), dict_sp$Label9[dict_sp$indicator_short=="Race"],
                                                                                                                           ifelse(label %in% c("total", "all"), "Total",
                                                                                                                                  ifelse(label %in% c("Filipinx", "filipinx"), "Filipino",
+                                                                                                                                        ifelse(label %in% c("student__disability"), dict_sp$Label4[dict_sp$indicator_short=="Student graduation by race"],
                                                                                                                                         
-                                                                                                                                 label))))))))))))
+                                                                                                                                 label)))))))))))))
  # mutate(label = iconv(label, "", "UTF-8")) # fix encoding for spanish 
   
 }
