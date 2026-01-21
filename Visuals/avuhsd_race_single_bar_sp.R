@@ -26,6 +26,7 @@ con_ctc <- connect_to_db("cancel_the_contract")
 # connect to function script
 source("./Visuals/visual_fx.R")
 
+
 # AVUHSD DEMOGRAPHICS (RACE) BAR GRAPH ------------------------------------
 
 df<-dbGetQuery(con_ctc, "SELECT * FROM data.avuhsd_population_race")

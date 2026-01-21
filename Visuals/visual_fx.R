@@ -23,9 +23,10 @@ library(ragg)
 source("W:\\RDA Team\\R\\credentials_source.R")
 con<- connect_to_db("cancel_the_contract")
 
-# grab data dictionary
+# grab data dictionary -EN and SP
 
 dict<-dbGetQuery(con, "SELECT * FROM data_dictionary")
+dict_sp<-dbGetQuery(con, "SELECT * FROM data_dictionary_sp")
 
 #### Set up style guide---------------------
 
@@ -141,7 +142,7 @@ race_sp<-function(df){
                                                                                        ifelse(label %in% "SSWANA AOIC", "Suroeste de Asia y Norte de África",
                                                                                               ifelse(label %in% "SWANA AOIC", "Suroeste de Asia y Norte de África",
                                                                                                      ifelse(label %in% c("other","nh_other", "Other"), "Otra Raza",
-                                                                                                            ifelse(label %in% c("pacisl","nhpi", "NHPI", "NHPI AOIC"), "Nativo hawaiano e isleño del Pacífico",
+                                                                                                          ifelse(label %in% c("pacisl","nhpi", "NHPI", "NHPI AOIC"), "Nativo hawaiano e isleño del Pacífico",
                                                                                                                           ifelse(label %in% c("total", "all"), "Total",
                                                                                                                                  ifelse(label %in% c("Filipinx", "filipinx"), "Filipino",
                                                                                                                                         
