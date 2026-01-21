@@ -134,31 +134,28 @@ race_sp<-function(df){
     mutate(label=ifelse(label %in% c("latinx", "Latinx", "latino"), "Latine",
                                ifelse(label %in% c("nhwhite", "nh_white", "White"), "Blanco",
                                       ifelse(label %in% c("nh_black", "black", "Black"), "Negro",
-                                             ifelse(label %in% c("nh_asian", "asian", "Asian"), "Asiático",
+                                             ifelse(label %in% c("nh_asian", "asian", "Asian"), dict_sp$Label4[dict_sp$indicator_short=="Race"],
                                                     ifelse(label %in% c("aian", "AIAN", "AIAN AOIC"), "Indio americano y nativo de Alaska",
                                                                   ifelse(label %in% c("nh_twoormor", "twoormor", "Multiracial"), "Multirracial",
-                                                                         ifelse(label %in% "sswana", "Suroeste de Asia y Norte de África",
-                                                                                ifelse(label %in% "swana", "Suroeste de Asia y Norte de África",
-                                                                                       ifelse(label %in% "SSWANA AOIC", "Suroeste de Asia y Norte de África",
-                                                                                              ifelse(label %in% "SWANA AOIC", "Suroeste de Asia y Norte de África",
+                                                                         ifelse(label %in% c("sswana", "swana", "SSWANA AOIC", "SWANA AOIC"), dict_sp$Label7[dict_sp$indicator_short=="Race"],
                                                                                                      ifelse(label %in% c("other","nh_other", "Other"), "Otra Raza",
-                                                                                                          ifelse(label %in% c("pacisl","nhpi", "NHPI", "NHPI AOIC"), "Nativo hawaiano e isleño del Pacífico",
+                                                                                                          ifelse(label %in% c("pacisl","nhpi", "NHPI", "NHPI AOIC"), dict_sp$Label9[dict_sp$indicator_short=="Race"],
                                                                                                                           ifelse(label %in% c("total", "all"), "Total",
                                                                                                                                  ifelse(label %in% c("Filipinx", "filipinx"), "Filipino",
                                                                                                                                         
-                                                                                                                                 label)))))))))))))))
+                                                                                                                                 label))))))))))))
  # mutate(label = iconv(label, "", "UTF-8")) # fix encoding for spanish 
   
 }
 
 # EX) RACE TRANSLATION----------------------------------
-
-df<-dbGetQuery(con, "SELECT * FROM analysis_stops_race")%>%
-  rename(label=reportingcategory_re)
-
-
- df_new<- race_sp(df)
-
+# 
+# df<-dbGetQuery(con, "SELECT * FROM analysis_stops_race")%>%
+#   rename(label=reportingcategory_re)
+# 
+# 
+#  df_new<- race_sp(df)
+# 
 
 
 # STATIC TABLE FX-----------------------------
@@ -435,7 +432,7 @@ single_bar<-function(df, indicator, title_text){
  
 # SPANISH SINGLE BAR GRAPH FUNCTION -------------------------------------------
  
- single_bar_sp<-function(df, indicator, title_text, subtitle_text){
+ single_bar_sp<-function(df, indicator){
    
    # rename 'rate' column for function and arrange by rate descending
    df<-df%>%
@@ -458,9 +455,10 @@ single_bar<-function(df, indicator, title_text){
    title_length <- nchar(title_text)
    width <- base_width + 0.05 * title_length  # long titles get extra width
    
-   ## Set up subtitle text: This will be from the data dictionary
+   ## Set up title and subtitle text: This will be from the data dictionary
    
-   # subtitle_text<-paste0(dict$indicator[dict$indicator_short==indicator])
+   title_text<-paste0(dict_sp$title[dict_sp$indicator_short==indicator])
+    subtitle_text<-paste0(dict_sp$subtitle[dict_sp$indicator_short==indicator])
    
    # # set caption text to use values from the data dictionary
    
@@ -664,6 +662,126 @@ single_bar_tot<-function(df, indicator, title_text){
 #  single_bar_tot(df=df,
 #               indicator=indicator,
 #               title_text=title_text)
+
+
+
+# SPANISH SINGLE BAR GRAPH W/ TOTAL LINE FUNCTION -------------------------------------
+
+single_bar_tot_sp<-function(df, indicator){
+  
+  message("single_bar_tot: version updated 2026-1-26")
+  
+  
+  # rename 'rate' column for function and arrange by rate descending
+  df<-df%>%
+    rename_with(~ "rate", .cols = contains("rate"))
+  
+  # Define max value
+  max_y = 1.15 * max(df$rate)
+  
+  # Define annotation
+  annotate_y = 1.12 * (df$rate[df$label=="Total"])
+  
+  # set total value
+  total_value<- subset(df, label=="Total")$rate
+  
+  # Dynamically adjust dimensions of the output
+  
+  # Base width/height
+  base_width <- 7   # inches
+  base_height <- 5  # inches
+  
+  # Adjust height based on number of rows (bars)
+  num_bars <- nrow(df %>% filter(label != "Total"))
+  height <- base_height + 0.2 * num_bars  # each bar adds 0.2 inches
+  
+  # Adjust width based on title length
+  title_length <- nchar(title_text)
+  width <- base_width + 0.05 * title_length  # long titles get extra width
+  
+  ## Set up Title and subtitle text: This will be from the data dictionary
+  
+  title_text<-paste0(dict_sp$title[dict_sp$indicator_short==indicator])
+  subtitle_text<-paste0(dict_sp$subtitle[dict_sp$indicator_short==indicator])
+  
+  # # set caption text to use values from the data dictionary
+  
+  caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],".") 
+  wrap_width <- round(width * 12)
+  caption_text <- str_wrap(caption_text, width = wrap_width)
+  
+  # Graph
+  
+  final_visual <-  ggplot(subset(df, label !='Total' ), aes(x= reorder(label, rate), y=rate)) +   
+    geom_bar(stat="identity", position = position_dodge(0.7), show.legend = FALSE) +
+    
+    # define the bars
+    
+    geom_col(fill = teal) +
+    
+    # vertical line for Total %
+    geom_hline(yintercept = subset(df, label =="Total")$rate, linetype = "dotted", color = black, size = 0.75) +    
+    
+    # label for vertical Total % line
+    
+    annotate(geom = "text",
+             x = 1.0,
+             y = subset(df, label=="Total")$rate,
+             label = sprintf("Tasa General: %.1f%%", subset(df, label == "Total")$rate),
+             hjust =-0.1, vjust = 0,
+             color = black, size = 7, family = font_axis_label) +
+    
+    # bar labels
+    
+    geom_text(aes(label = paste0(round(rate, 1), "%")),
+              family = font_bar_label, 
+              hjust = -0.1,   # small negative number pushes text to the right of the bar
+              vjust = 0.5,
+              colour = "black",
+              size = 7) +
+    
+    labs(title = title_text,
+         subtitle = str_wrap(subtitle_text, width = 80),
+         caption=caption_text) + 
+    
+    scale_x_discrete(labels = function(label) str_wrap(label, width = 20)) +            # wrap long labels
+    xlab("") +
+    ylab("") +
+    expand_limits(y = c(0, max_y))+
+    coord_flip()+
+    theme_minimal()+
+    theme(legend.title = element_blank(), # no legend--modify if necessary
+          
+          # define style for axis text
+          axis.text.y = element_text(size = 18, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
+                                     colour = black, family= font_axis_label),
+          axis.text.x = element_blank(),
+          plot.caption = element_text(hjust = 0.0, size = 18, colour = black, family = font_caption,  lineheight = 0.59),
+          plot.title =  element_text(hjust = 0.0, size = 30, colour = black, family = font_title), 
+          plot.subtitle = element_text(hjust = 0.0, size = 25, colour = black, family = font_subtitle),
+          axis.ticks = element_blank(),
+          # grid line style
+          panel.grid.minor = element_blank(),
+          panel.grid.major = element_line(size = 0.25),
+          panel.grid.major.y = element_blank())
+  
+  
+  # Define base file path
+  export_dir <- here::here("Visuals", "Exports")
+  dir.create(export_dir, recursive = TRUE, showWarnings = FALSE)
+  
+  outfile <- file.path(export_dir, paste0(indicator, "_singlebartot_sp.png"))
+  
+  ragg::agg_png(outfile, width = width, height = height, units = "in", res = 150)
+  print(final_visual)
+  dev.off()
+  
+  
+  # Save with dynamic dimensions
+  # ggsave(outfile, plot = final_visual, width = width, height = height)
+  
+  
+}
 
 
 # SINGLE BAR TOTAL LINE FX ONLY FOR SEARCHES BY RACE IN AVUHSD INDICATOR----------
