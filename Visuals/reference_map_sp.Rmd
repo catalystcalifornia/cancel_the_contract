@@ -108,7 +108,7 @@ map <- ggplot() +
   
   labs(title ="Distrito de escuelas secundarias de Antelope Valley Union (AVUHSD)",
        subtitle = "Área de planificación de servicios 1 (SPA 1), ciudades de Lancaster y Palmdale y escuelas",
-       caption = "Recursos: US Census, 2023; LA County Department of Public Health, 2022; California Department of Education, 2024-25.") +
+       caption = "Recurso: US Census, 2023; LA County Department of Public Health, 2022; California Department of Education, 2024-25.") +
   geom_sf(data = palmdale, fill = textgrey) +
   geom_sf(data = lancaster, fill = textgrey) +
   #geom_sf(data = lake, fill = NA) +
