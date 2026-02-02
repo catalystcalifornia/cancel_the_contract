@@ -13,16 +13,16 @@ indicator <- "Police Hit Rate AVUHSD"
 
 ## Run these chunks for the Spanish chart
 ```{r}
-
 pie_chart_sp <- function(df, indicator, title_text) {
 
   width <- 4   # inches
   height <- 4  # inches  
 
   # Adjust width based on title length
-  title_length <- nchar(title_text)
-  # title_text <- str_wrap(title_text, width = width * 10)
-  
+  # title_length <- nchar(title_text)
+  title_text <- stringr::str_wrap(title_text, width = width * 20)
+  title_text <- stringr::str_replace_all(title_text, "\n", "<br>")
+
   subtitle_text <- ""
   
   caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],". ",dict$race_note[dict$indicator_short==indicator]) 
@@ -63,7 +63,14 @@ pie_chart_sp <- function(df, indicator, title_text) {
       panel.grid = element_blank(),
       axis.ticks = element_blank(),
 
-      plot.title = element_text(hjust = 0, size = 30, family = font_title, colour = black),
+      # plot.title = element_text(hjust = 0, size = 30, family = font_title, colour = black,lineheight = 0.85),
+      plot.title = ggtext::element_markdown(
+        hjust = 0,
+        size = 30,
+        family = font_title,
+        colour = black,
+        lineheight = 1
+      ),
       plot.subtitle = element_text(hjust = 0, size = 25, family = font_subtitle, colour = black),
       plot.caption = element_text(hjust = 0, size = 18, family = font_caption, colour = black, lineheight = 0.59),
       plot.background = element_rect(fill = "white", color = NA),
@@ -89,7 +96,6 @@ pie_chart_sp <- function(df, indicator, title_text) {
 ```
 
 ```{r}
-
 data_dict_sp <- dbGetQuery(con_ctc, "SELECT * FROM data_dictionary_sp") %>%
   filter(indicator_short==indicator)
 
@@ -100,7 +106,6 @@ df_subset <- df %>%
 title_text <- data_dict_sp$title
 
 pie_chart_sp(df_subset, indicator, title_text) 
-
 ```
 
 ## Run these chunks for the English chart
