@@ -463,7 +463,7 @@ single_bar<-function(df, indicator, title_text){
    
    # # set caption text to use values from the data dictionary
    
-   caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],".") 
+   caption_text<-paste0("Recurso: ",dict$source[dict$indicator_short==indicator],", ", dict$year[dict$indicator_short==indicator],".") 
    wrap_width <- round(width * 12)
    caption_text <- str_wrap(caption_text, width = wrap_width)
    
@@ -707,7 +707,7 @@ single_bar_tot_sp<-function(df, indicator){
   
   # # set caption text to use values from the data dictionary
   
-  caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],".") 
+  caption_text<-paste0("Recurso: ",dict$source[dict$indicator_short==indicator],", ", dict$year[dict$indicator_short==indicator],".") 
   wrap_width <- round(width * 12)
   caption_text <- str_wrap(caption_text, width = wrap_width)
   
