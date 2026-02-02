@@ -13,6 +13,23 @@ source("./Visuals/visual_fx.R")
 source("W:\\RDA Team\\R\\credentials_source.R")
 con_ctc <- connect_to_db("cancel_the_contract")
 
+# reformat spanish data dictionary specifically for this visual
+
+result_sp<-dict_sp%>%
+  filter(indicator_short=="Police Stops by Result of Stop AVUHSD")%>%
+  pivot_longer(3:22, names_to="label", values_to = "translation")
+
+# subset translations for the actual stop results
+
+df_sp<-result_sp%>%slice(6:17)
+
+# manually add in the English translations to go along with the Spanish results
+
+df_sp%>%
+  mutate(label=ifelse(label %in% "Label4", "Fighting related stop reasons"))
+
+
+
 
 #load in data
  
