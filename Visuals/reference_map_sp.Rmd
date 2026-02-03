@@ -131,12 +131,12 @@ map <- ggplot() +
   #geom_segment(aes(x = -117.93, y = 34.728, xend = -117.93, yend = 34.62), 
                #size = 0.5, arrow = arrow(length = unit(0.1, "cm"))) +
   
-  annotate(geom = "text", x = -118.75, y = 34.57, label = "Los límites de SPA 1 se extienden\nal sur de los límites de AVUHSD.", size = 6, hjust = 0, family = font_caption, lineheight = 0.3) +
+  annotate(geom = "text", x = -118.75, y = 34.57, label = "Los límites de AVUHSD se extienden\nal sur de los límites de SPA 1.", size = 6, hjust = 0, family = font_caption, lineheight = 0.3) +
   
   geom_segment(aes(x = -118.7, y = 34.586, xend = -118.7, yend = 34.61), 
                size = 0.5, arrow = arrow(length = unit(0.1, "cm"))) +
   
-  annotate(geom = "text", x = -118.64, y = 34.46, label = "Los límites de AVUHSD se extienden\nal sur de los límites de SPA 1.", size = 6, hjust = 0, family = font_caption, lineheight = 0.3) +
+  annotate(geom = "text", x = -118.64, y = 34.46, label = "Los límites de SPA 1 se extienden\nal sur de los límites de AVUHSD.", size = 6, hjust = 0, family = font_caption, lineheight = 0.3) +
  
   geom_segment(aes(x = -118.42, y = 34.45, xend = -118.38, yend = 34.45), 
                size = 0.5, arrow = arrow(length = unit(0.1, "cm"))) +
