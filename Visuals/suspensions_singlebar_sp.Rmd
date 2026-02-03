@@ -3,7 +3,8 @@ source("./visual_fx.R")
 
 con_ctc<- connect_to_db("cancel_the_contract")
 
-df<-dbGetQuery(con_ctc, "SELECT * FROM analysis_suspensions WHERE reportingcategory_re IN ('nh_black', 'latinx', 'nh_white', 'student__disability', 'total')")
+df<-dbGetQuery(con_ctc, "SELECT * FROM analysis_suspensions WHERE reportingcategory_re IN ('nh_black', 'latinx', 'nh_white', 'student__disability', 'total')")%>%
+  race_sp()
 
 indicator <- "Suspensions by race"
 
