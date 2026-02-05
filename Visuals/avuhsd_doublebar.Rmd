@@ -28,7 +28,8 @@ title_text <- "Sheriff’s deputies stop Black students in AVUHSD at over 3 time
 # race_note <- "Race Note: Latinx is alone or in combination with other racial groups."
 race_note <- ""
 ```
-Code chunk for vertical double bar graph
+
+Code chunk for English vertical double bar graph
 ```{r}
 double_bar_vertical <- function(df, indicator.x, indicator.y, myindicator.x, myindicator.y, title_text, race_note) {
   
@@ -142,11 +143,11 @@ double_bar_vertical <- function(df, indicator.x, indicator.y, myindicator.x, myi
   return(final_visual)
 }
 
-double_bar_vertical(df, indicator.x, indicator.y, myindicator.x, myindicator.y, title_text, race_note)
+# double_bar_vertical(df, indicator.x, indicator.y, myindicator.x, myindicator.y, title_text, race_note)
 
 ```
 
-Code chunk for horizontal double bar graph
+Code chunk for English horizontal double bar graph
 ```{r}
 double_bar_horizontal <- function(df, indicator.x, indicator.y, myindicator.x, myindicator.y, title_text, race_note) {
   
@@ -261,5 +262,140 @@ double_bar_horizontal <- function(df, indicator.x, indicator.y, myindicator.x, m
 }
 
 double_bar_horizontal(df, indicator.x, indicator.y, myindicator.x, myindicator.y, title_text, race_note)
+
+```
+
+Code chunk for Spanish horizontal double bar graph
+```{r}
+df<- all_stops %>%
+  inner_join(pop_race, by = c("label"="race")) %>%
+  race_sp(.)
+
+dict_sp <- dict_sp %>% filter(filename == "Stops_vs_Student population_doublebar_horizontal.png")
+
+# These stay the same since they're for the data sources
+indicator.y <- "Student Population"
+indicator.x <- "Police Stops by Race AVUHSD"
+
+# These are pulled from the spanish data dictionary
+myindicator.y <- dict_sp$Label2
+myindicator.x <- dict_sp$Label1
+title_text <- dict_sp$title
+
+race_note <- ""
+
+double_bar_horizontal_sp <- function(df, indicator.x, indicator.y, myindicator.x, myindicator.y, title_text, race_note) {
+  
+  # Rename rate columns explicitly if needed
+  if(!("rate.x" %in% names(df)) | !("rate.y" %in% names(df))) {
+    stop("Your dataframe must include columns named rate.x and rate.y")
+  }
+  
+  # Order labels by rate.x (descending or ascending — your choice)
+  df <- df %>%
+    arrange(rate.x) %>%   # change to arrange(rate.x) if you want ascending
+    mutate(label = factor(label, levels = label))
+
+  
+  # Reshape the data into long format
+  df_long <- df %>%
+    pivot_longer(cols = c(rate.x, rate.y),
+                 names_to = "group",
+                 values_to = "rate") %>%
+    mutate(group = recode(group,
+                          "rate.x" = myindicator.x,
+                          "rate.y" = myindicator.y)) %>%
+  mutate(group = factor(group, levels = c(myindicator.y, myindicator.x)))
+  
+  # Define max y
+  max_y <- 1.15 * max(df_long$rate, na.rm = TRUE)
+  
+  # Subtitle text
+  subtitle_text <- paste0(myindicator.x,
+                          " compared to ",
+                          tolower(myindicator.y))
+  
+  # Caption text
+  caption_text <- paste0(
+    "Recurso: ",
+    dict$source[dict$indicator_short == indicator.x], " ",
+    dict$year[dict$indicator_short == indicator.x],
+    " and ",
+    dict$source[dict$indicator_short == indicator.y], " ",
+    dict$year[dict$indicator_short == indicator.y],
+    " data. ",
+    race_note
+  )
+  caption_text <- str_wrap(caption_text, width = 110)
+  
+  # Graph
+  final_visual <- ggplot(df_long, aes(x = reorder(label, rate), y = rate, fill = group)) +
+    geom_col(position = position_dodge(width = 0.7), width = 0.6) +
+    
+    # Bar labels
+    geom_text(aes(label = paste0(round(rate, 1), "%")),
+               position = position_dodge(width = 0.7),
+               hjust = -0.1,
+               vjust = 0.5,
+               colour = "black",
+               family = font_bar_label) +
+    # geom_text(aes(label = paste0(round(rate, 1), "%")),
+    #       position = position_dodge(width = 0.7),
+    #       vjust = -0.4,              # moves text above the bars
+    #       hjust = 0.5,               # centers text horizontally
+    #       colour = "black",
+    #       family = font_bar_label) +
+
+    scale_fill_manual(values = c(teal, textgrey),
+                      breaks = c(myindicator.x, myindicator.y)) +
+    labs(title = str_wrap(title_text, width = 65),
+         subtitle = str_wrap(subtitle_text, width = 80),
+         caption = caption_text,
+         fill = "") +
+    
+    scale_x_discrete(labels = function(label) str_wrap(label, width = 20)) +
+    xlab("") +
+    ylab("") +
+    expand_limits(y = c(0, 100)) +
+    coord_flip() +
+    theme_minimal() +
+    theme(
+      legend.position = "top",
+      legend.text = element_text(size = 10, family = font_axis_label),
+      axis.text.y = element_text(size = 10,
+                                 margin = margin(0, -10, 0, 0),
+                                 colour = black,
+                                 family = font_axis_label),
+      axis.text.x = element_blank(),
+      # axis.text.x = element_text(size = 10,colour = black, angle = 0, 
+                                 # hjust = 0.5, family = font_axis_label),
+      plot.caption = element_text(hjust = 0.0, size = 8, colour = black, family = font_caption),
+      plot.title = element_text(hjust = 0.0, size = 21, colour = black, family = font_title),
+      plot.subtitle = element_text(hjust = 0.0, size = 14, colour = black, family = font_subtitle),
+      axis.ticks = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.grid.major = element_line(size = 0.25),
+      panel.grid.major.y = element_blank(),
+      plot.background = element_rect(fill = "white", color = NA),
+      panel.background = element_rect(fill = "white", color = NA)
+    )
+  
+  # Define base file path
+  export_dir <- here::here("Visuals", "Exports")
+  dir.create(export_dir, recursive = TRUE, showWarnings = FALSE)
+  
+  outfile <- file.path(export_dir, paste0("Stops_vs_Student population_doublebar_horizontal_sp.png"))
+  
+
+  # Save with dynamic dimensions
+  ggsave(outfile, plot = final_visual)
+
+
+  showtext_opts(dpi = 300)
+  
+  return(final_visual)
+}
+
+double_bar_horizontal_sp(df, indicator.x, indicator.y, myindicator.x, myindicator.y, title_text, race_note)
 
 ```
