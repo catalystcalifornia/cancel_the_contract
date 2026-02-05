@@ -142,7 +142,7 @@ race_sp<-function(df){
                                                                                                           ifelse(label %in% c("pacisl","nhpi", "NHPI", "NHPI AOIC"), dict_sp$Label9[dict_sp$indicator_short=="Race"],
                                                                                                                           ifelse(label %in% c("total", "all"), "Total",
                                                                                                                                  ifelse(label %in% c("Filipinx", "filipinx"), "Filipino",
-                                                                                                                                        ifelse(label %in% c("student__disability"), dict_sp$Label4[dict_sp$indicator_short=="Student graduation by race"],
+                                                                                                                                        ifelse(label %in% c("student__disability", "Students with Disabilities"), dict_sp$Label4[dict_sp$indicator_short=="Student graduation by race"],
                                                                                                                                         
                                                                                                                                  label)))))))))))))
  # mutate(label = iconv(label, "", "UTF-8")) # fix encoding for spanish 
@@ -335,7 +335,7 @@ single_bar<-function(df, indicator, title_text){
   
   # Adjust width based on title length
   title_length <- nchar(title_text)
-  width <- base_width + 0.05 * title_length  # long titles get extra width
+  width <- base_width + 0.1 * title_length  # long titles get extra width
   
   ## Set up subtitle text: This will be from the data dictionary
   
@@ -463,7 +463,7 @@ single_bar<-function(df, indicator, title_text){
    
    # # set caption text to use values from the data dictionary
    
-   caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],".") 
+   caption_text<-paste0("Recurso: ",dict$source[dict$indicator_short==indicator],", ", dict$year[dict$indicator_short==indicator],".") 
    wrap_width <- round(width * 12)
    caption_text <- str_wrap(caption_text, width = wrap_width)
    
@@ -698,7 +698,7 @@ single_bar_tot_sp<-function(df, indicator){
   
   # Adjust width based on title length
   title_length <- nchar(title_text)
-  width <- base_width + 0.05 * title_length  # long titles get extra width
+  width <- base_width + 0.1 * title_length  # long titles get extra width
   
   ## Set up Title and subtitle text: This will be from the data dictionary
   
@@ -707,7 +707,7 @@ single_bar_tot_sp<-function(df, indicator){
   
   # # set caption text to use values from the data dictionary
   
-  caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],".") 
+  caption_text<-paste0("Recurso: ",dict$source[dict$indicator_short==indicator],", ", dict$year[dict$indicator_short==indicator],".") 
   wrap_width <- round(width * 12)
   caption_text <- str_wrap(caption_text, width = wrap_width)
   
@@ -817,6 +817,7 @@ single_bar_search<-function(df, indicator, title_text){
   title_length <- nchar(title_text)
   width <- base_width + 0.05 * title_length  # long titles get extra width
   scale_factor <- width / 7  # compare to base width
+  
   
   ## Set up subtitle text: This will be from the data dictionary
   

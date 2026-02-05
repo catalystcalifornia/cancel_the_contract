@@ -31,6 +31,12 @@ sp<-sp%>%
 # remove empty rows
 sp<-sp%>%slice(1:13)
 
+# some titles are missing a period. add those for consistency:
+
+sp$title <- ifelse(grepl("\\.$", sp$title),
+                   sp$title,
+                   paste0(sp$title, "."))
+
 ##### Push data frame to Postgres #####
 
 # # write table
