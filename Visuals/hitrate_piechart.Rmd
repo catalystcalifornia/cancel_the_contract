@@ -3,6 +3,9 @@ source("./visual_fx.R")
 
 con_ctc<- connect_to_db("cancel_the_contract")
 
+dict_sp <- dict_sp %>% filter(filename == "Police Hit Rate AVUHSD_pie.png")
+title_text <- dict_sp$title
+
 df<-dbGetQuery(con_ctc, "SELECT contraband_evidence_discovered_none as label, rate FROM analysis_stops_hitrate_avuhsd")
 
 df_subset <- df %>%
@@ -25,7 +28,7 @@ pie_chart_sp <- function(df, indicator, title_text) {
 
   subtitle_text <- ""
   
-  caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],". ",dict$race_note[dict$indicator_short==indicator]) 
+  caption_text<-paste0("Recurso: ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],". ",dict$race_note[dict$indicator_short==indicator]) 
 
   # caption_text <- str_wrap(caption_text, width = width * 15)
 
@@ -35,12 +38,6 @@ pie_chart_sp <- function(df, indicator, title_text) {
   final_visual <- ggplot(df, aes(x = "", y = rate, fill = label)) +
     geom_col(color = "white", width = 1, show.legend = TRUE) +
     coord_polar(theta = "y") +
-    # center labels inside slices
-    # geom_text(aes(label = paste0(round(rate, 1), "%")),
-    #           position = position_stack(vjust = 0.5),
-    #           family = font_bar_label,
-    #           size = 6,
-    #           colour = black) +
     geom_text(
       aes(
         label = paste0(round(rate, 1), "%"),
@@ -62,14 +59,12 @@ pie_chart_sp <- function(df, indicator, title_text) {
       axis.title = element_blank(),
       panel.grid = element_blank(),
       axis.ticks = element_blank(),
-
-      # plot.title = element_text(hjust = 0, size = 30, family = font_title, colour = black,lineheight = 0.85),
       plot.title = ggtext::element_markdown(
         hjust = 0,
         size = 30,
         family = font_title,
         colour = black,
-        lineheight = 1
+        lineheight = .4
       ),
       plot.subtitle = element_text(hjust = 0, size = 25, family = font_subtitle, colour = black),
       plot.caption = element_text(hjust = 0, size = 18, family = font_caption, colour = black, lineheight = 0.59),
@@ -93,22 +88,18 @@ pie_chart_sp <- function(df, indicator, title_text) {
   return(final_visual)
 }
 
-```
-
-```{r}
-data_dict_sp <- dbGetQuery(con_ctc, "SELECT * FROM data_dictionary_sp") %>%
-  filter(indicator_short==indicator)
-
-df_subset <- df %>%
-  race_sp(.) %>%
-  mutate(label = ifelse(label=="0", "Contraband", "Sin contraband"))
-
-title_text <- data_dict_sp$title
-
 pie_chart_sp(df_subset, indicator, title_text) 
 ```
 
 ## Run these chunks for the English chart
+```{r}
+df_subset <- df %>%
+  mutate(label = ifelse(label=="0", "Contraband", "No contraband"))
+
+indicator <- "Police Hit Rate AVUHSD"
+title_text <- "The vast majority of LASD searches of AVUHSD students result in no contraband"
+```
+
 ```{r}
 pie_chart <- function(df, indicator, title_text) {
 
@@ -181,13 +172,6 @@ pie_chart <- function(df, indicator, title_text) {
 
   return(final_visual)
 }
-```
 
-```{r}
-df_subset <- df %>%
-  mutate(label = ifelse(label=="0", "Contraband", "No contraband"))
-
-title_text <- "The vast majority of LASD searches of AVUHSD students result in no contraband"
-
-pie_chart(df_subset, indicator, title_text) 
+# pie_chart(df_subset, indicator, title_text) 
 ```
