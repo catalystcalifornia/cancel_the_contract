@@ -349,14 +349,10 @@ single_bar<-function(df, indicator, title_text){
 
     # Graph
   
-  final_visual <-  ggplot(df, aes(x= reorder(label, rate), y=rate)) +   
+  final_visual <-  ggplot(df, aes(x= reorder(label, rate), y=rate, fill=rate)) +   
     geom_bar(stat="identity", position = position_dodge(0.7), show.legend = FALSE) +
     
     # define the bars
-    
-    geom_col(fill = teal) +
-    
-    # bar labels
     
     geom_text(aes(label = paste0(round(rate, 1), "%")),
               family = font_bar_label, 
@@ -364,6 +360,8 @@ single_bar<-function(df, indicator, title_text){
               vjust = 0.5,
               colour = "black",
               size=7) +
+    
+    scale_fill_gradient(low="#77AEA7", high=teal) +
     
     labs(title = title_text,
          subtitle = subtitle_text,
@@ -395,7 +393,7 @@ single_bar<-function(df, indicator, title_text){
   export_dir <- here::here("Visuals", "Exports")
   dir.create(export_dir, recursive = TRUE, showWarnings = FALSE)
   
-  outfile <- file.path(export_dir, paste0(indicator, "_singlebar.png"))
+  outfile <- file.path(export_dir, paste0(indicator, "_singlebar_gradient.png"))
   
   ragg::agg_png(outfile, width = width, height = height, units = "in", res = 150)
   print(final_visual)
