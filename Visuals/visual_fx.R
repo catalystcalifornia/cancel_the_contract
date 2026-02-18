@@ -362,7 +362,25 @@ single_bar<-function(df, indicator, title_text){
               size=7) +
     
     # scale_fill_gradient(low="#77AEA7", high=teal) +
-    scale_fill_gradient(low="#BCD7D3", high=teal) +
+    # scale_fill_gradient(low="#BCD7D3", high=teal) +
+    
+    # try a more explicit color gradient
+    scale_fill_gradientn(
+      colours = c(
+        "#5c9a92",  # light but visible
+        "#558e86",
+        "#4d817b",
+        "#46756f",
+        "#3f6963",
+        "#375c58",
+        "#30504c",
+        "#294440"   # darkest anchor
+      ),
+      ,
+      values = scales::rescale(c(
+        38.9, 60, 65, 68, 70, 72, 75, 80
+      )))+
+    
     
     labs(title = title_text,
          subtitle = subtitle_text,
@@ -430,6 +448,125 @@ single_bar<-function(df, indicator, title_text){
 #                )
 
  
+
+# SINGLE BAR -AVUHSD RACE ONLY------------------------------------
+
+single_bar_avuhsd_race<-function(df, indicator, title_text){
+  
+  # rename 'rate' column for function and arrange by rate descending
+  df<-df%>%
+    rename_with(~ "rate", .cols = contains("rate"))
+  
+  # Define max value
+  max_y = 1.15 * max(df$rate)
+  
+  # Dynamically adjust dimensions of the output
+  
+  # Base width/height
+  base_width <- 7   # inches
+  base_height <- 5  # inches
+  
+  # Adjust height based on number of rows (bars)
+  num_bars <- nrow(df %>% filter(label != "Total"))
+  height <- base_height + 0.2 * num_bars  # each bar adds 0.2 inches
+  
+  # Adjust width based on title length
+  title_length <- nchar(title_text)
+  width <- base_width + 0.1 * title_length  # long titles get extra width
+  
+  ## Set up subtitle text: This will be from the data dictionary
+  
+  subtitle_text<-paste0(dict$indicator[dict$indicator_short==indicator])
+  
+  # # set caption text to use values from the data dictionary
+  
+  caption_text<-paste0("Source: Catalyst California calculations of ",dict$source[dict$indicator_short==indicator]," data, ", dict$year[dict$indicator_short==indicator],". ",dict$race_note[dict$indicator_short==indicator]) 
+  wrap_width <- round(width * 12)
+  caption_text <- str_wrap(caption_text, width = wrap_width)
+  
+  # Graph
+  
+  final_visual <-  ggplot(df, aes(x= reorder(label, rate), y=rate, fill=rate)) +   
+    geom_bar(stat="identity", position = position_dodge(0.7), show.legend = FALSE) +
+    
+    # define the bars
+    
+    geom_text(aes(label = paste0(round(rate, 1), "%")),
+              family = font_bar_label, 
+              hjust = -0.1,   # small negative number pushes text to the right of the bar
+              vjust = 0.5,
+              colour = "black",
+              size=7) +
+    
+    # scale_fill_gradient(low="#77AEA7", high=teal) +
+    # scale_fill_gradient(low="#BCD7D3", high=teal) +
+    
+    # try a more explicit color gradient
+    scale_fill_gradientn(
+      colours = c(
+        "#5c9a92",  # light but visible
+        "#558e86",
+        "#4d817b",
+        "#46756f",
+        "#3f6963",
+        "#375c58",
+        "#30504c",
+        "#294440"   # darkest anchor
+      ),
+      values = scales::rescale(c(
+        0.1,   # minimum
+        0.5,
+        1,
+        3,
+        7,
+        15,
+        30,
+        67.2   # maximum
+      )),
+      limits = c(0.1, 67.2) )+
+    
+    
+    labs(title = title_text,
+         subtitle = subtitle_text,
+         caption=caption_text) + 
+    
+    scale_x_discrete(labels = function(label) str_wrap(label, width = 20)) +            # wrap long labels
+    xlab("") +
+    ylab("") +
+    expand_limits(y = c(0, max_y))+
+    coord_flip()+
+    theme_minimal()+
+    theme(legend.title = element_blank(), # no legend--modify if necessary
+          
+          # define style for axis text
+          axis.text.y = element_text(size = 18, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
+                                     colour = black, family= font_axis_label),
+          axis.text.x = element_blank(),
+          plot.caption = element_text(hjust = 0.0, size = 18, colour = black, family = font_caption, lineheight = 0.59),
+          plot.title =  element_text(hjust = 0.0, size = 30, colour = black, family = font_title), 
+          plot.subtitle = element_text(hjust = 0.0, size = 25, colour = black, family = font_subtitle),
+          axis.ticks = element_blank(),
+          # grid line style
+          panel.grid.minor = element_blank(),
+          panel.grid.major = element_line(size = 0.25),
+          panel.grid.major.y = element_blank())
+  
+  
+  # Define base file path for saving visuals
+  export_dir <- here::here("Visuals", "Exports")
+  dir.create(export_dir, recursive = TRUE, showWarnings = FALSE)
+  
+  outfile <- file.path(export_dir, paste0(indicator, "_singlebar_gradient.png"))
+  
+  ragg::agg_png(outfile, width = width, height = height, units = "in", res = 150)
+  print(final_visual)
+  dev.off()
+  
+  
+  return(final_visual)
+}
+
+
 # SPANISH SINGLE BAR GRAPH FUNCTION -------------------------------------------
  
  single_bar_sp<-function(df, indicator){
@@ -577,7 +714,26 @@ single_bar_tot<-function(df, indicator, title_text){
     #geom_col(fill = teal) +
     
     # scale_fill_gradient(low="#77AEA7", high=teal) +
-    scale_fill_gradient(low="#BCD7D3", high=teal) +
+    # scale_fill_gradient(low="#BCD7D3", high=teal) +
+    
+    # try a more explicit color gradient
+    scale_fill_gradientn(
+      colours = c(
+        "#5c9a92",  # light but visible
+        "#558e86",
+        "#4d817b",
+        "#46756f",
+        "#3f6963",
+        "#375c58",
+        "#30504c",
+        "#294440"   # darkest anchor
+      ),
+      ,
+      values = scales::rescale(c(
+        38.9, 60, 65, 68, 70, 72, 75, 80
+      )))+
+
+   
     
   # vertical line for Total %
     geom_hline(yintercept = subset(df, label =="Total")$rate, linetype = "dotted", color = black, size = 0.75) +    

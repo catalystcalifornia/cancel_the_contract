@@ -93,7 +93,7 @@ double_bar_vertical <- function(df, indicator.x, indicator.y, myindicator.x, myi
           colour = "black",
           family = font_bar_label) +
 
-    scale_fill_manual(values = c(teal, textgrey),
+    scale_fill_manual(values = c(teal, yellow),
                       breaks = c(myindicator.x, myindicator.y)) +
     labs(title = str_wrap(title_text, width = 65),
          subtitle = str_wrap(subtitle_text, width = 80),
@@ -211,7 +211,7 @@ double_bar_horizontal <- function(df, indicator.x, indicator.y, myindicator.x, m
     #       colour = "black",
     #       family = font_bar_label) +
 
-    scale_fill_manual(values = c(teal, textgrey),
+    scale_fill_manual(values = c(teal, yellow),
                       breaks = c(myindicator.x, myindicator.y)) +
     labs(title = str_wrap(title_text, width = 65),
          subtitle = str_wrap(subtitle_text, width = 80),
@@ -346,7 +346,7 @@ double_bar_horizontal_sp <- function(df, indicator.x, indicator.y, myindicator.x
     #       colour = "black",
     #       family = font_bar_label) +
 
-    scale_fill_manual(values = c(teal, textgrey),
+    scale_fill_manual(values = c(teal, yellow),
                       breaks = c(myindicator.x, myindicator.y)) +
     labs(title = str_wrap(title_text, width = 65),
          subtitle = str_wrap(subtitle_text, width = 80),
