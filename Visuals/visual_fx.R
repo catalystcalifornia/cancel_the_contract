@@ -568,12 +568,14 @@ single_bar_tot<-function(df, indicator, title_text){
 
  # Graph
  
-  final_visual <-  ggplot(subset(df, label !='Total' ), aes(x= reorder(label, rate), y=rate)) +   
+  final_visual <-  ggplot(subset(df, label !='Total' ), aes(x= reorder(label, rate), y=rate, fill=rate)) +   
     geom_bar(stat="identity", position = position_dodge(0.7), show.legend = FALSE) +
     
     # define the bars
     
-    geom_col(fill = teal) +
+    #geom_col(fill = teal) +
+    
+    scale_fill_gradient(low="#77AEA7", high=teal) +
     
   # vertical line for Total %
     geom_hline(yintercept = subset(df, label =="Total")$rate, linetype = "dotted", color = black, size = 0.75) +    
@@ -626,7 +628,7 @@ single_bar_tot<-function(df, indicator, title_text){
   export_dir <- here::here("Visuals", "Exports")
   dir.create(export_dir, recursive = TRUE, showWarnings = FALSE)
   
-  outfile <- file.path(export_dir, paste0(indicator, "_singlebartot.png"))
+  outfile <- file.path(export_dir, paste0(indicator, "_singlebartot_gradient.png"))
   
   ragg::agg_png(outfile, width = width, height = height, units = "in", res = 150)
   print(final_visual)
