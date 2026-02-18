@@ -361,7 +361,8 @@ single_bar<-function(df, indicator, title_text){
               colour = "black",
               size=7) +
     
-    scale_fill_gradient(low="#77AEA7", high=teal) +
+    # scale_fill_gradient(low="#77AEA7", high=teal) +
+    scale_fill_gradient(low="#BCD7D3", high=teal) +
     
     labs(title = title_text,
          subtitle = subtitle_text,
@@ -575,7 +576,8 @@ single_bar_tot<-function(df, indicator, title_text){
     
     #geom_col(fill = teal) +
     
-    scale_fill_gradient(low="#77AEA7", high=teal) +
+    # scale_fill_gradient(low="#77AEA7", high=teal) +
+    scale_fill_gradient(low="#BCD7D3", high=teal) +
     
   # vertical line for Total %
     geom_hline(yintercept = subset(df, label =="Total")$rate, linetype = "dotted", color = black, size = 0.75) +    
