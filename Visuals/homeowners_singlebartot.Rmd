@@ -11,7 +11,7 @@ df_subset <- df %>%
 indicator <- "Home ownership"
 title_text <- "Black AV residents have a much lower homeownership rate compared to other groups"
 
-single_bar_tot(df_subset, indicator, title_text)
+single_bar_tot_v2(df_subset, indicator, title_text)
 
 dbDisconnect(con_ctc)
 ```
