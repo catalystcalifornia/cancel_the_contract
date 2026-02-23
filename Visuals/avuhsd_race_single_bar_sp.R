@@ -47,7 +47,7 @@ subtitle_text<-"Población estudiantil de AVUHSD por raza"
 
 # Apply function
 
-single_bar_sp(df=df,
+single_bar_sp_race(df=df,
            indicator=indicator
 )
 

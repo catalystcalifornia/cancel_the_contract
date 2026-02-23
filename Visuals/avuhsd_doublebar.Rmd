@@ -390,10 +390,10 @@ double_bar_horizontal_sp <- function(df, indicator.x, indicator.y, myindicator.x
     )
   
   # Define base file path
-  export_dir <- here::here("Visuals", "Exports")
+  export_dir <- here::here("Visuals", "Exports SP")
   dir.create(export_dir, recursive = TRUE, showWarnings = FALSE)
   
-  outfile <- file.path(export_dir, paste0("Stops_vs_Student population_doublebar_horizontal_sp.png"))
+  outfile <- file.path(export_dir, paste0("Stops_vs_Student population_doublebar_horizontal_sp_gradient.png"))
   
 
   # Save with dynamic dimensions
