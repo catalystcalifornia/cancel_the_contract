@@ -22,7 +22,7 @@ df_subset <- df %>%
 indicator <- "Manager employment"
 title_text <- "Employers are least likely to hire Black, Latinx, or AIAN residents as managers"
 
-single_bar_tot(df_subset, indicator, title_text)
+single_bar_tot_v2(df_subset, indicator, title_text)
 
 
 ```

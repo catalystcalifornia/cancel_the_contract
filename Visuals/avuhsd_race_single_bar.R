@@ -45,7 +45,7 @@ title_text<-"Latinx, Black, and white students comprise the majority of students
 
 # Apply function
 
-single_bar(df=df,
+single_bar_race(df=df,
            indicator=indicator,
            title_text=title_text
 )

@@ -45,7 +45,7 @@ title_text<-"The majority of the population is Latinx, White, or Black"
 
 # Apply function
 
-single_bar(df=df,
+single_bar_race(df=df,
            indicator=indicator,
            title_text=title_text
                )

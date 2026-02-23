@@ -93,7 +93,7 @@ double_bar_vertical <- function(df, indicator.x, indicator.y, myindicator.x, myi
           colour = "black",
           family = font_bar_label) +
 
-    scale_fill_manual(values = c(teal, textgrey),
+    scale_fill_manual(values = c(teal, yellow),
                       breaks = c(myindicator.x, myindicator.y)) +
     labs(title = str_wrap(title_text, width = 65),
          subtitle = str_wrap(subtitle_text, width = 80),
@@ -211,7 +211,7 @@ double_bar_horizontal <- function(df, indicator.x, indicator.y, myindicator.x, m
     #       colour = "black",
     #       family = font_bar_label) +
 
-    scale_fill_manual(values = c(teal, textgrey),
+    scale_fill_manual(values = c(teal, yellow),
                       breaks = c(myindicator.x, myindicator.y)) +
     labs(title = str_wrap(title_text, width = 65),
          subtitle = str_wrap(subtitle_text, width = 80),
@@ -249,11 +249,20 @@ double_bar_horizontal <- function(df, indicator.x, indicator.y, myindicator.x, m
   export_dir <- here::here("Visuals", "Exports")
   dir.create(export_dir, recursive = TRUE, showWarnings = FALSE)
   
-  outfile <- file.path(export_dir, paste0(myindicator.x, "_vs_", myindicator.y, "_doublebar_horizontal.png"))
+  outfile <- file.path(export_dir, paste0(myindicator.x, "_vs_", myindicator.y, "_doublebar_horizontal_gradient.png"))
   
 
   # Save with dynamic dimensions
-  ggsave(outfile, plot = final_visual)
+  # ggsave(outfile, plot = final_visual)
+  
+  ggsave(
+  outfile,
+  plot = final_visual,
+  width = 9,
+  height = 7,
+  units = "in",
+  dpi = 300
+)
 
 
   showtext_opts(dpi = 300)
@@ -346,7 +355,7 @@ double_bar_horizontal_sp <- function(df, indicator.x, indicator.y, myindicator.x
     #       colour = "black",
     #       family = font_bar_label) +
 
-    scale_fill_manual(values = c(teal, textgrey),
+    scale_fill_manual(values = c(teal, yellow),
                       breaks = c(myindicator.x, myindicator.y)) +
     labs(title = str_wrap(title_text, width = 65),
          subtitle = str_wrap(subtitle_text, width = 80),
