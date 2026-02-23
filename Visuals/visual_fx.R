@@ -1296,10 +1296,8 @@ single_bar_tot_sp_v2<-function(df, indicator){
   final_visual <-  ggplot(subset(df, label !='Total' ), aes(x= reorder(label, rate),
                                                             y=rate, fill=rate)) +   
     geom_bar(stat="identity", position = position_dodge(0.7), show.legend = FALSE) +
-    
-    # gradient coloring
-    # more contrast version
-    
+
+    # define the bars
     scale_fill_gradientn(
       colours = c(
         colours = c(
