@@ -330,7 +330,7 @@ subtitle_text <- paste0(toupper(substr(subtitle_text, 1, 1)), substr(subtitle_te
     "Recurso: ",
     dict$source[dict$indicator_short == indicator.x], " ",
     dict$year[dict$indicator_short == indicator.x],
-    " and ",
+    ", ",
     dict$source[dict$indicator_short == indicator.y], " ",
     dict$year[dict$indicator_short == indicator.y],
     " data. ",
