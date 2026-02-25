@@ -181,7 +181,7 @@ final_visual<-gt(df) %>%
 
 # Define base file path for saving visuals
 # Folder to save tables
-export_dir <- here("Visuals", "Exports")
+export_dir <- here("Visuals", "Exports SP")
 dir.create(export_dir, recursive = TRUE, showWarnings = FALSE)
 
 # Clean indicator name for files
