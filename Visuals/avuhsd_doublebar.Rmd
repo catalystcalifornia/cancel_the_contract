@@ -320,16 +320,17 @@ double_bar_horizontal_sp <- function(df, indicator.x, indicator.y, myindicator.x
   max_y <- 1.15 * max(df_long$rate, na.rm = TRUE)
   
   # Subtitle text
-  subtitle_text <- paste0(myindicator.x,
-                          " compared to ",
-                          tolower(myindicator.y))
+subtitle_text <- dict_sp$subtitle[dict_sp$filename=="Stops_vs_Student population_doublebar_horizontal.png"]
+  
+subtitle_text <- paste0(toupper(substr(subtitle_text, 1, 1)), substr(subtitle_text, 2, nchar(subtitle_text)))
+
   
   # Caption text
   caption_text <- paste0(
     "Recurso: ",
     dict$source[dict$indicator_short == indicator.x], " ",
     dict$year[dict$indicator_short == indicator.x],
-    " and ",
+    ", ",
     dict$source[dict$indicator_short == indicator.y], " ",
     dict$year[dict$indicator_short == indicator.y],
     " data. ",
@@ -390,10 +391,10 @@ double_bar_horizontal_sp <- function(df, indicator.x, indicator.y, myindicator.x
     )
   
   # Define base file path
-  export_dir <- here::here("Visuals", "Exports")
+  export_dir <- here::here("Visuals", "Exports SP")
   dir.create(export_dir, recursive = TRUE, showWarnings = FALSE)
   
-  outfile <- file.path(export_dir, paste0("Stops_vs_Student population_doublebar_horizontal_sp.png"))
+  outfile <- file.path(export_dir, paste0("Stops_vs_Student population_doublebar_horizontal_sp_gradient.png"))
   
 
   # Save with dynamic dimensions
