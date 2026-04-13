@@ -1137,8 +1137,8 @@ single_bar_tot_sp<-function(df, indicator){
   # Dynamically adjust dimensions of the output
   
   # Base width/height
-  base_width <- 7   # inches
-  base_height <- 5  # inches
+  base_width <- 2700   # px
+  base_height <- 900  # px
   
   # Adjust height based on number of rows (bars)
   num_bars <- nrow(df %>% filter(label != "Total"))
@@ -1216,10 +1216,11 @@ single_bar_tot_sp<-function(df, indicator){
     theme(legend.title = element_blank(), # no legend--modify if necessary
           
           # define style for axis text
-          axis.text.y = element_text(size = 18, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
-                                     colour = black, family= font_axis_label),
+          axis.text.y = element_text(size = 22, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
+                                     colour = black, family= font_axis_label,
+                                     lineheight = 0.6),
           axis.text.x = element_blank(),
-          plot.caption = element_text(hjust = 0.0, size = 18, colour = black, family = font_caption,  lineheight = 0.59),
+          plot.caption = element_text(hjust = 0.0, size = 22, colour = black, family = font_caption,  lineheight = 0.59),
           plot.title =  element_text(hjust = 0.0, size = 30, colour = black, family = font_title), 
           plot.subtitle = element_text(hjust = 0.0, size = 25, colour = black, family = font_subtitle),
           axis.ticks = element_blank(),
@@ -1235,7 +1236,7 @@ single_bar_tot_sp<-function(df, indicator){
   
   outfile <- file.path(export_dir, paste0(indicator, "_singlebartot_sp_gradient.png"))
   
-  ragg::agg_png(outfile, width = width, height = height, units = "in", res = 150)
+  ragg::agg_png(outfile, width = width, height = height, units = "px", res = 150)
   print(final_visual)
   dev.off()
   
