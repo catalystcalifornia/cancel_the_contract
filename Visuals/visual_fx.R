@@ -593,8 +593,8 @@ single_bar_race<-function(df, indicator, title_text){
    # Dynamically adjust dimensions of the output
    
    # Base width/height
-   base_width <- 7   # inches
-   base_height <- 5  # inches
+   base_width <- 1815   # px
+   base_height <- 1020  # px
    
    # Adjust height based on number of rows (bars)
    num_bars <- nrow(df %>% filter(label != "Total"))
@@ -677,7 +677,7 @@ single_bar_race<-function(df, indicator, title_text){
    
    outfile <- file.path(export_dir, paste0(indicator, "_singlebar_sp.png"))
    
-   ragg::agg_png(outfile, width = width, height = height, units = "in", res = 150)
+   ragg::agg_png(outfile, width = width, height = height, units = "px", res = 150)
    print(final_visual)
    dev.off()
    
