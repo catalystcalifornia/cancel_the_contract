@@ -135,7 +135,7 @@ race_sp<-function(df){
                                ifelse(label %in% c("nhwhite", "nh_white", "White"), "Blanco",
                                       ifelse(label %in% c("nh_black", "black", "Black"), "Negro",
                                              ifelse(label %in% c("nh_asian", "asian", "Asian"), dict_sp$Label4[dict_sp$indicator_short=="Race"],
-                                                    ifelse(label %in% c("aian", "AIAN", "AIAN AOIC"), "Indio americano y nativo de Alaska",
+                                                    ifelse(label %in% c("aian", "AIAN", "AIAN AOIC"), "indígena de las Américas o nativo de Alaska",
                                                                   ifelse(label %in% c("nh_twoormor", "twoormor", "Multiracial"), "Multirracial",
                                                                          ifelse(label %in% c("sswana", "swana", "SSWANA AOIC", "SWANA AOIC"), dict_sp$Label7[dict_sp$indicator_short=="Race"],
                                                                                                      ifelse(label %in% c("other","nh_other", "Other"), "Otra Raza",
