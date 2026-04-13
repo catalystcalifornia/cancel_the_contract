@@ -26,8 +26,11 @@ sp<-sp%>%
          "indicator_short"="indicator_short..no.need.to.translate.",
          "subtitle"="indicator",
          "total_label"="Total.Label"
-         )
-
+         )%>%
+  mutate(across(where(is.character),
+                ~ gsub("Indio americano y nativo de Alaska",
+                       "indígena de las Américas o nativo de Alaska",
+                       .))) # replace the AIAN Spanish translation to match how it is worded in Census per AB's recommendation
 # remove empty rows
 sp<-sp%>%slice(1:13)
 
