@@ -135,7 +135,7 @@ race_sp<-function(df){
                                ifelse(label %in% c("nhwhite", "nh_white", "White"), "Blanco",
                                       ifelse(label %in% c("nh_black", "black", "Black"), "Negro",
                                              ifelse(label %in% c("nh_asian", "asian", "Asian"), dict_sp$Label4[dict_sp$indicator_short=="Race"],
-                                                    ifelse(label %in% c("aian", "AIAN", "AIAN AOIC"), "indígena de las Américas o nativo de Alaska",
+                                                    ifelse(label %in% c("aian", "AIAN", "AIAN AOIC"), dict_sp$Label5[dict_sp$indicator_short=="Race"],
                                                                   ifelse(label %in% c("nh_twoormor", "twoormor", "Multiracial"), "Multirracial",
                                                                          ifelse(label %in% c("sswana", "swana", "SSWANA AOIC", "SWANA AOIC"), dict_sp$Label7[dict_sp$indicator_short=="Race"],
                                                                                                      ifelse(label %in% c("other","nh_other", "Other"), "Otra Raza",
@@ -643,7 +643,7 @@ single_bar_race<-function(df, indicator, title_text){
                hjust = -0.1,   # small negative number pushes text to the right of the bar
                vjust = 0.5,
                colour = "black",
-               size=7) +
+               size=9) +
      
      labs(title = title_text,
           subtitle = subtitle_text,
@@ -658,10 +658,10 @@ single_bar_race<-function(df, indicator, title_text){
      theme(legend.title = element_blank(), # no legend--modify if necessary
            
            # define style for axis text
-           axis.text.y = element_text(size = 18, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
+           axis.text.y = element_text(size = 20, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
                                       colour = black, family= font_axis_label),
            axis.text.x = element_blank(),
-           plot.caption = element_text(hjust = 0.0, size = 18, colour = black, family = font_caption, lineheight = 0.59),
+           plot.caption = element_text(hjust = 0.0, size = 20, colour = black, family = font_caption, lineheight = 0.59),
            plot.title =  element_text(hjust = 0.0, size = 30, colour = black, family = font_title), 
            plot.subtitle = element_text(hjust = 0.0, size = 25, colour = black, family = font_subtitle),
            axis.ticks = element_blank(),
