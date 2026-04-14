@@ -43,7 +43,7 @@ df_subset <- df %>%
 title_text <- data_dict_sp$title
 subtitle_text <- data_dict_sp$subtitle
 
-single_bar_tot_sp_v2(df=df_subset, indicator=indicator)
+single_bar_tot_sp_v3(df=df_subset, indicator=indicator)
 ```
 
 ```{r}

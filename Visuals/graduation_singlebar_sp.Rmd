@@ -10,7 +10,7 @@ df<-dbGetQuery(con_ctc, "SELECT * FROM analysis_graduation WHERE reportingcatego
 
 indicator <- "Student graduation by race"
 
-single_bar_tot_sp(df, indicator)
+single_bar_tot_sp_v3(df, indicator)
 
 dbDisconnect(con_ctc)
 ```
