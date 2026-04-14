@@ -690,6 +690,9 @@ single_bar_race<-function(df, indicator, title_text){
 
 single_bar_sp_race<-function(df, indicator){
   
+  message("single_bar_sp_race: version updated 2026-04-14")
+  
+  
   # rename 'rate' column for function and arrange by rate descending
   df<-df%>%
     rename_with(~ "rate", .cols = contains("rate"))
@@ -1206,7 +1209,7 @@ single_bar_tot_sp<-function(df, indicator){
               colour = "black",
               size = 20) +
     
-    labs(title = title_text, 
+    labs(title = title_text,
          subtitle = str_wrap(subtitle_text, width = 80),
          caption=caption_text) + 
     
@@ -1224,8 +1227,8 @@ single_bar_tot_sp<-function(df, indicator){
                                      lineheight = 0.6),
           axis.text.x = element_blank(),
           plot.caption = element_text(hjust = 0.0, size = base_text_size, colour = black, family = font_caption,  lineheight = 0.59),
-          plot.title =  element_text(hjust = 0.0, size = 65, colour = black, family = font_title), 
-          plot.subtitle = element_text(hjust = 0.0, size = 60, colour = black, family = font_subtitle),
+          plot.title =  element_text(hjust = 0.0, size = 60, colour = black, family = font_title), 
+          plot.subtitle = element_text(hjust = 0.0, size = 55, colour = black, family = font_subtitle),
           axis.ticks = element_blank(),
           # grid line style
           panel.grid.minor = element_blank(),
@@ -1256,7 +1259,7 @@ single_bar_tot_sp<-function(df, indicator){
 
 single_bar_tot_sp_v2<-function(df, indicator){
   
-  message("single_bar_tot: version updated 2026-1-26")
+  message("single_bar_tot: version updated 2026-4-14")
   
   
   # rename 'rate' column for function and arrange by rate descending
@@ -1276,7 +1279,7 @@ single_bar_tot_sp_v2<-function(df, indicator){
   
   # Base width/height
   base_width <- 7   # inches
-  base_height <- 5  # inches
+  base_height <- 6 # inches
   
   # Adjust height based on number of rows (bars)
   num_bars <- nrow(df %>% filter(label != "Total"))
@@ -1330,7 +1333,7 @@ single_bar_tot_sp_v2<-function(df, indicator){
              y = subset(df, label=="Total")$rate,
              label = sprintf("Tasa General: %.1f%%", subset(df, label == "Total")$rate),
              hjust =-0.1, vjust = 0,
-             color = black, size = 7, family = font_axis_label) +
+             color = black, size = 8, family = font_axis_label) +
     
     # bar labels
     
@@ -1339,7 +1342,7 @@ single_bar_tot_sp_v2<-function(df, indicator){
               hjust = -0.1,   # small negative number pushes text to the right of the bar
               vjust = 0.5,
               colour = "black",
-              size = 7) +
+              size = 8) +
     
     labs(title = title_text,
          subtitle = str_wrap(subtitle_text, width = 80),
@@ -1354,10 +1357,11 @@ single_bar_tot_sp_v2<-function(df, indicator){
     theme(legend.title = element_blank(), # no legend--modify if necessary
           
           # define style for axis text
-          axis.text.y = element_text(size = 18, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
-                                     colour = black, family= font_axis_label),
+          axis.text.y = element_text(size = 22, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
+                                     colour = black, family= font_axis_label,
+                                     lineheight = 0.65),
           axis.text.x = element_blank(),
-          plot.caption = element_text(hjust = 0.0, size = 18, colour = black, family = font_caption,  lineheight = 0.59),
+          plot.caption = element_text(hjust = 0.0, size = 22, colour = black, family = font_caption,  lineheight = 0.59),
           plot.title =  element_text(hjust = 0.0, size = 30, colour = black, family = font_title), 
           plot.subtitle = element_text(hjust = 0.0, size = 25, colour = black, family = font_subtitle),
           axis.ticks = element_blank(),
