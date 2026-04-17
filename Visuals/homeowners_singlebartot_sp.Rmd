@@ -10,7 +10,7 @@ df_subset <- df %>%
 
 indicator <- "Home ownership"
 
-single_bar_tot_sp_v2(df_subset, indicator)
+single_bar_tot_sp_v3(df_subset, indicator)
 
 dbDisconnect(con_ctc)
 ```

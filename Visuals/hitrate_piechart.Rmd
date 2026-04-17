@@ -18,8 +18,8 @@ indicator <- "Police Hit Rate AVUHSD"
 ```{r}
 pie_chart_sp <- function(df, indicator, title_text) {
 
-  width <- 4   # inches
-  height <- 4  # inches  
+  width <- 7.5   # inches
+  height <- 7.5  # inches  
 
   # Adjust width based on title length
   # title_length <- nchar(title_text)
@@ -46,13 +46,15 @@ pie_chart_sp <- function(df, indicator, title_text) {
       ),
       position = position_stack(vjust = 0.5),
       # family = font_bar_label,
-      size = 12,
+      size = 11,
       show.legend = FALSE
     ) +
 
     scale_fill_manual(values = c(textgrey, teal), guide = guide_legend(reverse = FALSE)) +
     scale_colour_identity() +
-    labs(title = title_text, subtitle = subtitle_text, caption = caption_text, fill = "") +
+    labs(title = str_wrap(title_text,100),
+         subtitle = subtitle_text, 
+         caption = caption_text, fill = "") +
     theme_minimal() +
     theme(
       axis.text = element_blank(),
@@ -70,14 +72,14 @@ pie_chart_sp <- function(df, indicator, title_text) {
       plot.caption = element_text(hjust = 0, size = 18, family = font_caption, colour = black, lineheight = 0.59),
       plot.background = element_rect(fill = "white", color = NA),
 
-      legend.text = element_text(size = 18, family = font_axis_label, colour = black),
+      legend.text = element_text(size = 20, family = font_axis_label, colour = black),
       legend.position = "right",
       plot.margin = margin(10, 40, 10, 10)
 
     )
 
   # ---- export ----
-  export_dir <- here::here("Visuals", "Exports")
+  export_dir <- here::here("Visuals", "Exports SP")
   dir.create(export_dir, recursive = TRUE, showWarnings = FALSE)
   outfile <- file.path(export_dir, paste0(indicator, "_pie_sp.png"))
 
