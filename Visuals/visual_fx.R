@@ -690,7 +690,7 @@ single_bar_race<-function(df, indicator, title_text){
 
 single_bar_sp_race<-function(df, indicator){
   
-  message("single_bar_sp_race: version updated 2026-04-14")
+  message("single_bar_sp_race: version updated 2026-04-17")
   
   
   # rename 'rate' column for function and arrange by rate descending
@@ -703,8 +703,8 @@ single_bar_sp_race<-function(df, indicator){
   # Dynamically adjust dimensions of the output
   
   # Base width/height
-  base_width <- 20   # px
-  base_height <- 14  # px
+  base_width <- 7   # px
+  base_height <- 5  # px
   
   # Adjust height based on number of rows (bars)
   num_bars <- nrow(df %>% filter(label != "Total"))
@@ -762,7 +762,7 @@ single_bar_sp_race<-function(df, indicator){
               hjust = -0.1,   # small negative number pushes text to the right of the bar
               vjust = 0.5,
               colour = "black",
-              size=15) +
+              size=18) +
     
     labs(title = title_text,
          subtitle = subtitle_text,
@@ -777,11 +777,11 @@ single_bar_sp_race<-function(df, indicator){
     theme(legend.title = element_blank(), # no legend--modify if necessary
           
           # define style for axis text
-          axis.text.y = element_text(size = 40, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
+          axis.text.y = element_text(size = 45, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
                                      colour = black, family= font_axis_label,
-                                     lineheight = 0.7),
+                                     lineheight = 0.3),
           axis.text.x = element_blank(),
-          plot.caption = element_text(hjust = 0.0, size = 40, colour = black, family = font_caption, lineheight = 0.59),
+          plot.caption = element_text(hjust = 0.0, size = 45, colour = black, family = font_caption, lineheight = 0.59),
           plot.title =  element_text(hjust = 0.0, size = 30, colour = black, family = font_title), 
           plot.subtitle = element_text(hjust = 0.0, size = 25, colour = black, family = font_subtitle),
           axis.ticks = element_blank(),
@@ -1562,8 +1562,8 @@ single_bar_tot_sp_v3<-function(df, indicator){
   # Dynamically adjust dimensions of the output
   
   # Base width/height
-  base_width <- 16   # inches
-  base_height <- 13 # inches
+  base_width <- 7   # inches
+  base_height <- 5 # inches
   
   # Adjust height based on number of rows (bars)
   num_bars <- nrow(df %>% filter(label != "Total"))
@@ -1609,7 +1609,7 @@ single_bar_tot_sp_v3<-function(df, indicator){
     
     # vertical line for Total %
     geom_hline(yintercept = subset(df, label =="Total")$rate, linetype = "dotted",
-               color = black, size = 3) +    
+               color = black, size = 1) +    
     
     # label for vertical Total % line
     
@@ -1620,7 +1620,7 @@ single_bar_tot_sp_v3<-function(df, indicator){
                "Tasa General: %.1f%%",
                subset(df, label == "Total")$rate), 
              hjust =-0.07, vjust = 0.5,
-             color = black, size = 14, family = font_axis_label) +
+             color = black, size = 22, family = font_axis_label) +
     
     # bar labels
     
@@ -1629,7 +1629,7 @@ single_bar_tot_sp_v3<-function(df, indicator){
               hjust = -0.05,   # small negative number pushes text to the right of the bar
               vjust = 0.5,
               colour = "black",
-              size = 14) +
+              size = 22) +
     
     labs(title = title_text,
          subtitle = str_wrap(subtitle_text, width = 80),
@@ -1644,12 +1644,12 @@ single_bar_tot_sp_v3<-function(df, indicator){
     theme(legend.title = element_blank(), # no legend--modify if necessary
           plot.margin = margin(20, 120, 20, 20),
           # define style for axis text
-          axis.text.y = element_text(size = 40, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
+          axis.text.y = element_text(size = 60, margin = margin(0, -10, 0, 0), # margins for distance from y-axis labels to bars
                                      colour = black, family= font_axis_label,
-                                     lineheight = 0.7),
+                                     lineheight = 0.3),
           axis.text.x = element_blank(),
-          plot.caption = element_text(hjust = 0.0, size = 40, colour = black, 
-                                      family = font_caption,  lineheight = 0.7),
+          plot.caption = element_text(hjust = 0.0, size = 60, colour = black, 
+                                      family = font_caption,  lineheight = 0.3),
           plot.title =  element_text(hjust = 0.0, size = 30, colour = black, family = font_title), 
           plot.subtitle = element_text(hjust = 0.0, size = 25, colour = black, family = font_subtitle),
           axis.ticks = element_blank(),
