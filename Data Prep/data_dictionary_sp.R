@@ -29,8 +29,16 @@ sp<-sp%>%
          )%>%
   mutate(across(where(is.character),
                 ~ gsub("Indio americano y nativo de Alaska",
-                       "indígena de las Américas o nativo de Alaska",
-                       .))) # replace the AIAN Spanish translation to match how it is worded in Census per AB's recommendation
+                       "Indígena de las Américas o Nativo de Alaska",
+                       .)))%>% # replace the AIAN Spanish translation to match how it is worded in Census per AB's recommendation
+  mutate(across(where(is.character),
+                ~ gsub("isleño",
+                       "Isleño",
+                       .))) 
+
+
+
+
 # remove empty rows
 sp<-sp%>%slice(1:13)
 
